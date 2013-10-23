@@ -2,7 +2,7 @@ $(document).ready(function(){
 
     MIBC = {};
 
-    MIBC._val = function(el) {
+    MIBC._val = function( el ) {
 	if (el.type == "checkbox") {
 	    return el.checked
 	} else {
@@ -32,11 +32,23 @@ $(document).ready(function(){
 	return rows.join('\n');
     };
 
+    MIBC.rowdel = function() {
+	$(this).parents().filter('.row').remove();
+    };
+
+    //
+
+    $('form').validate({
+	debug: true
+    });
+
     // Event listeners
-    
+
     $('.rowadd').click(function() {
 	gparents = $(this).parent().parent();
-	$(gparents).clone().insertAfter(gparents).children().remove('a');
+	anchor = $(gparents).clone().insertAfter(gparents).find('a');
+	anchor.on('click', MIBC.rowdel);
+	anchor.children().first().removeClass('rowadd icon-plus-sign').addClass('icon-minus-sign');
     });
 
     $('#metadata input[type=checkbox]').click( function(){
@@ -46,11 +58,13 @@ $(document).ready(function(){
     });
 
     $('#save_btn').click(function() {
-	inputs = $('#metadata input');
-	inputs.validate();
-	$(this).attr( 'href',
+	if ( $('form').valid() ) {
+	    $(this).attr( 'href',
 			  'data:Content-type: text/plain, '+
 			  escape(MIBC.generate_metadata()) );
+	} else {
+	    console.log("Not saving file b/c the form is invalid!");
+	}
     });
     
 });

@@ -4,9 +4,11 @@
   <head>
     <title>metadata.txt</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
-    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    <script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+    <!-- <script src="ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script> -->
+    <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+    <!--<script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script> -->
+    <script src="./jquery.validate.js"></script>
     <style type="text/css">
       body {
         margin:         3% 6%;
@@ -33,71 +35,65 @@
   </head>
 
   <body>
-    <div id="metadata" >
-      <h3>Automagic metadata generator</h3>
-      <p>Fill out this form to get your metadata.txt file</p>
+    <form>
+      <div id="metadata" >
+	<h3>Automagic metadata generator</h3>
+	<p>Fill out this form to get your metadata.txt file</p>
 
-      <div class="span12">
-	<div class="row">
-	  <input required="required" type="text" placeholder="pi_first_name">
-	  <input required="required" type="text" placeholder="pi_last_name">
-	  <input required="required" type="email" placeholder="pi_contact_email">
-	  <input required="required" type="text" placeholder="lab_name">
-	  <a href="#"><i class="rowadd icon-plus-sign"></i></a>
-	</div>
-	<div class="row">
-	  <input required="required" type="text" placeholder="researcher_first_name">
-	  <input required="required" type="text" placeholder="researcher_last_name">
-	  <input required="required" type="email" placeholder="research_contact_email">
-	  <a href="#"><i class="rowadd icon-plus-sign"></i></a>
-	</div>
-	<div class="row">
-	  <input required="required" type="text" placeholder="study_title">
-	  <input required="required" type="text" placeholder="study_description">
-	  <input required="required" type="text" placeholder="study_type">
-	</div>
-	<div class="row">
-	  <label>Collection Start Date</label>
-	  <input required="required" type="date" placeholder="collection_start_date">
-	  <label>Collection End Date</label>
-	  <input required="required" type="date" placeholder="collection_end_date">
-	</div>
-	<div class="row">
-	  <input type="checkbox" placeholder="submitted_to_insdc"> Submitted to insdc
-	</div>
-	<div class="row hidden" id="submitted_to_insdc">
-	  <input type="text" placeholder="geo_loc_name">
-	  <input type="text" placeholder="lat_lon">
-	  <input type="text" placeholder="feature">
-	</div>
-	<div class="row">
-	  <input type="checkbox" placeholder="16s_data"> 16s_data
-	</div>
-	<div class="row hidden" id="16s_data">
-	  <input type="text" placeholder="16s_reverse_primer">
-	  <input type="text" placeholder="platform">
-	</div>
-	<div class="row">
-	  <input required="required" type="text" placeholder="investigation_type">
-	  <input required="required" type="text" placeholder="target_gene">
-	  <input required="required" type="text" placeholder="seq_meth">
-	  <input required="required" type="text" placeholder="isol_growth_condt">
-	</div>
-	<div class="row">
-	  <input required="required" type="text" placeholder="num_replicons">
-	  <input required="required" type="text" placeholder="estimated_size">
-	  <input required="required" type="text" placeholder="propagation">
-	  <input required="required" type="text" placeholder="sra_number">
-	</div>
-	<div class="row">
-	  <input required="required" type="text" placeholder="filename">
-	  <a href="#"><i class="rowadd icon-plus-sign"></i></a>
-	</div>
-	<div class="row">
-	  <a id="save_btn" download="metadata.txt" class="btn btn-primary" href="#">Save</a>
+	<div class="span12">
+	  <div class="row">
+	    <input required="required" type="text" placeholder="pi_first_name">
+	    <input required="required" type="text" placeholder="pi_last_name">
+	    <input required="required" type="email" placeholder="pi_contact_email">
+	    <input required="required" type="text" placeholder="lab_name">
+	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
+	  </div>
+	  <div class="row">
+	    <input required="required" type="text" placeholder="researcher_first_name">
+	    <input required="required" type="text" placeholder="researcher_last_name">
+	    <input required="required" type="email" placeholder="research_contact_email">
+	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
+	  </div>
+	  <div class="row">
+	    <input required="required" type="text" placeholder="study_title">
+	    <input required="required" type="text" placeholder="study_description">
+	    <select> <option> Sample Type </option>
+	      <option value="human_gut">Human, Gut </option> 
+	      <option value="human_oral">Human, Oral </option>
+	      <option value="human_associated">Human, Other</option>
+	      <option value="microbian">Microbial</option>
+	  </div>
+	  <div class="row">
+	    <label>Collection Start Date</label>
+	    <input required="required" type="date" placeholder="collection_start_date">
+	    <label>Collection End Date</label>
+	    <input required="required" type="date" placeholder="collection_end_date">
+	  </div>
+	  <div class="row">
+	    <input type="checkbox" placeholder="submitted_to_insdc"> Submit to insdc?
+	  </div>
+	  <div class="row hidden" id="submitted_to_insdc">
+	    <input type="text" placeholder="geo_loc_name">
+	    <input type="text" placeholder="lat_lon">
+	    <input type="text" placeholder="feature">
+	  </div>
+	  <div class="row">
+	    <input type="checkbox" placeholder="16s_data"> 16s_data?
+	  </div>
+	  <div class="row hidden" id="16s_data">
+	    <input type="text" placeholder="16s_reverse_primer">
+	    <input type="text" placeholder="platform">
+	  </div>
+	  <div class="row">
+	    <input required="required" type="text" placeholder="filename">
+	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
+	  </div>
+	  <div class="row">
+	    <a id="save_btn" download="metadata.txt" class="btn btn-primary" href="#">Save</a>
+	  </div>
 	</div>
       </div>
-    </div>
+    </form>
     <script src="metadata.js"></script>
   </body>
 
