@@ -5,10 +5,8 @@
     <title>metadata.txt</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
     <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
-    <!-- <script src="ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script> -->
-    <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
-    <!--<script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script> -->
-    <script src="./jquery.validate.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
     <style type="text/css">
       body {
         margin:         3% 6%;
@@ -30,6 +28,10 @@
         visibility: hidden;
       }
 
+      input[type=checkbox] {
+        margin-bottom: 10px;
+      }
+
     </style>
     
   </head>
@@ -40,57 +42,65 @@
 	<h3>Automagic metadata generator</h3>
 	<p>Fill out this form to get your metadata.txt file</p>
 
-	<div class="span12">
+	<div class="span10">
+	  <div id="message_box" class="well well-large hidden">
+	    <input type="checkbox" id="save_override"> Save anyway?
+	    <hr />
+	  </div>
 	  <div class="row">
-	    <input required="required" type="text" placeholder="pi_first_name">
-	    <input required="required" type="text" placeholder="pi_last_name">
-	    <input required="required" type="email" placeholder="pi_contact_email">
-	    <input required="required" type="text" placeholder="lab_name">
+	    <input required="required" name="pi_first_name" type="text" placeholder="PI First Name">
+	    <input required="required" type="text" placeholder="PI Last Name" name="pi_last_name">
+	    <input required="required" type="email" placeholder="PI Email" name="pi_contact_email">
+	    <input required="required" type="text" placeholder="Lab Name" name="lab_name">
 	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
 	  </div>
 	  <div class="row">
-	    <input required="required" type="text" placeholder="researcher_first_name">
-	    <input required="required" type="text" placeholder="researcher_last_name">
-	    <input required="required" type="email" placeholder="research_contact_email">
+	    <input required="required" type="text" placeholder="Researcher First Name" name="researcher_first_name">
+	    <input required="required" type="text" placeholder="Researcher Last Name" name="researcher_last_name">
+	    <input required="required" type="email" placeholder="Researcher Email" name="researcher_contact_email">
 	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
 	  </div>
 	  <div class="row">
-	    <input required="required" type="text" placeholder="study_title">
-	    <input required="required" type="text" placeholder="study_description">
-	    <select> <option> Sample Type </option>
+	    <input required="required" type="text" placeholder="Study Title" name="study_title">
+	    <input required="required" type="text" placeholder="Study Description" name="study_description">
+	    <select name="sample_type" required="required"> <option> Sample Type </option>
 	      <option value="human_gut">Human, Gut </option> 
 	      <option value="human_oral">Human, Oral </option>
 	      <option value="human_associated">Human, Other</option>
-	      <option value="microbian">Microbial</option>
+	      <option value="microbial">Microbial</option>
+	    </select>
 	  </div>
 	  <div class="row">
-	    <label>Collection Start Date</label>
-	    <input required="required" type="date" placeholder="collection_start_date">
-	    <label>Collection End Date</label>
-	    <input required="required" type="date" placeholder="collection_end_date">
+	    <input required="required" type="text" placeholder="Filename" name="filename">
+	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
 	  </div>
 	  <div class="row">
-	    <input type="checkbox" placeholder="submitted_to_insdc"> Submit to insdc?
-	  </div>
-	  <div class="row hidden" id="submitted_to_insdc">
-	    <input type="text" placeholder="geo_loc_name">
-	    <input type="text" placeholder="lat_lon">
-	    <input type="text" placeholder="feature">
+	    <label for="collection_start_date" >Collection Start Date</label>
+	    <input required="required" type="date" name="collection_start_date">
+	    <label for="collection_end_date" >Collection End Date</label>
+	    <input required="required" type="date" name="collection_end_date">
 	  </div>
 	  <div class="row">
-	    <input type="checkbox" placeholder="16s_data"> 16s_data?
+	    <input required="required" type="checkbox" placeholder="submit_to_insdc" name="submit_to_insdc"> Submit to insdc?
+	  </div>
+	  <div class="row hidden" id="submit_to_insdc">
+	    <input type="text" placeholder="Geolocation Name" name="geo_loc_name">
+	    <input type="text" placeholder="Lat/Lon Coordinates" name="lat_lon">
+	    <input type="text" placeholder="Feature" name="feature">
+	  </div>
+	  <div class="row">
+	    <input required="required" type="checkbox" placeholder="16s_data" name="16s_data"> 16s_data?
 	  </div>
 	  <div class="row hidden" id="16s_data">
-	    <input type="text" placeholder="16s_reverse_primer">
-	    <input type="text" placeholder="platform">
-	  </div>
-	  <div class="row">
-	    <input required="required" type="text" placeholder="filename">
-	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
+	    <input type="text" placeholder="Reverse Primer" name="reverse_primer">
+	    <input type="text" placeholder="Platform" name="platform">
 	  </div>
 	  <div class="row">
 	    <a id="save_btn" download="metadata.txt" class="btn btn-primary" href="#">Save</a>
 	  </div>
+	  <br />
+	  <br />
+	  <br />
 	</div>
       </div>
     </form>
