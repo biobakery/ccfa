@@ -53,7 +53,7 @@ $(document).ready(function(){
 	},
 
 	successHandler : function( event, validator ) {
-	    $(this).removeClass('btn-primary').addClass('btn-success');
+	    $(this).removeClass('btn-primary').addClass('btn-success').attr('download', 'metadata.txt');;
 	},
 
 	rules : {
@@ -105,7 +105,7 @@ $(document).ready(function(){
     
     $('#save_btn').click( function() {
 	if ( $('form').valid() || $('#save_override')[0].checked ) {
-	    $(this).removeClass('btn-primary').addClass('btn-success');
+	    $(this).removeClass('btn-primary').addClass('btn-success').attr('download', 'metadata.txt');
 	    MIBC.url(this);
 	} else {
 	    $(this).removeClass('btn-primary').addClass('btn-danger');
