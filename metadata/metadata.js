@@ -12,7 +12,7 @@ $(document).ready(function(){
 	var records = {},
 	    rows    = [];
 
-	$('#metadata input[required]').each(function(i, el){
+	$('#metadata input[required], #metadata select[required]').each(function(i, el){
 	    if (typeof(records[this.name]) === "undefined") {
 		records[this.name] = [MIBC._val(this)]
 	    } else {
@@ -35,9 +35,11 @@ $(document).ready(function(){
     };
 
     MIBC.url = function( el ){
-	$(el).attr( 'href',
-		    'data:Content-type: text/plain, '+
-		    escape(MIBC.generate_metadata()) );
+	$(el).attr({
+	    'href':     'data:Content-type: text/plain, '+
+		         escape(MIBC.generate_metadata()),
+	    'download': 'metadata.txt'
+	});
     };
 
     // Validation logic
@@ -53,7 +55,7 @@ $(document).ready(function(){
 	},
 
 	successHandler : function( event, validator ) {
-	    $(this).removeClass('btn-primary').addClass('btn-success').attr('download', 'metadata.txt');;
+	    $(this).removeClass('btn-primary').addClass('btn-success');
 	},
 
 	rules : {
@@ -105,7 +107,7 @@ $(document).ready(function(){
     
     $('#save_btn').click( function() {
 	if ( $('form').valid() || $('#save_override')[0].checked ) {
-	    $(this).removeClass('btn-primary').addClass('btn-success').attr('download', 'metadata.txt');
+	    $(this).removeClass('btn-primary').addClass('btn-success');
 	    MIBC.url(this);
 	} else {
 	    $(this).removeClass('btn-primary').addClass('btn-danger');
