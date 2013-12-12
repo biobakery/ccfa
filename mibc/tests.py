@@ -15,8 +15,8 @@ from models import (
 import settings
 
 
-user_to_test    = "mtong"
-project_to_test = "Illumina_HiSeq_16S"
+user_to_test    = "example_user"
+project_to_test = "example_proj"
 
 
 class ValidatorBase(object):
