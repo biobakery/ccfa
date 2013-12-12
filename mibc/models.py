@@ -2,9 +2,7 @@ import os
 from datetime import datetime
 
 import settings
-import validate
 import util
-
 
 default_repo = None
             
@@ -21,9 +19,6 @@ class Repository(object):
 
         self._last_updated = None
 
-
-    def validate(self):
-        return validate.validate(self)
 
     def newly_updated(self, since=datetime.now()):
         return [ 
@@ -67,9 +62,6 @@ class User(object):
         self._last_updated = None
 
         
-    def validate(self):
-        return validate.validate(self)
-
     def newly_updated(self, since=datetime.now()):
         return [ 
             p for p in self.projects.all() if since < p.last_updated 
@@ -96,7 +88,7 @@ class User(object):
 
 class Project(object):
     
-    def __init__(self, name, user, autopopulate=True):
+    def __init__(self, name, user, autopopulate=False):
         self.name = name
         self.user = user
         self.path = os.path.join(user.path, name)
@@ -112,10 +104,6 @@ class Project(object):
         self.last_updated = max( util.stat(self.path, f).st_mtime
                                  for f in os.listdir(self.path) )
         self.last_updated = datetime.fromtimestamp(self.last_updated)
-
-
-    def validate(self):
-        return validate.validate(self)
 
 
     def _gather(self, filename):
