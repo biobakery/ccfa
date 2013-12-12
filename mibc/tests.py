@@ -1,7 +1,9 @@
 
 import os
 import re
+import datetime
 from types import *
+
 
 import dateutil.parser
 
@@ -13,11 +15,11 @@ from models import (
 import settings
 
 
-user_to_test    = "example_user"
-project_to_test = "example_proj"
+user_to_test    = "mtong"
+project_to_test = "Illumina_HiSeq_16S"
 
 
-class TestBase(object):
+class ValidatorBase(object):
 
     conditions = list()
 
@@ -40,15 +42,14 @@ class TestBase(object):
             self.conditions = list()
             return ret
 
-
     def __iter__(self):
-        for key, val in self__dict__.iteritems():
+        for key in dir(self):
             if key.startswith('test_'):
-                yield val
+                yield getattr(self, key)
 
 
 
-class Repository_Test(TestBase):
+class Repository_Test(ValidatorBase):
     
     def setUp(self):
         self.repo = Repository()
@@ -60,23 +61,33 @@ class Repository_Test(TestBase):
         new_repo = Repository()
 
     def test_necessaryProperties(self):
-        self.cond( self, type(self.repo.path) is StringType )
-        self.cond( self, self.repo.path == settings.c_repository_root )
+        self.cond( type(self.repo.path) is StringType,
+                   "Repository has no path"
+        )
+        self.cond( os.path.isdir(self.repo.path),
+                   "The Repository path %s does not exist" %(self.repo.path)
+        )
         assert self.all_tests_passed()
 
     def test_userList(self):
         allusers = self.repo.users.all()
-        self.cond( self, type(allusers) is ListType )
-        self.cond( self, len(allusers) > 0 )
+        self.cond( type(allusers) is ListType,
+                   "Unable to list users in repository"
+        )
+        self.cond( len(allusers) > 0,
+                   "No users, even the example user, are found"
+        )
         assert self.all_tests_passed()
 
     def test_userGet(self):
         user = self.repo.users[user_to_test]
-        self.cond( self, len(user.name) > 0 )
+        self.cond( len(user.name) > 0,
+                   "Failed to test user %s"%(user.name)
+        )
         assert self.all_tests_passed()
 
 
-class User_Test(TestBase):
+class User_Test(ValidatorBase):
     
     def setUp(self):
         self.repo = Repository()
@@ -86,26 +97,36 @@ class User_Test(TestBase):
         del(self.user)
 
     def test_necessaryProperties(self):
-        self.cond( self, type(self.user.path) is StringType )
-        self.cond( self, 
-            self.user.path == os.path.join( self.repo.path,
-                                            self.user.name )
-            )
+        self.cond( type(self.user.path) is StringType,
+                   "The user %s has a path that isn't a string"%(self.user.name)
+        )
+        self.cond( self.user.path == os.path.join( self.repo.path,
+                                                   self.user.name ),
+                   str("The path attribute for user %s "
+                       "does not match the user's name")%(self.user.name)
+        )
         assert self.all_tests_passed()
 
     def test_projectList(self):
         allprojects = self.user.projects.all()
-        self.cond( self, type(allprojects) is ListType )
-        self.cond( self, len(allprojects) > 0 )
+        self.cond( type(allprojects) is ListType,
+                   "Unable to list all projects under user %s"%(self.user.name)
+        )
+        self.cond( len(allprojects) > 0,
+                   "User %s has no projects" %(self.user.name)
+        )
         assert self.all_tests_passed()
 
     def test_projectGet(self):
         proj = self.user.projects[project_to_test]
-        self.cond( self, len(proj.name) > 0 )
+        self.cond( len(proj.name) > 0,
+                   "Failed to retrieve the project %s from user %s" %(
+                       project_to_test, self.user.name)
+        )
         assert self.all_tests_passed()
 
 
-class Project_Test(TestBase):
+class Project_Test(ValidatorBase):
 
     required_fields = [
         "pi_first_name",
@@ -134,9 +155,10 @@ class Project_Test(TestBase):
 
     def test_necessaryProperties(self):
         for field in self.required_fields:
-            self.cond( self, 
-                getattr(self.project, field, None) is not None
-                )
+            self.cond( getattr(self.project, field, None) is not None,
+                       "Project %s is missing required field %s" %(
+                           self.project, field )
+            )
 
         assert self.all_tests_passed()
 
@@ -144,7 +166,15 @@ class Project_Test(TestBase):
     def test_parseableDates(self):
         for field in [ self.project.collection_end_date,
                        self.project.collection_start_date ]:
-            dateutil.parser.parse(field[0])
+            try:
+                date = dateutil.parser.parse(field[0])
+            finally:
+                self.cond( type(date) is type(datetime.datetime(2013,12,05)),
+                           "%s has an unreadable date %s"%(
+                               self.project, field[0])
+                )
+
+        assert self.all_tests_passed()
 
 
     def test_realisticDates(self):
@@ -154,14 +184,20 @@ class Project_Test(TestBase):
         end = dateutil.parser.parse(
             self.project.collection_end_date[0]
             )
-        self.cond( self, beg < end )
+        self.cond( beg <= end,
+                   str("%s has a end collection date "
+                       "before its start collection date" )%(self.project)
+        )
         assert self.all_tests_passed()        
 
     def test_filenamesExist(self):
         for basename in self.project.filename:
             fullpath = os.path.join( self.project.path,
                                      basename )
-            self.cond( self, os.path.isfile(fullpath) )
+            self.cond( os.path.isfile(fullpath),
+                       "%s File specified %s does not exist" %(
+                           self.project, fullpath)
+            )
 
         assert self.all_tests_passed()
 
@@ -174,7 +210,10 @@ class Project_Test(TestBase):
                 r'[a-zA-Z0-9]+@[0-9a-zA-Z]+\.[0-9a-zA-Z]+', 
                 address
                 )
-            self.cond(x is not None)
+            self.cond(x is not None,
+                      "%s Email address %s is not readable" %(
+                          self.project, address)
+            )
             
         assert self.all_tests_passed()
 

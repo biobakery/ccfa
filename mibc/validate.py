@@ -8,9 +8,10 @@ def validate(obj, **opts):
 
     for test_func in validator:
         try:
+            validator.setUp()
             test_func()
+            validator.tearDown()
         except Exception as e:
             validator.conditions.append( (None, str(e)) )
 
     return validator.conditions
-    

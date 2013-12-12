@@ -1,2 +1,2 @@
 
-c_repository_root = "/n/ccfa/dev/ccfa/data/files/users"
+c_repository_root = "/var/www/ccfa/data/files/users"
