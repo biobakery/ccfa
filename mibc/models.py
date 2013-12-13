@@ -5,6 +5,12 @@ import settings
 import util
 
 default_repo = None
+def default_Repository():
+    if default_repo is None:
+        default_repo = Repository()
+
+    return default_repo
+
             
 class Repository(object):
 
@@ -54,7 +60,7 @@ class User(object):
     
     def __init__(self, name, repo=None, autopopulate=False):
         self.name = name
-        self.repo = repo if repo is not None else default_repo
+        self.repo = repo if repo is not None else default_Repository()
 
         self.path = os.path.join(self.repo.path, name)
         self.projects = ProjectRoster(self)
