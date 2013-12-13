@@ -23,9 +23,9 @@ class ValidatorBase(object):
 
     conditions = list()
 
-    def __init__(self, cheat_all_tests=False):
+    def __init__(self, base=None, cheat_all_tests=False):
         self.cheat_all_tests = cheat_all_tests
-
+        self.base = base
 
     def cond(self, cond, mesg):
         if cond is True:
@@ -52,7 +52,10 @@ class ValidatorBase(object):
 class Repository_Test(ValidatorBase):
     
     def setUp(self):
-        self.repo = Repository()
+        if self.base:
+            self.repo = base
+        else:
+            self.repo = Repository()
 
     def tearDown(self):
         del(self.repo)
@@ -90,11 +93,16 @@ class Repository_Test(ValidatorBase):
 class User_Test(ValidatorBase):
     
     def setUp(self):
-        self.repo = Repository()
-        self.user = self.repo.users[user_to_test]
+        if self.base:
+            self.repo = self.base.repo
+            self.user = self.base
+        else:
+            self.repo = Repository()
+            self.user = self.repo.users[user_to_test]
 
     def tearDown(self):
         del(self.user)
+        del(self.repo)
 
     def test_necessaryProperties(self):
         self.cond( type(self.user.path) is StringType,
@@ -144,10 +152,14 @@ class Project_Test(ValidatorBase):
         ]
 
     def setUp(self):
-        self.repo = Repository()
-        self.user = self.repo.users[user_to_test]
-        self.project = self.user.projects[project_to_test]
-
+        if self.base:
+            self.repo = self.base.user.repo
+            self.user = self.base.user
+            self.project = self.base
+        else:
+            self.repo = Repository()
+            self.user = self.repo.users[user_to_test]
+            self.project = self.user.projects[project_to_test]
 
     def tearDown(self):
         del( self.repo, self.user, self.project )
