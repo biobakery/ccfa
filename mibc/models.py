@@ -6,6 +6,7 @@ import util
 
 default_repo = None
 def default_Repository():
+    global default_repo
     if default_repo is None:
         default_repo = Repository()
 
