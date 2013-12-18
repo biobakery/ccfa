@@ -7,6 +7,17 @@ from .render import render_to_email
 from .. import models
 from ..validate import validate
 
+
+DESCRIPTION="""%prog - run validation suite on a project and notify users"""
+
+HELP="""
+%prog [options] [<username>/<project> [<username>/<project> ... ]]
+%prog [options] [<username> [<username> ... ]]
+
+Examples: %prog example_user/example_project
+          %prog -n example_user
+"""
+
 opts_list = [
     optparse.make_option('-n', '--dry-run', action="store_true", 
                          dest="dry_run",
@@ -56,7 +67,9 @@ def _maybe_email_somebody( results_list, project, dry_run=False ):
 
 
 def main():
-    parser = optparse.OptionParser(option_list=opts_list)
+    parser = optparse.OptionParser(option_list=opts_list, 
+                                   usage=HELP,
+                                   description=DESCRIPTION)
     (opts, args) = parser.parse_args()
     logging.getLogger().setLevel(getattr(logging, opts.logging.upper()))
     logging.basicConfig(
