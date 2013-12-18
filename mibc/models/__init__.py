@@ -58,7 +58,7 @@ class Repository(object):
         return "Repository"
 
     def __hash__(self):
-        return self.path
+        return hash(self.path)
 
 
 
@@ -105,6 +105,7 @@ class Project(object):
         self.user = user
         self.path = os.path.join(user.path, name)
 
+        self._autopopulated = False
         if autopopulate:
             self.autopopulate()
 
@@ -116,6 +117,7 @@ class Project(object):
         self.last_updated = max( util.stat(self.path, f).st_mtime
                                  for f in os.listdir(self.path) )
         self.last_updated = datetime.fromtimestamp(self.last_updated)
+        self._autopopulated = True
 
 
     def _gather(self, filename):
@@ -126,14 +128,20 @@ class Project(object):
 
 
     def __getattr__(self, name):
-        self.autopopulate()
-        return getattr(self, name)
+        if not self._autopopulated:
+            self.autopopulate()
+            return getattr(self, name)
+        else:
+            raise AttributeError(name)
 
     def __str__(self):
         return "<Project(%s, %s) >" % (self.user.name, self.name)
 
     def __repr__(self):
         return "Project"
+
+    def __hash__(self):
+        return hash(self.path)
 
 
 
