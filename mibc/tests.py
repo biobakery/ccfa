@@ -168,7 +168,7 @@ class Project_Test(ValidatorBase):
         for field in self.required_fields:
             self.cond( getattr(self.project, field, None) is not None,
                        "Project %s is missing required field %s" %(
-                           self.project, field )
+                           self.project.name, field )
             )
 
         assert self.all_tests_passed()
@@ -181,8 +181,8 @@ class Project_Test(ValidatorBase):
                 date = dateutil.parser.parse(field[0])
             finally:
                 self.cond( type(date) is type(datetime.datetime(2013,12,05)),
-                           "%s has an unreadable date %s"%(
-                               self.project, field[0])
+                           "Project %s has an unreadable date %s"%(
+                               self.project.name, field[0])
                 )
 
         assert self.all_tests_passed()
@@ -196,8 +196,8 @@ class Project_Test(ValidatorBase):
             self.project.collection_end_date[0]
             )
         self.cond( beg <= end,
-                   str("%s has a end collection date "
-                       "before its start collection date" )%(self.project)
+                   str("Project %s has a end collection date "
+                       "before its start collection date" )%(self.project.name)
         )
         assert self.all_tests_passed()        
 
@@ -206,8 +206,8 @@ class Project_Test(ValidatorBase):
             fullpath = os.path.join( self.project.path,
                                      basename )
             self.cond( os.path.isfile(fullpath),
-                       "%s File specified %s does not exist" %(
-                           self.project, fullpath)
+                       "Project %s: File specified %s does not exist" %(
+                           self.project.name, fullpath)
             )
 
         assert self.all_tests_passed()
@@ -222,8 +222,8 @@ class Project_Test(ValidatorBase):
                 address
                 )
             self.cond(x is not None,
-                      "%s Email address %s is not readable" %(
-                          self.project, address)
+                      "Project %s: Email address %s is not readable" %(
+                          self.project.name, address)
             )
             
         assert self.all_tests_passed()
