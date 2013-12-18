@@ -1,3 +1,4 @@
 *~
 jquery.validate.js
 *.pyc
+*.egg-info
