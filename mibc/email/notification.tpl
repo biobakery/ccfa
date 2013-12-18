@@ -7,7 +7,7 @@ The MIBC is missing certain bits of information about your data, though.
 In order to process everything correctly, please address the following issues:
 
 % for error in errors: 
-  [ ]  {{error[1]}}
+  [ ]  {{error}}
 % end
 
 Thanks for using the MIBC.
