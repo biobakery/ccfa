@@ -14,4 +14,7 @@ def validate(obj, **opts):
         except Exception as e:
             validator.conditions.append( (None, str(e)) )
 
+    # Some conditions could be duplicates, but I'm not going to dedupe
+    #   that down because it's possible someone might want the number
+    #   of tests that failed
     return validator.conditions
