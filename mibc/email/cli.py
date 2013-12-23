@@ -4,7 +4,10 @@ from pprint import pprint
 
 from .render import render_to_email
 
-from .. import models
+from .. import (
+    models,
+    settings
+)
 from ..validate import validate
 
 
@@ -22,6 +25,10 @@ opts_list = [
     optparse.make_option('-n', '--dry-run', action="store_true", 
                          dest="dry_run",
                          help="Instead of emailing users, print the email."),
+    optparse.make_option('-a', '--auto', action="store_true", 
+                         dest="auto_mode",
+                         help="Find and validate projects updated since last "+
+                         "validation run"),
      optparse.make_option('-l', '--logging', action="store", type="string",
                          dest="logging", default="INFO",
                          help="Logging verbosity, options are debug, info, "+
@@ -44,12 +51,30 @@ def _parse_path(*paths):
 
     return list(project_set)
 
+    
+def _autodiscover_projects_to_validate():
+    project_set = set()
+    for user in repo.users.all():
+        for project in user.projects.all():
+            last_validated, validation_succeeded = project.validation_status
+            if project.last_updated > last_validated:
+                project_set.add(project)
+
+    return list(project_set)
+    
 
 def _maybe_email_somebody( results_list, project, dry_run=False ):
     email = getattr(project, "researcher_contact_email", False)
     if not email:
-        # Go get it from ldap
-        email = project.user.ldap_attrs['mail']
+        # Go get it from ldap. If even that fails, send it to the site
+        # admin, and add another failed item in the results_list
+        if 'mail' in project.user.ldap_attrs:
+            email = project.user.ldap_attrs['mail']
+        else:
+            email = settings.email.default_from_addr
+            results_list.append(
+                'Project %s: cannot find user email from ldap' %(project.name)
+            )
 
     context = dict( errors = results_list,
                     project = project )
@@ -75,12 +100,23 @@ def main():
     logging.basicConfig(
         format="%(asctime)s %(levelname)s: %(message)s")
 
-    projects_to_validate = _parse_path(*args)
+    if opts.auto_mode:
+        projects_to_validate = _autodiscover_projects_to_validate()
+    else:
+        projects_to_validate = _parse_path(*args)
+
+    if not projects_to_validate:
+        logging.info("No projects found")
+
     for project in projects_to_validate:
         results = validate(project)
         results = set([ msg
                         for indicator, msg in results
                         if indicator is not True ])
+
+        if not opts.dry_run:
+            status = len(results) > 0
+            project.validation_status = status
 
         if len(results) > 0:
             _maybe_email_somebody( list(results), project, opts.dry_run )
