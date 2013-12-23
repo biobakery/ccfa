@@ -20,18 +20,16 @@ project_to_test = "example_proj"
 
 class ValidatorBase(object):
 
-    conditions = list()
-
     def __init__(self, base=None, cheat_all_tests=False):
         self.cheat_all_tests = cheat_all_tests
         self.base = base
+        self.conditions = list()
 
     def cond(self, cond, mesg):
         if cond is True:
             self.conditions.append((True, ""))
         else:
             self.conditions.append((cond, mesg))
-
 
     def all_tests_passed(self):
         if self.cheat_all_tests:
