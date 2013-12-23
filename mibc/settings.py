@@ -7,7 +7,10 @@ class email(object):
     default_smtp_serv = "localhost"
 
 class ldap(object):
-    url     = "dc2-rc"
-    bind_dn = "CN=clusterldap,OU=Unmanaged Service Accounts,DC=rc,DC=domain"
-    bind_pw = r'p$e9e!A2'
+    url         = "ldaps://dc2-rc/"
+    bind_dn     = "CN=clusterldap,OU=Unmanaged Service Accounts,DC=rc,DC=domain"
+    bind_pw     = r'p$e9e!A2'
+    search_base = "DC=rc,DC=domain"
     
+class users(object):
+    ignored = ['admin']
