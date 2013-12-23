@@ -7,7 +7,7 @@ from .. import (
 )
 
 import usermixins
-
+import projectmixins
 
 default_repo = None
 def default_Repository():
@@ -98,7 +98,7 @@ class User(usermixins.LDAP):
 
 
 
-class Project(object):
+class Project(projectmixins.validation):
     
     def __init__(self, name, user, autopopulate=False):
         self.name = name
@@ -109,14 +109,22 @@ class Project(object):
         if autopopulate:
             self.autopopulate()
 
+        self._last_updated = None
+
+    @property
+    def last_updated(self):
+        if not self._last_updated:
+            self._last_updated = max( util.stat(self.path, f).st_mtime
+                                      for f in os.listdir(self.path) )
+            self._last_updated = datetime.fromtimestamp(self._last_updated)
+
+        return self._last_updated
+
 
     def autopopulate(self):
         self.__dict__.update( self._gather('metadata.txt') )
         self.map = self._gather('map.txt')
 
-        self.last_updated = max( util.stat(self.path, f).st_mtime
-                                 for f in os.listdir(self.path) )
-        self.last_updated = datetime.fromtimestamp(self.last_updated)
         self._autopopulated = True
 
 
@@ -129,8 +137,11 @@ class Project(object):
 
     def __getattr__(self, name):
         if not self._autopopulated:
-            self.autopopulate()
-            return getattr(self, name)
+            try:
+                self.autopopulate()
+                return getattr(self, name)
+            except IOError as e:
+                raise AttributeError( "Unable to retrieve %s: %s"%(name, e) )
         else:
             raise AttributeError(name)
 
@@ -164,7 +175,8 @@ class BaseRoster(object):
         return [ self.MemberClass( os.path.basename(path),
                                    self.parent, 
                                    autopopulate=False )
-                 for path in paths if os.path.isdir(path) ]
+                 for path in paths if os.path.isdir(path) \
+                 and os.path.basename(path) not in settings.users.ignored ]
 
 
     def __getitem__(self, key):
