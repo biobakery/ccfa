@@ -10,7 +10,8 @@ setup(
     install_requires=[
         'nose>=1.3.0',
         'python-dateutil>=2.2',
-        'six>=1.4.1'
+        'six>=1.4.1',
+        'biopython>=1.63'
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha"
@@ -18,6 +19,7 @@ setup(
     entry_points= {
         'console_scripts': [
             'email-validate = mibc.email.cli:main',
+            'sequence-convert = mibc.convert:main',
         ],
     }
 )
