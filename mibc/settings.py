@@ -1,4 +1,3 @@
-import re
 
 c_repository_root = "/var/www/ccfa/data/files/users"
 
@@ -10,17 +9,8 @@ class email(object):
 class ldap(object):
     url         = "ldaps://dc2-rc/"
     bind_dn     = "CN=clusterldap,OU=Unmanaged Service Accounts,DC=rc,DC=domain"
-    bind_pw     = ""
+    bind_pw     = r'p$e9e!A2'
     search_base = "DC=rc,DC=domain"
     
 class users(object):
     ignored = ['admin']
-
-
-try:
-    with open("/etc/ldap.conf") as f:
-        for match in re.finditer(r'\s*bindpw\s+(\S+)', f.read()):
-            # catch the last bindpw in the ldap.conf
-            ldap.bind_pw = match.group(1)
-except:
-    pass
