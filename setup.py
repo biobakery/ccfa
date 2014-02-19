@@ -20,6 +20,8 @@ setup(
         'console_scripts': [
             'email-validate = mibc.email.cli:main',
             'sequence-convert = mibc.convert:main',
+            'assembly = mibc.assembly:main',
+            'mibc_build = mibc.sfle.cli:main',
         ],
     }
 )
