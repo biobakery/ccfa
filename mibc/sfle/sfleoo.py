@@ -26,6 +26,7 @@ import numpy as np
 import shutil
 import random
 import time
+import itertools
 
 class IO:
 
@@ -60,7 +61,6 @@ class IO:
     
     @property
     def inp_all(self):
-        import itertools
         inps = []
         while True:
             nf = self.inp
@@ -351,17 +351,24 @@ class ooSfle:
             return cur_pipe_id
 
         def _chain_( io ):
+            if verbose:
+                commands = [ flatten(item) for item in cur_pipe ]
+                endpoint = commands[-1].pop()
+                commands = [" ".join( c ) for c in commands]
+                print " | ".join(commands), " > ", endpoint
+                
             p_prec = sb.Popen(cur_pipe[0][0], stdout=sb.PIPE, stdin = io.inp_open )
             for p,start,stop in cur_pipe[1:-1]:
                 p_prec = sb.Popen(p, stdin=p_prec.stdout, stdout=sb.PIPE)
             p = sb.Popen(cur_pipe[-1][0], stdin=p_prec.stdout, stdout=io.out_open )
             ret = p.communicate()
             #return ret
+
         if srs_dep is None: srs_dep = []
         if tgt_dep is None: tgt_dep = []
         return self.f( cur_pipe[0][1], cur_pipe[-1][2], _chain_,
                        srs_dep = srs_dep, tgt_dep = tgt_dep,
-                       fname = str("pipe_name_TBA"), verbose = verbose,
+                       fname = str(cur_pipe[0][0][0]+" ... "),
                        __kwargs_dict__ = None )
 
 
@@ -496,3 +503,19 @@ class ooSfle:
                   __kwargs_dict__ = kwargs )
 
 
+def flatten(iterable):
+    acc = list()
+    for item in iterable:
+        if type(item) in (tuple, list, set):
+            for sub_item in item:
+                if type(sub_item) in (tuple, list, set):
+                    acc.append(flatten(sub_item))
+                else:
+                    if sub_item:
+                        acc.append(sub_item)
+        else:
+            if item:
+                acc.append(item)
+                
+    return acc
+        

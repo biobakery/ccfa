@@ -1,0 +1,79 @@
+# -*- mode:python -*-
+import os
+import sys
+
+from mibc import (
+    models
+)
+
+from mibc.sfle import (
+    sfle,
+    sfleoo,
+    workflows,
+    MIBC_ENV_VAR,
+)
+
+
+_env = DefaultEnvironment()
+Decider("timestamp-newer")
+env = None
+
+def path_16s(project):
+    env = _getenv(project)
+
+def path_wgs(project):
+    env = _getenv(project)
+
+    for sample_id, _ in project.map.groupby(0):
+        files_batch = [ filename for filename in project.filename
+                        if str(sample_id) in filename ]
+        
+        product = workflows.metaphlan2(
+            env, 
+            files_list = files_batch,
+            mpa_pkl    = "/home/vagrant/metaphlan-dev/v_20/mpa.200.pkl",
+            bowtie2db  = "/home/vagrant/metaphlan-dev/v_20/mpa.200.ffn"
+        )
+        Default(product)
+    
+
+def _getenv(project):
+    global env
+    if env is None:
+        env = sfleoo.ooSfle(
+            fileDirInput=project.path,
+            fileDirOutput=os.path.join(project.path, 'mibc_products'),
+            fileDirTmp=os.path.join(project.path, "mibc_tmp")
+        )
+
+    return env
+
+def _gettarget():
+    return os.environ[MIBC_ENV_VAR]
+
+if MIBC_ENV_VAR not in os.environ:
+    print >> sys.stderr, "No target specified, " \
+        "use the environment variable %s to point at a " \
+        "specific directory to build" %(MIBC_ENV_VAR)
+    sys.exit(1)
+
+if not os.path.exists(_gettarget()):
+    print >> sys.stderr, "The targeted directory does not exist: %s" \
+        %(_gettarget())
+    sys.exit(1)
+
+if not os.path.isdir(_gettarget()):
+    print >> sys.stderr, "The target 'directory' is not a directory: %s" \
+        %(_gettarget())
+
+try:
+    project = models.Project.from_path(_gettarget())
+except Exception, e:
+    print >> sys.stderr, "Unable to instantiate target project: %s" \
+        %(_gettarget())
+    raise e
+    
+if getattr(project, "16s_data", None) is None:
+    path_16s(project)
+else:
+    path_wgs(project)
