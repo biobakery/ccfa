@@ -6,12 +6,8 @@ from .. import (
     settings
 )
 
-from . import (
-    usermixins,
-    projectmixins,
-    mapping_file
-)
-
+import usermixins
+import projectmixins
 
 default_repo = None
 def default_Repository():
@@ -93,11 +89,6 @@ class User(usermixins.LDAP):
 
         return self._last_updated
 
-    @staticmethod
-    def from_path(path):
-        path_parts = os.path.split(path)
-        repo_str, user_str = path_parts
-        return Repository(path=repo_str).users[user_str]
 
     def __str__(self):
         return "<User '%s'>" % self.name
@@ -129,17 +120,10 @@ class Project(projectmixins.validation):
 
         return self._last_updated
 
-    
-    @staticmethod
-    def from_path(path):
-        rest, project_str = os.path.split(path)
-        repo_str, user_str = os.path.split(rest)
-        return Repository(path=repo_str).users[user_str].projects[project_str]
-        
 
     def autopopulate(self):
         self.__dict__.update( self._gather('metadata.txt') )
-        self.map = mapping_file.load('map.txt', basepath=self.path)
+        self.map = self._gather('map.txt')
 
         self._autopopulated = True
 
