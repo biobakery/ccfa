@@ -28,6 +28,7 @@ def main():
     while proc.poll() is None:
         for line in proc.stdout:
             print line.strip()
+            sys.stdout.flush()
 
     sys.exit( proc.returncode )
         
