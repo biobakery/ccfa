@@ -43,6 +43,7 @@ def metaphlan(env, files_list, **opts):
 def metaphlan2(env, files_list, **opts):
     infiles_list  = [env.fin(f_str) for f_str in files_list]
     outfile       = env.fout(addext(files_list[0], "metaphlan2"))
+    bowtie2out    = env.fout(addext(files_list[0], "bowtie2out.txt"))
 
     all_opts = { 'bt2_ps'   : 'very-sensitive' }
     all_opts.update(opts)
@@ -54,6 +55,7 @@ def metaphlan2(env, files_list, **opts):
                in_pipe     = chain,
                stop        = outfile,
 
+               bowtie2out  = bowtie2out,
                output_file = outfile,
                input_type  = guess_seq_filetype(infiles_list[0]),
                **all_opts )
