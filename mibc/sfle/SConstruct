@@ -1,6 +1,7 @@
 # -*- mode:python -*-
 import os
 import sys
+import json
 
 from mibc import (
     models
@@ -9,6 +10,7 @@ from mibc import (
 from mibc.sfle import (
     sfle,
     sfleoo,
+    pathways,
     workflows,
     MIBC_ENV_VAR,
 )
@@ -18,38 +20,77 @@ _env = DefaultEnvironment()
 Decider("timestamp-newer")
 env = None
 
-def path_16s(project):
-    env = _getenv(project)
-
-def path_wgs(project):
-    env = _getenv(project)
-
-    for sample_id, _ in project.map.groupby(0):
-        files_batch = [ filename for filename in project.filename
-                        if str(sample_id) in filename ]
-        
-        product = workflows.metaphlan2(
-            env, 
-            files_list = files_batch,
-            mpa_pkl    = "/home/vagrant/metaphlan-dev/v_20/mpa.200.pkl",
-            bowtie2db  = "/home/vagrant/metaphlan-dev/v_20/mpa.200.ffn"
-        )
-        Default(product)
-    
-
-def _getenv(project):
+def _getenv(project=None):
     global env
     if env is None:
-        env = sfleoo.ooSfle(
-            fileDirInput=project.path,
-            fileDirOutput=os.path.join(project.path, 'mibc_products'),
-            fileDirTmp=os.path.join(project.path, "mibc_tmp")
-        )
+        if project is None:
+            here = os.path.abspath('.')
+            env= sfleoo.ooSfle(
+                fileDirInput='.',
+                fileDirOutput=os.path.join(here, "mibc_products"),
+                fileDirTmp=(here, "mibc_tmp")
+            )
+        else:
+            env = sfleoo.ooSfle(
+                fileDirInput=project.path,
+                fileDirOutput=os.path.join(project.path, 'mibc_products'),
+                fileDirTmp=os.path.join(project.path, "mibc_tmp")
+            )
 
     return env
 
+target = None
 def _gettarget():
-    return os.environ[MIBC_ENV_VAR]
+    global target
+    if target is None:
+        target = json.loads(os.environ[MIBC_ENV_VAR])
+
+    return target
+
+
+def run_workflow():
+    t = _gettarget()
+    workflow, input_files = t["workflow"], t["input_files"]
+
+    if workflow not in workflows.all():
+        print >> sys.stderr, "The workflow %s does not exist" %(workflow)
+        sys.exit(1)
+    else:
+        workflow_func = workflows.all()[workflow]
+
+    missing_files = [ f for f in input_files 
+                      if not os.path.exists(f) ]
+    if missing_files:
+        print >> sys.stderr, "No such file or directory: %s" %(
+            "\n".join(missing_files))
+        sys.exit(1)
+
+    workflow_func(_getenv(), input_files)
+
+
+def build_directory():
+    if not os.path.exists(_gettarget()["directory"]):
+        print >> sys.stderr, "The targeted directory does not exist: %s" \
+            %(_gettarget())
+        sys.exit(1)
+
+    if not os.path.isdir(_gettarget()["directory"]):
+        print >> sys.stderr, "The target 'directory' is not a directory: %s" \
+            %(_gettarget())
+        sys.exit(1)
+
+    try:
+        project = models.Project.from_path(_gettarget()["directory"])
+    except Exception, e:
+        print >> sys.stderr, "Unable to instantiate target project: %s" \
+            %(_gettarget()["directory"])
+        raise e
+    
+    if getattr(project, "16s_data", None) is None:
+        pathways.path_16s(_getenv(project), project)
+    else:
+        pathways.path_wgs(_getenv(project), project)
+
 
 if MIBC_ENV_VAR not in os.environ:
     print >> sys.stderr, "No target specified, " \
@@ -57,23 +98,9 @@ if MIBC_ENV_VAR not in os.environ:
         "specific directory to build" %(MIBC_ENV_VAR)
     sys.exit(1)
 
-if not os.path.exists(_gettarget()):
-    print >> sys.stderr, "The targeted directory does not exist: %s" \
-        %(_gettarget())
-    sys.exit(1)
-
-if not os.path.isdir(_gettarget()):
-    print >> sys.stderr, "The target 'directory' is not a directory: %s" \
-        %(_gettarget())
-
-try:
-    project = models.Project.from_path(_gettarget())
-except Exception, e:
-    print >> sys.stderr, "Unable to instantiate target project: %s" \
-        %(_gettarget())
-    raise e
-    
-if getattr(project, "16s_data", None) is None:
-    path_16s(project)
+if "workflow" in _gettarget():
+    run_workflow()
 else:
-    path_wgs(project)
+    build_directory()
+
+
