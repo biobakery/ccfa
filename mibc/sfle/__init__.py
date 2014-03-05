@@ -10,9 +10,16 @@ def python_cmd():
                 return might_be_python
         raise OSError("Unable to locate python somehow")
 
+
+def find_cmd(name):
+   for path in os.environ['PATH'].split(':'):
+       scons = os.path.join(path, name)
+       if os.path.isfile(scons):
+           return scons
+
             
 MIBC_ENV_VAR = 'MIBC_TARGET'
-SCONS_BASE_CMD_LIST = [ python_cmd(),"/usr/bin/scons" ]
+SCONS_BASE_CMD_LIST = [ python_cmd(),find_cmd("scons") ]
 SCONSTRUCT_PATH = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     "SConstruct"
