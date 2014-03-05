@@ -350,12 +350,14 @@ class ooSfle:
         if stop is None:
             return cur_pipe_id
 
+        if verbose:
+            fname = render_chain(cur_pipe)
+        else:
+            fname = cur_pipe[0][0][0] + "..."
+
         def _chain_( io ):
             if verbose:
-                commands = [ flatten(item) for item in cur_pipe ]
-                endpoint = commands[-1].pop()
-                commands = [" ".join( c ) for c in commands]
-                print " | ".join(commands), " > ", endpoint
+                print fname
                 
             p_prec = sb.Popen(cur_pipe[0][0], stdout=sb.PIPE, stdin = io.inp_open )
             for p,start,stop in cur_pipe[1:-1]:
@@ -368,7 +370,7 @@ class ooSfle:
         if tgt_dep is None: tgt_dep = []
         return self.f( cur_pipe[0][1], cur_pipe[-1][2], _chain_,
                        srs_dep = srs_dep, tgt_dep = tgt_dep,
-                       fname = str(cur_pipe[0][0][0]+" ... "),
+                       fname = fname,
                        __kwargs_dict__ = None )
 
 
@@ -519,3 +521,8 @@ def flatten(iterable):
                 
     return acc
         
+def render_chain(cur_pipe):
+    commands = [ flatten(item) for item in cur_pipe ]
+    endpoint = commands[-1].pop()
+    commands = [" ".join( c ) for c in commands]
+    return str(" | ".join(commands) + " > " + endpoint + "\t")
