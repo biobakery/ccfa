@@ -11,6 +11,7 @@ from models import (
     Project,
     User,
 )
+import efo
 import settings
 
 
@@ -225,5 +226,21 @@ class Project_Test(ValidatorBase):
             )
             
         assert self.all_tests_passed()
+
+    def test_efo_metadata(self):
+        to_validate = list()
+        for line in self.project.map:
+            to_validate.extend(
+                [ field for field in line 
+                  if efo.guess(*line).values() ]
+            )
+            
+        for efo, valid in efo.parallel_validate(*to_validate).iteritems():
+            self.cond( valid is True,
+                       "Guessed EFO %s is not valid" %(efo)
+                   )
+
+        assert self.all_tests_passed()
+        
 
 
