@@ -8,3 +8,4 @@ pyqi==0.3.1
 python-dateutil==2.2
 -e git+https://github.com/JoseBlanca/seq_crumbs.git@66ace168aaaffb3b9b87afca34454ee24b441bda#egg=seq_crumbs-master
 six==1.4.1
+bottle

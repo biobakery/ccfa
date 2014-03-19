@@ -1,3 +1,4 @@
+import os
 import smtplib
 from email.mime.text import MIMEText
 
@@ -5,8 +6,8 @@ from bottle import template
 
 from .. import settings
 
-def render_to_email(context,                     address_list, 
-                    template_str="notification", **kwargs):
+def render_to_email(context,         address_list, 
+                    template_str=None, **kwargs):
     """send an email to someone by rendering a template with 
     the provided context (a dictionary).
     **kwargs are fitted into the fields of the message
@@ -16,6 +17,10 @@ def render_to_email(context,                     address_list,
                   "From":    settings.email.default_from_addr,
                   "Subject": settings.email.default_subject, }.items():
         kwargs.setdefault(k, v)
+
+    if not template_str:
+        here = os.path.dirname(os.path.realpath(__file__))
+        template_str = os.path.join(here, "notification.tpl")
 
     msg = template(template_str, **context)
     msg = MIMEText(msg)
