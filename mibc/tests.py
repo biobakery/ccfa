@@ -16,7 +16,7 @@ import settings
 
 
 user_to_test    = "example_user"
-project_to_test = "example_proj"
+project_to_test = "example_failure"
 
 
 class ValidatorBase(object):
@@ -230,14 +230,15 @@ class Project_Test(ValidatorBase):
     def test_efo_metadata(self):
         to_validate = list()
         for line in self.project.map:
+            guesses = efo.guess(*line)
             to_validate.extend(
-                [ field for field in line 
-                  if efo.guess(*line).values() ]
+                [ efo_id for efo_id, guess in guesses.iteritems()
+                  if guess is True ]
             )
-            
-        for efo, valid in efo.parallel_validate(*to_validate).iteritems():
+
+        for efo_id, valid in efo.parallel_validate(*to_validate).iteritems():
             self.cond( valid is True,
-                       "Guessed EFO %s is not valid" %(efo)
+                       "Guessed EFO %s is not valid" %(efo_id)
                    )
 
         assert self.all_tests_passed()
