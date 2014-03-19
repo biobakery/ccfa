@@ -5,6 +5,7 @@ import urllib2
 import threading
 
 EFO_BASE_URL="http://www.ebi.ac.uk/efo"
+rx_efo = r'EFO_\d{7}$'
 
 def head(url):
     request = urllib2.Request(url)
@@ -15,7 +16,7 @@ def head(url):
 
 def guess(*efo_ids):
     return dict([
-        (efo_id, bool(re.match(r'EFO_\d{7}$', efo_id)))
+        (efo_id, bool(re.match(rx_efo, efo_id)))
          for efo_id in efo_ids
         ])
 
