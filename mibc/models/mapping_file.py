@@ -8,6 +8,8 @@ import operator
 import itertools
 from collections import namedtuple
 
+class SparseMetadataException(TypeError):
+    pass
 
 class MappingFile(list):
     """MappingFile is a list of namedtuples
@@ -73,14 +75,24 @@ def _deserialize(file_pointer):
     file_pointer
     """
     header = [ s.replace('#', '') 
-               for s in file_pointer.readline().split() ]
+               for s in file_pointer.readline().split('\t') ]
 
     cls = namedtuple('Sample', header, rename=True)
 
-    return [ 
-        cls._make(row.split()) 
-        for row in file_pointer.read().strip().split('\n')
-    ]
+    def reader():
+        i = 1
+        for row in file_pointer.read().strip('\r\n').split('\n'):
+            i+=1
+            try:
+                yield cls._make(row.split('\t'))
+            except TypeError as e:
+                raise SparseMetadataException(
+                    "Unable to deserialize sample-specific metadata:"+\
+                    " The file %s has missing values at row %i" %(
+                        file_pointer.name, i)
+                )
+
+    return [ row for row in reader() ]
 
 
 def dump(keys, data, file_pointer):
