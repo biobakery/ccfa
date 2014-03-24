@@ -3,6 +3,7 @@ import os
 import re
 import datetime
 from types import *
+from itertools import chain
 
 import dateutil.parser
 
@@ -16,7 +17,7 @@ import settings
 
 
 user_to_test    = "example_user"
-project_to_test = "example_failure"
+project_to_test = "example_proj"
 
 
 class ValidatorBase(object):
@@ -229,7 +230,8 @@ class Project_Test(ValidatorBase):
 
     def test_efo_metadata(self):
         to_validate = list()
-        for line in self.project.map:
+        for line in chain(self.project.map[0]._fields,
+                          self.project.map):
             guesses = efo.guess(*line)
             to_validate.extend(
                 [ efo_id for efo_id, guess in guesses.iteritems()
