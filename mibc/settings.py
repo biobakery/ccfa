@@ -13,9 +13,14 @@ class ldap(object):
     bind_dn     = "CN=clusterldap,OU=Unmanaged Service Accounts,DC=rc,DC=domain"
     bind_pw     = ""
     search_base = "DC=rc,DC=domain"
-    
+
 class users(object):
     ignored = ['admin']
+
+class workflows(object):
+    class metaphlan2(object):
+        bowtie2db = "/vagrant/metaphlandb/mpa.200.ffn",
+        mpa_pkl   = "/vagrant/metaphlandb/mpa.200.pkl",
 
 
 # Pay no attention to that man behind the curtain

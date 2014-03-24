@@ -10,6 +10,10 @@ import os
 import sys
 import mimetypes
 
+from .. import (
+    settings
+)
+
 
 def addext(name_str, tag_str):
     return name_str + "." + tag_str
@@ -61,8 +65,8 @@ def metaphlan2(env, files_list, **opts):
                in_pipe     = chain,
                stop        = outfile,
 
-               bowtie2db   = "/vagrant/metaphlandb/mpa.200.ffn",
-               mpa_pkl     = "/vagrant/metaphlandb/mpa.200.pkl",
+               bowtie2db   = settings.workflows.metaphlan2.bowtie2db
+               mpa_pkl     = settings.workflows.metaphlan2.mpa_pkl
                bowtie2out  = bowtie2out,
                output_file = outfile,
                input_type  = guess_seq_filetype(infiles_list[0]),
