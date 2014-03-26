@@ -26,7 +26,7 @@ def main():
 
     print >> sys.stdout, "#" + "\t".join(args_dict.keys())
     for row in zip(*args_dict.values()):
-        print >> sys.stdout, row
+        print >> sys.stdout, "\t".join(row)
 
 
 if __name__ == '__main__':
