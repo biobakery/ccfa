@@ -52,7 +52,7 @@ def main():
         parser.print_usage()
         sys.exit(1)
 
-    with open(opts.fasta_outfile, 'w') as fa_file, 
+    with open(opts.fasta_outfile, 'w') as fa_file, \
          open(opts.qual_outfile, 'w') as qual_file:
         for i, record in enumerate(SeqIO.parse(sys.stdin, opts.from_format)):
             fa_file.writelines(fa(record))
