@@ -29,8 +29,8 @@ def path_wgs(env, project):
         product = workflows.metaphlan2(
             env, 
             files_list = files_batch,
-            mpa_pkl    = "/home/vagrant/metaphlan-dev/v_20/mpa.200.pkl",
-            bowtie2db  = "/home/vagrant/metaphlan-dev/v_20/mpa.200.ffn"
+            mpa_pkl    = settings.workflows.metaphlan2.mpa_pkl
+            bowtie2db  = settings.workflows.metaphlan2.bowtie2db
         )
         Default(product)
 
