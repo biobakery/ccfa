@@ -23,6 +23,7 @@ setup(
             'assembly         = mibc.assembly:main',
             'mibc_build       = mibc.sfle.cli:main',
             'mibc_fastq_split = mibc.utility_scripts.seqsplit:main',
+            'mibc_map_writer  = mibc.utility_scripts.mapwrite:main',
         ],
     }
 )
