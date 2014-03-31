@@ -83,6 +83,8 @@ def _deserialize(file_pointer):
         i = 1
         for row in file_pointer.read().strip('\r\n').split('\n'):
             i+=1
+            if row.startswith('#'):
+                continue
             try:
                 yield cls._make(row.split('\t'))
             except TypeError as e:
