@@ -11,6 +11,7 @@ OPTIONS = [
     make_option('-l', "--list", action="store_true"),
     make_option('-o', "--scons_args", action="append", default=list()),
     make_option('-j', "--jenkins", action="store_true"),
+    make_option('-v', "--verbose", action="store_true"),
 ]
 
 from . import (
@@ -27,23 +28,25 @@ def print_workflows():
         print "%s\t%s" %(workflow.func_name, workflow.func_doc)
 
 
-def run_workflow(workflow, input_files, scons_arguments=list()):
+def run_workflow(workflow, input_files, scons_arguments=list(), verbose=False):
     os.environ[MIBC_ENV_VAR] = json.dumps(
         {"workflow"   : workflow,
          "input_files": [ os.path.abspath(f) for f in input_files]}
      )
-    return launch_scons(scons_arguments)
+    return launch_scons(scons_arguments, verbose=verbose)
 
 
-def build_directory(directory, scons_arguments=list()):
+def build_directory(directory, scons_arguments=list(), verbose=False):
     os.environ[MIBC_ENV_VAR] = json.dumps(
         { "directory": os.path.abspath(directory) }
     )
-    return launch_scons(scons_arguments)
+    return launch_scons(scons_arguments, verbose=verbose)
 
 
-def launch_scons(scons_arguments):
-    #print " ".join(["MIBC_TARGET="+os.environ[MIBC_ENV_VAR]]+scons_cmd(scons_arguments))
+def launch_scons(scons_arguments, verbose=False):
+    if verbose:
+        print " ".join(["MIBC_TARGET="+os.environ[MIBC_ENV_VAR]]+\
+                       scons_cmd(scons_arguments))
     proc = subprocess.Popen(scons_cmd(scons_arguments), 
                             stderr=subprocess.STDOUT,
                             stdout=subprocess.PIPE)
@@ -77,10 +80,12 @@ def main():
     if opts.workflow:
         ret = run_workflow(opts.workflow, 
                            args,
-                           scons_arguments=opts.scons_args)
+                           scons_arguments=opts.scons_args,
+                           verbose=opts.verbose)
     else:
         ret = build_directory(args[0], 
-                              scons_arguments=args[1:])
+                              scons_arguments=args[1:],
+                              verbose=opts.verbose)
                               
 
     sys.exit(ret)
