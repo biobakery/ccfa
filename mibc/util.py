@@ -1,12 +1,13 @@
 import os
 
 def deserialize_csv(file_handle):
-    for line in file_handle:
+    for i, line in enumerate(file_handle):
         cols = line.split('\t')
         if len(cols) < 2:
             raise AttributeError(
-                "Improper formatting in file %s - only %d column(s) found." % (
-                    file_handle.name, len(cols))
+                "Improper formatting in file %s - "
+                "only %d column(s) found on line %d" % (
+                    file_handle.name, len(cols), i)
             )
 
         yield ( 
