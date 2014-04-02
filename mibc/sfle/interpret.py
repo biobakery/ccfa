@@ -8,33 +8,35 @@ Otherwise, you'll get an exception.
 
 import re
 import ast
+from collections import defaultdict
 
 class ExecutionGraph(list):
     """A directed acyclic graph of what scons is doing. It's represented
     internally as a list of SconsDirectives
     """
 
-    def __init__(self, *args, **kwargs):
-        self.dag = kwargs.pop("dag", { "root": [] })
-        return super(ExecutionGraph, self).__init__(*args, **kwargs)
-
     @classmethod
-    def lex(cls, fp):
-        listy_thing = cls()
+    def parse(cls, fp):
+        by_dep = defaultdict(set)
+        directive_list = list(SconsDirective.lex(fp))
+        for i, directive in enumerate(directive_list):
+            # add each product to the by_product dict
+            map( lambda dep: by_dep[dep].add((i, directive)),
+                 directive.depends )
 
-        for line in fp:
-            match = re.match(r'oo scons: (.*)[ \t]+(\(.*\))', line)
-            if match:
-                command = match.group(1)
-                produces, depends = ast.literal_eval(match.group(2))
-                listy_thing.append(
-                    SconsDirective(command  = command, 
-                                   produces = produces,
-                                   depends  = depends)
-                )
+        def recurse(node):
+            for product in node.produces:
+                for directive_idx, child in by_dep[product]:
+                    del directive_list[directive_idx]
+                    node.children.append(recurse(child))
+            return node
 
-        return listy_thing
+        graph = cls()
+        while len(directive_list) > 0:
+            top_level_node = directive_list.popleft()
+            graph.append(recurse(top_level_node))
 
+        return graph
 
 
 class SconsDirective(dict):
@@ -45,13 +47,28 @@ class SconsDirective(dict):
     completes.
     """
     def __init__(self, produces=list(), command=str(), 
-                       depends=list(), children=list()):
+                       depends=list(),  children=list()):
         self.produces = self["produces"] = produces
         self.command  = self["command"]  = command
         self.depends  = self["depends"]  = depends
         self.children = self["children"] = children
 
+    def append(self, item):
+        return self.children.append(item)
+
+    @classmethod
+    def lex(cls, fp):
+        listy_thing = cls()
+        for line in fp:
+            match = re.match(r'oo scons: (.*)[ \t]+(\(.*\))', line)
+            if match:
+                command = match.group(1)
+                produces, depends = ast.literal_eval(match.group(2))
+                yield cls(command  = command, 
+                          produces = produces,
+                          depends  = depends)
+
 
 def file(fp):
-    dag = ExecutionGraph.lex(fp)
+    dag = ExecutionGraph.parse(fp)
     return dag

@@ -83,8 +83,9 @@ def main():
                            scons_arguments=opts.scons_args,
                            verbose=opts.verbose)
     else:
+        opts.scons_args.extend(args[1:])
         ret = build_directory(args[0], 
-                              scons_arguments=args[1:],
+                              scons_arguments=opts.scons_args,
                               verbose=opts.verbose)
                               
 

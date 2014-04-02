@@ -65,7 +65,7 @@ def run_workflow():
             "\n".join(missing_files))
         sys.exit(1)
 
-    workflow_func(_getenv(), input_files)
+    return workflow_func(_getenv(), input_files)
 
 
 def build_directory():
@@ -87,9 +87,9 @@ def build_directory():
         raise e
     
     if getattr(project, "16s_data", None) is None:
-        pathways.path_16s(_getenv(project), project)
+        return pathways.path_wgs(_getenv(project), project)
     else:
-        pathways.path_wgs(_getenv(project), project)
+        return pathways.path_16s(_getenv(project), project)
 
 
 if MIBC_ENV_VAR not in os.environ:
@@ -99,8 +99,8 @@ if MIBC_ENV_VAR not in os.environ:
     sys.exit(1)
 
 if "workflow" in _gettarget():
-    run_workflow()
+    to_build = run_workflow()
 else:
-    build_directory()
+    to_build = build_directory()
 
-
+Default(to_build)
