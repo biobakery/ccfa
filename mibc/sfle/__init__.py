@@ -12,11 +12,10 @@ def python_cmd():
 
 
 def find_cmd(name):
-   for path in os.environ['PATH'].split(':'):
-       scons = os.path.join(path, name)
-       if os.path.isfile(scons):
-           return scons
-
+    for path in os.environ['PATH'].split(':'):
+        scons = os.path.join(path, name)
+        if os.path.isfile(scons):
+            return scons
     # didn't find anything; fail
     raise IOError("system command not found: " + name)
 
