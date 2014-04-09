@@ -19,8 +19,8 @@ class users(object):
 
 class workflows(object):
     class metaphlan2(object):
-        bowtie2db = "/vagrant/metaphlandb/mpa.200.ffn",
-        mpa_pkl   = "/vagrant/metaphlandb/mpa.200.pkl",
+        bowtie2db = "/vagrant/metaphlandb/mpa.200.ffn"
+        mpa_pkl   = "/vagrant/metaphlandb/mpa.200.pkl"
     class sixteen(object):
         otu_taxonomy = "/vagrant/ccfa/data/gg_13_8_otus/taxonomy/99_otu_taxonomy.txt"
         otu_refseq   = "/vagrant/ccfa/data/gg_13_8_otus/rep_set/99_otus.fasta"
