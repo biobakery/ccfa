@@ -57,7 +57,6 @@ def launch_scons(scons_arguments, verbose=False, dry_run=False):
 
     if dry_run:
         dag = interpret.file(proc.stdout)
-        import pdb; pdb.set_trace()
         json.dump(dag, sys.stdout)
     else:
         for line in iter(proc.stdout.readline, ''):
