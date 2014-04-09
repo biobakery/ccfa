@@ -48,19 +48,29 @@ class SconsDirective(dict):
     """
     def __init__(self, produces=list(), command=str(), 
                        depends=list(),  children=list()):
-        self.produces = self["produces"] = produces
+        self.produces = self["produces"] = tuple(produces)
         self.command  = self["command"]  = command
-        self.depends  = self["depends"]  = depends
-        self.children = self["children"] = children
+        self.depends  = self["depends"]  = tuple(depends)
+        self.children = self["children"] = tuple(children)
+        super(SconsDirective, self).__init__()
+        
+    def __hash__(self):
+        return hash((self.produces, self.command, self.depends, self.children))
 
     def append(self, item):
-        return self.children.append(item)
+        tmp = list(self.children)
+        tmp.append(item)
+        self.children = self["children"] = tuple(tmp) 
+
+    def extend(self, iterable):
+        tmp = list(self.children) + list(iterable)
+        self.children = self["children"] = tuple(tmp)
 
     @classmethod
     def lex(cls, fp):
         listy_thing = cls()
         for line in fp:
-            match = re.match(r'oo scons: (.*)[ \t]+(\(.*\))', line)
+            match = re.match(r'oo scons [a-z]+: (.*)[ \t]?(\(.*\))', line)
             if match:
                 command = match.group(1)
                 produces, depends = ast.literal_eval(match.group(2))
