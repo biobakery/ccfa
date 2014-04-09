@@ -51,6 +51,7 @@ def _gettarget():
 def run_workflow():
     t = _gettarget()
     workflow, input_files = t["workflow"], t["input_files"]
+    dry_run = t.get("dry_run", False)
 
     if workflow not in workflows.all():
         print >> sys.stderr, "The workflow %s does not exist" %(workflow)
@@ -65,7 +66,7 @@ def run_workflow():
             "\n".join(missing_files))
         sys.exit(1)
 
-    return workflow_func(_getenv(), input_files)
+    return workflow_func(_getenv(), input_files, dry_run=dry_run)
 
 
 def build_directory():
@@ -86,10 +87,12 @@ def build_directory():
             %(_gettarget()["directory"])
         raise e
     
+    dry_run = _gettarget().get("dry_run", False)
+
     if getattr(project, "16s_data", None) is None:
-        return pathways.path_wgs(_getenv(project), project)
+        return pathways.path_wgs(_getenv(project), project, dry_run=dry_run)
     else:
-        return pathways.path_16s(_getenv(project), project)
+        return pathways.path_16s(_getenv(project), project, dry_run=dry_run)
 
 
 if MIBC_ENV_VAR not in os.environ:

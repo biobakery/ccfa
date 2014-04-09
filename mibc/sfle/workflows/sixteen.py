@@ -9,7 +9,7 @@ from . import chain_starters
 from .util import guess_seq_filetype
 
 
-def demultiplex(env, samples, infiles_list, **opts):
+def demultiplex(env, samples, infiles_list, dry_run=False, **opts):
     """Workflow to demultiplex sequences from raw 16s sequences according
     to SampleID
     """
@@ -27,7 +27,8 @@ def demultiplex(env, samples, infiles_list, **opts):
             samples, operator.attrgetter("SampleID")):
         sample_group = list(sample_group)
 
-        sample_dir = env.ex([], sample_id, "mkdir", verbose=True)
+        sample_dir = env.ex([], sample_id, "mkdir", verbose=True, 
+                            dry_run=dry_run)
         
         # Generate map.txt file for a sampleID
         map_fname   = env.fout(os.path.join(sample_id, "map.txt"))
@@ -44,7 +45,15 @@ def demultiplex(env, samples, infiles_list, **opts):
         map_dict = dict([
             (key, ",".join(val)) for key, val in map_dict.iteritems()
         ])
-        env.ex([], map_fname, "mibc_map_writer", verbose=True, **map_dict)
+        env.ex([], map_fname, "mibc_map_writer",
+               args = (
+                   "^^",
+                   "^^".join([ name + "=" + value 
+                               for name, value in map_dict.iteritems() ])
+               ),
+               outpipe = map_fname, 
+               verbose = True, 
+               dry_run = dry_run)
 
         # Split the sequence file into fasta and qual
         fa_fname    = env.fout(os.path.join(sample_id, "%s.fa" %(sample_id)))
@@ -59,8 +68,9 @@ def demultiplex(env, samples, infiles_list, **opts):
 
         env.chain("mibc_fastq_split", 
                   verbose = True,
-                  inpipe  = cat_chain,
-                  stop    = [fa_fname, qual_fname], 
+                  dry_run = dry_run,
+                  in_pipe  = cat_chain,
+                  stop    = [fa_fname, qual_fname],
 
                   format    = guess_seq_filetype(input_seq_files[0]),
                   fasta_out = fa_fname,
@@ -72,6 +82,7 @@ def demultiplex(env, samples, infiles_list, **opts):
                split_seqs_fname,
                "split_libraries.py",
                verbose=True,
+               dry_run=dry_run,
                m=map_fname,
                f=fa_fname,
                q=qual_fname,
@@ -85,14 +96,13 @@ def demultiplex(env, samples, infiles_list, **opts):
     return outfiles_list
 
 
-def pick_otus_closed_ref(env, infiles_list, input_untracked_files=True, **opts):
+def pick_otus_closed_ref(env, infiles_list, 
+                         input_untracked_files=True, dry_run=False, **opts):
     """Workflow to predict what OTUs are present in a set of metagenomic
     sequences
     """
     if input_untracked_files:
         infiles_list =  [ env.fin(f) for f in infiles_list ]
-    else:
-        infiles_list = [ str( env.lenv.File(f) ) for f in infiles_list ]
 
     outfiles_list = [ 
         env.fout( # What's a guy gotta do to get a path around here?
@@ -114,10 +124,9 @@ def pick_otus_closed_ref(env, infiles_list, input_untracked_files=True, **opts):
     all_opts.update(opts)
 
     for infile, outfile in zip(infiles_list, outfiles_list):
-        env.ex( infile,       outfile, "pick_closed_reference_otus.py",
-                verbose=True, i=infile, o=os.path.dirname(outfile), 
-                **all_opts )
-
+        env.ex( infile,          outfile, "pick_closed_reference_otus.py",
+                verbose=True,    i=infile, o=os.path.dirname(outfile), 
+                dry_run=dry_run, **all_opts )
 
     return outfiles_list
 

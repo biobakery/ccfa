@@ -28,22 +28,26 @@ def print_workflows():
         print "%s\t%s" %(workflow.func_name, workflow.func_doc)
 
 
-def run_workflow(workflow, input_files, scons_arguments=list(), verbose=False):
+def run_workflow(workflow, input_files, 
+                 scons_arguments=list(), verbose=False, dry_run=False):
     os.environ[MIBC_ENV_VAR] = json.dumps(
         {"workflow"   : workflow,
-         "input_files": [ os.path.abspath(f) for f in input_files]}
+         "input_files": [ os.path.abspath(f) for f in input_files],
+         "dry_run"    : dry_run}
      )
-    return launch_scons(scons_arguments, verbose=verbose)
+    return launch_scons(scons_arguments, verbose=verbose, dry_run=dry_run)
 
 
-def build_directory(directory, scons_arguments=list(), verbose=False):
+def build_directory(directory, 
+                    scons_arguments=list(), verbose=False, dry_run=False):
     os.environ[MIBC_ENV_VAR] = json.dumps(
-        { "directory": os.path.abspath(directory) }
+        {"directory": os.path.abspath(directory),
+         "dry_run"  : dry_run}
     )
-    return launch_scons(scons_arguments, verbose=verbose)
+    return launch_scons(scons_arguments, verbose=verbose, dry_run=dry_run)
 
 
-def launch_scons(scons_arguments, verbose=False):
+def launch_scons(scons_arguments, verbose=False, dry_run=False):
     if verbose:
         print " ".join(["MIBC_TARGET="+os.environ[MIBC_ENV_VAR]]+\
                        scons_cmd(scons_arguments))
@@ -51,8 +55,9 @@ def launch_scons(scons_arguments, verbose=False):
                             stderr=subprocess.STDOUT,
                             stdout=subprocess.PIPE)
 
-    if '-n' in scons_arguments:
+    if dry_run:
         dag = interpret.file(proc.stdout)
+        import pdb; pdb.set_trace()
         json.dump(dag, sys.stdout)
     else:
         for line in iter(proc.stdout.readline, ''):
@@ -74,18 +79,17 @@ def main():
         print_workflows()
         sys.exit()
 
-    if opts.jenkins:
-        opts.scons_args.append("-n")
-
     if opts.workflow:
         ret = run_workflow(opts.workflow, 
                            args,
                            scons_arguments=opts.scons_args,
+                           dry_run=opts.jenkins,
                            verbose=opts.verbose)
     else:
         opts.scons_args.extend(args[1:])
         ret = build_directory(args[0], 
                               scons_arguments=opts.scons_args,
+                              dry_run=opts.jenkins,
                               verbose=opts.verbose)
                               
 

@@ -13,7 +13,7 @@ from .util import (
 )
 
 
-def metaphlan(env, files_list, **opts):
+def metaphlan(env, files_list, dry_run=False, **opts):
     """Workflow to transform WGS sequences to OTU tables.
     """
 
@@ -34,7 +34,7 @@ def metaphlan(env, files_list, **opts):
     return outfiles_list
 
 
-def metaphlan2(env, files_list, **opts):
+def metaphlan2(env, files_list, dry_run=False, **opts):
     """Workflow to transform WGS sequences to OTU tables, but better!
     """
     infiles_list  = [env.fin(f_str) for f_str in files_list]
@@ -49,6 +49,7 @@ def metaphlan2(env, files_list, **opts):
 
     env.chain( "metaphlan2.py",
                verbose     = True,
+               dry_run     = dry_run,
                in_pipe     = step_one,
                stop        = outfile,
 

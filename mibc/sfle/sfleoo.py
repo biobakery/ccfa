@@ -1,4 +1,4 @@
-#######################################################################################
+################################################################################
 # This file is provided under the Creative Commons Attribution 3.0 license.
 #
 # You are free to share, copy, distribute, transmit, or adapt this work
@@ -6,15 +6,17 @@
 # For more information, please see the following web page:
 # http://creativecommons.org/licenses/by/3.0/
 #
-# This file is a component of the SflE Scientific workFLow Environment for reproducible 
-# research, authored by the Huttenhower lab at the Harvard School of Public Health
-# (contact Curtis Huttenhower, chuttenh@hsph.harvard.edu).
+# This file is a component of the SflE Scientific workFLow Environment
+# for reproducible research, authored by the Huttenhower lab at the
+# Harvard School of Public Health (contact Curtis Huttenhower,
+# chuttenh@hsph.harvard.edu).
 #
-# If you use this environment, the included scripts, or any related code in your work,
-# please let us know, sign up for the SflE user's group (sfle-users@googlegroups.com),
-# pass along any issues or feedback, and we'll let you know as soon as a formal citation
-# is available.
-#######################################################################################
+# If you use this environment, the included scripts, or any related
+# code in your work, please let us know, sign up for the SflE user's
+# group (sfle-users@googlegroups.com), pass along any issues or
+# feedback, and we'll let you know as soon as a formal citation is
+# available.
+################################################################################
 import SCons as scons
 import SCons.Environment as e
 import subprocess as sb
@@ -22,7 +24,6 @@ import os
 import sys
 import sfle
 import time
-import numpy as np
 import shutil
 import random
 import time
@@ -148,6 +149,58 @@ class ooSfle:
     def glob_tmp( self, fn ):
         return sorted([str(a) for a in self.lenv.Glob( sfle.d( self.fileDirTmp, fn ) )])
 
+    def File(self, **kwargs):
+        """Track files with sfleoo.
+        Returns Scons.File
+        Usage:
+               my_env = sfle.ooSfle()
+               file_in = my_env.File( in = "somefile.txt" )
+               file_out = my_env.File( out = "somefile_results.txt" )
+               tmpfile = my_env.File( tmp = "notforlong.txt" )
+        """
+        for keyword, file_str in kwargs.iteritems():
+            return track_files( (keyword, file_str) ).next()
+
+
+    def Files(self, *tuples):
+        """ Track files with ooSfle without appending directory information.
+        Usage:
+               my_env = sfle.ooSfle()
+               # get a list of Scons.File objects back
+               bunch_of_files = my_env.Files("laundrylist.txt", 
+                                             "grocerylist.txt",
+                                             "xmaslist.txt",
+                                             "hitlist.txt")
+
+               # get one Scons.File (still a list, just one element)
+               just_one_file = my_env.Files("canning_howto.txt")
+        """
+        return [
+            self.lenv.File(f) for f in args
+        ]
+
+
+    def track_files(self, *file_tuples):
+        """ Track many files at once with ooSfle
+        Returns an iterator yielding Scons.File objects
+        Usage:
+               all_my_files = [ ('in', "somefile.txt"),
+                                ('out', "someresults.txt"),
+                                ('tmp', "temporary.txt") ]
+               my_env = sfle.ooSfle()
+               everything = my_env.track_files(*all_my_files)
+               just_files_in = my_env.track_files( tup for tup in all_my_files
+                                                   if tup[0] == "in" )
+        """
+        for keyword, file_str in file_tuples:
+            if keyword == "in":
+                yield self.lenv.File( sfle.d(self.fileDirInput, file_str) )
+            elif keyword == "out":
+                yield self.lenv.File( sfle.d(self.fileDirOutput, file_str) )
+            elif keyword == "tmp":
+                yield self.lenv.File( sfle.d(self.fileDirTmp, file_str) )
+
+
     def fin( self, fn ):
         if isinstance(fn,str):
             return str(self.lenv.File( sfle.d( self.fileDirInput, fn )) )
@@ -201,8 +254,10 @@ class ooSfle:
         return self.lenv.Command( ntgt + ntgt_dep, nsrs + nsrs_dep, _f_ )
 
 
-    def pipe( self, fr, to, excmd, deps = None, args = None,  __kwargs_dict__ = None, **kwargs ):
-        import subprocess as sb
+    def pipe( self, fr, to, excmd, 
+              deps    = None, args     = None,  __kwargs_dict__ = None,
+              dry_run = False, verbose = False,
+              **kwargs ):
         def _extex_( io ):
             cmd = [str(excmd)]
             for k,v in kwargs.items():
@@ -210,11 +265,18 @@ class ooSfle:
             if args:
                for a in args:
                    cmd += [a[0],a[1]] if type(a) in [list,tuple] else [a]
-            print " ".join( cmd )
+            if verbose:
+                print " ".join( cmd ) + str( (fr, to) )
+            if dry_run:
+                return None
             sb.call( cmd, stdout = io.out_open, stdin = io.inp_open )
         self.f( fr, to, _extex_, srs_dep = deps, fname = str(excmd), __kwargs_dict__ = kwargs )
 
-    def ext( self, fr, to, excmd, outpipe = True, verbose = False, attempts = 1, deps = None, out_deps = None, __kwargs_dict__ = None, args = None, long_args = '--', **kwargs ):
+    def ext( self, fr, to, excmd, 
+             outpipe = True, verbose   = False, attempts        = 1, 
+             deps    = None, out_deps  = None,  __kwargs_dict__ = None, 
+             args    = None, long_args = '--',  dry_run         = False,
+             **kwargs ):
         import subprocess as sb
         if __kwargs_dict__ and kwargs:
             kwargs.update( __kwargs_dict__ )
@@ -236,16 +298,26 @@ class ooSfle:
             if not outpipe:
                 cmd += io.outf
             if verbose:
-                sys.stdout.write("oo scons ext: " + " ".join(cmd) + (' > '+ io.outf[0] if outpipe and io.outf else '')+"\n")
+                sys.stdout.write(
+                    "oo scons ext: " + " ".join(cmd) \
+                    + (' > '+ io.outf[0] if outpipe and io.outf else '')\
+                    + str( (fr, to) ) \
+                    +"\n"
+                )
+            if dry_run:
+                return None
             if outpipe:
                 return sb.call( cmd, stdout = io.out_open )
             else:
                 return sb.call( cmd )
         return self.f( fr, to, _ext_, srs_dep = deps, tgt_dep = out_deps, attempts = attempts, fname = str(excmd), __kwargs_dict__ = kwargs )
 
-    def ex( self, fr, to, excmd, srs_dep = None, tgt_dep = None, pipe = False, inpipe = False, outpipe = False, 
-            args = None, args_after = False, rand_wait = 0, verbose = False, 
-            short_arg_symb = '-', long_arg_symb = '--', __kwargs__ = None, **kwargs ):
+    def ex( self, fr, to, excmd, 
+            srs_dep        = None,  tgt_dep       = None,  pipe       = False, 
+            inpipe         = False, outpipe       = False, args       = None, 
+            args_after     = False, rand_wait     = 0,     verbose    = False, 
+            short_arg_symb = '-',   long_arg_symb = '--',  __kwargs__ = None,
+            dry_run        = False, **kwargs ):
         if type(fr) not in [tuple,list]: fr = [fr]
         if type(to) not in [tuple,list]: to = [to]
         inpipe, outpipe = (True, True) if pipe else (inpipe, outpipe)
@@ -304,7 +376,15 @@ class ooSfle:
                 sys.stdout.write( "Waiting "+str(ns)+" secs\n" )
                 time.sleep( ns )
             if verbose:
-                sys.stdout.write("oo scons ex: " + " ".join(cmd) + ((' < '+ io.inpf[0]) if inpipe and io.inpf else '')+ ((' > '+ io.outf[0]) if outpipe and io.outf else '') + "\n")
+                sys.stdout.write(
+                    "oo scons ex: " + " ".join(cmd) \
+                    + ((' < '+ io.inpf[0]) if inpipe and io.inpf else '') \
+                    + ((' > '+ io.outf[0]) if outpipe and io.outf else '') \
+                    + str((to, fr)) \
+                    + "\n"
+                )
+            if dry_run:
+                return None
             return sb.call( cmd, 
                             stdin = io.inp_open if inpipe else None, 
                             stdout = io.out_open if outpipe else None )
@@ -315,8 +395,11 @@ class ooSfle:
                        fname = str(excmd), 
                        __kwargs_dict__ = kwargs )
 
-    def chain( self, excmd, start = None, stop = None, in_pipe = None, short_arg_symb = '-', long_arg_symb = '--', 
-               args = None, verbose = False, srs_dep = None, tgt_dep = None,  **kwargs ):
+    def chain( self, excmd, 
+               start          = None,  stop          = None, in_pipe = None, 
+               short_arg_symb = '-',   long_arg_symb = '--', args    = None, 
+               verbose        = False, srs_dep       = None, tgt_dep = None,  
+               dry_run        = False, **kwargs ):
         if not hasattr( self, "pipelines" ):
             self.pipelines = {}
             self.pipeline_counter = 1000
@@ -351,14 +434,18 @@ class ooSfle:
             return cur_pipe_id
 
         if verbose:
-            fname = render_chain(cur_pipe)
+            inputs, outputs = cur_pipe[0][1], cur_pipe[-1][-1]
+            fname = render_chain(cur_pipe) + str((outputs, inputs))
         else:
             fname = cur_pipe[0][0][0] + "..."
 
         def _chain_( io ):
             if verbose:
-                print fname
+                print "oo scons ex:", fname
                 
+            if dry_run:
+                return None
+
             p_prec = sb.Popen(cur_pipe[0][0], stdout=sb.PIPE, stdin = io.inp_open )
             for p,start,stop in cur_pipe[1:-1]:
                 p_prec = sb.Popen(p, stdin=p_prec.stdout, stdout=sb.PIPE)
@@ -520,9 +607,23 @@ def flatten(iterable):
                 acc.append(item)
                 
     return acc
+
         
 def render_chain(cur_pipe):
+    final_products = cur_pipe[-1][-1]
     commands = [ flatten(item) for item in cur_pipe ]
-    endpoint = commands[-1].pop()
+
+    if type(final_products) is str or len(final_products) == 1:
+        endpoint = commands[-1].pop()
+    else:
+        del commands[-1][-len(final_products):]
+        endpoint = None
+
     commands = [" ".join( c ) for c in commands]
-    return str(" | ".join(commands) + " > " + endpoint + "\t")
+    ret = str(" | ".join(commands) )
+
+    if endpoint:
+        ret += " > " + endpoint + "\t"
+
+    return ret
+
