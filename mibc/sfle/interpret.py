@@ -1,43 +1,13 @@
 """Module for interpreting scons output from sfle.  The `file`
 function is generally what you want; it parses the scons output from a
 file-like-object and returns a DAG of what scons is doing.
-
-Note that scons must be using the --tree=derived|all|status option.
-Otherwise, you'll get an exception.
 """
 
 import re
+import os
 import ast
-from collections import defaultdict
-
-class ExecutionGraph(list):
-    """A directed acyclic graph of what scons is doing. It's represented
-    internally as a list of SconsDirectives
-    """
-
-    @classmethod
-    def parse(cls, fp):
-        by_dep = defaultdict(set)
-        directive_list = list(SconsDirective.lex(fp))
-        for i, directive in enumerate(directive_list):
-            # add each product to the by_product dict
-            map( lambda dep: by_dep[dep].add((i, directive)),
-                 directive.depends )
-
-        def recurse(node):
-            for product in node.produces:
-                for directive_idx, child in by_dep[product]:
-                    del directive_list[directive_idx]
-                    node.children.append(recurse(child))
-            return node
-
-        graph = cls()
-        while len(directive_list) > 0:
-            top_level_node = directive_list.popleft()
-            graph.append(recurse(top_level_node))
-
-        return graph
-
+from collections import deque
+from itertools import chain
 
 class SconsDirective(dict):
     """A single 'job' for scons to do.  This class is essentially a struct
@@ -48,10 +18,10 @@ class SconsDirective(dict):
     """
     def __init__(self, produces=list(), command=str(), 
                        depends=list(),  children=list()):
-        self.produces = self["produces"] = tuple(produces)
+        self.produces = self["produces"] = maybe_tuple(produces)
         self.command  = self["command"]  = command
-        self.depends  = self["depends"]  = tuple(depends)
-        self.children = self["children"] = tuple(children)
+        self.depends  = self["depends"]  = maybe_tuple(depends)
+        self.children = self["children"] = maybe_tuple(children)
         super(SconsDirective, self).__init__()
         
     def __hash__(self):
@@ -74,11 +44,53 @@ class SconsDirective(dict):
             if match:
                 command = match.group(1)
                 produces, depends = ast.literal_eval(match.group(2))
-                yield cls(command  = command, 
+                already_exists = tuple([f for f in depends
+                                        if os.path.exists(f)])
+                yield cls(command  = command,
                           produces = produces,
-                          depends  = depends)
+                          depends  = depends), already_exists
+
+
+    @staticmethod
+    def build(node, parents):
+        needed = set(node.depends)
+        have = set()
+        for parent in reversed(parents):
+            map(have.add, parent.produces)
+            if needed == have:
+                parent.append(node)
+                return None
+        # the loop fell through; not enough dependencies have been met
+        return node, parents
+
+
+    @classmethod
+    def parse(cls, fp):
+        directive_deque, extant_files = zip(*SconsDirective.lex(fp))
+        graph = cls(produces=list(chain(*extant_files)))
+        directive_deque = deque( (d, (graph,)) for d in directive_deque )
+
+        while directive_deque:
+            node, parents = directive_deque.popleft()
+            ret = SconsDirective.build(node, parents)
+            if ret:
+                node, parents = ret
+                directive_deque.append((node, parents))
+
+        return graph
+
 
 
 def file(fp):
-    dag = ExecutionGraph.parse(fp)
+    dag = SconsDirective.parse(fp)
     return dag
+
+def maybe_tuple(iterable):
+    if type(iterable) is str:
+        # slightly unclear notation; return a tuple of length 1
+        # containing the string
+        return (iterable,)
+    else:
+        return tuple(iterable)
+        
+
