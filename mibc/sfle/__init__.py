@@ -17,6 +17,9 @@ def find_cmd(name):
        if os.path.isfile(scons):
            return scons
 
+    # didn't find anything; fail
+    raise IOError("system command not found: " + name)
+
             
 MIBC_ENV_VAR = 'MIBC_TARGET'
 SCONS_BASE_CMD_LIST = [ python_cmd(),find_cmd("scons") ]
