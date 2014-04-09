@@ -14,14 +14,15 @@ Example: %(prog)s SampleID=a,b,c,d Description=Bob,Joe,Sally,Francine
 def main():
 
     args = sys.argv[1:]
-    
+    delimiter = args[0]
+
     if not args:
         print >> sys.stderr, USAGE
         sys.exit(1)
 
     args_dict = OrderedDict([
         (arg.split('=')[0], arg.split('=')[1].split(',')) 
-        for arg in args
+        for arg in args[1].split(delimiter)
     ])
 
     print >> sys.stdout, "#" + "\t".join(args_dict.keys())
