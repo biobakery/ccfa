@@ -74,7 +74,7 @@ def _deserialize(file_pointer):
     """Returns a list of namedtuples according to the contents of the
     file_pointer
     """
-    header = [ s.replace('#', '') 
+    header = [ s.strip().replace('#', '') 
                for s in file_pointer.readline().split('\t') ]
 
     cls = namedtuple('Sample', header, rename=True)
@@ -86,7 +86,7 @@ def _deserialize(file_pointer):
             if row.startswith('#'):
                 continue
             try:
-                yield cls._make(row.split('\t'))
+                yield cls._make([ r.strip() for r in row.split('\t') ])
             except TypeError as e:
                 raise SparseMetadataException(
                     "Unable to deserialize sample-specific metadata:"+\
