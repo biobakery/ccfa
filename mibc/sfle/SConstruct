@@ -1,10 +1,10 @@
 # -*- mode:python -*-
 import os
 import sys
-import json
 
 from mibc import (
-    models
+    models,
+    util
 )
 
 from mibc.sfle import (
@@ -43,7 +43,7 @@ target = None
 def _gettarget():
     global target
     if target is None:
-        target = json.loads(os.environ[MIBC_ENV_VAR])
+        target = util.deserialize(os.environ[MIBC_ENV_VAR])
 
     return target
 

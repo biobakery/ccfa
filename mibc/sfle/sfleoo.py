@@ -159,7 +159,7 @@ class ooSfle:
                tmpfile = my_env.File( tmp = "notforlong.txt" )
         """
         for keyword, file_str in kwargs.iteritems():
-            return track_files( (keyword, file_str) ).next()
+            return self.track_files( (keyword, file_str) ).next()
 
 
     def Files(self, *tuples):
@@ -317,7 +317,7 @@ class ooSfle:
             inpipe         = False, outpipe       = False, args       = None, 
             args_after     = False, rand_wait     = 0,     verbose    = False, 
             short_arg_symb = '-',   long_arg_symb = '--',  __kwargs__ = None,
-            dry_run        = False, **kwargs ):
+            dry_run        = False, _nopositional = False, **kwargs ):
         if type(fr) not in [tuple,list]: fr = [fr]
         if type(to) not in [tuple,list]: to = [to]
         inpipe, outpipe = (True, True) if pipe else (inpipe, outpipe)
@@ -365,9 +365,9 @@ class ooSfle:
                     else: noout.append(k)
             if not args_after:
                 cmd += pa
-            if not inpipe:
+            if not inpipe or _nopositional is False:
                 cmd += [f for i,f in enumerate(io.inpf) if not i in noin]
-            if not outpipe:
+            if not outpipe or _nopositional is False:
                 cmd += [f for i,f in enumerate(io.outf) if not i in noout]
             if args_after:
                 cmd += pa

@@ -4,7 +4,7 @@ import operator
 import itertools
 from collections import defaultdict
 
-from . import chain_starters
+from . import misc
 
 from .util import guess_seq_filetype
 
@@ -63,26 +63,29 @@ def demultiplex(env, samples, infiles_list, dry_run=False, **opts):
         input_seq_files = [ f for f in infiles_list
                             if any(s.Run_accession in f for s in sample_group) ]
 
-        cat_chain = chain_starters.cat(
-            env, input_seq_files, guess_from=input_seq_files[0])
+        extracted = misc.extract(
+            env, input_seq_files, 
+            guess_from=input_seq_files[0], dry_run=dry_run
+        )
 
-        env.chain("mibc_fastq_split", 
-                  verbose = True,
-                  dry_run = dry_run,
-                  in_pipe  = cat_chain,
-                  stop    = [fa_fname, qual_fname],
+        env.ex( extracted,
+                [fa_fname, qual_fname],
+                "mibc_fastq_split", 
+                verbose = True,
+                dry_run = dry_run,
 
-                  format    = guess_seq_filetype(input_seq_files[0]),
-                  fasta_out = fa_fname,
-                  qual_out  = qual_fname,
+                format    = guess_seq_filetype(input_seq_files[0]),
+                fasta_out = fa_fname,
+                qual_out  = qual_fname
         )
         # Finally, run the qiime script to demultiplex
         split_seqs_fname = env.fout(os.path.join(sample_id, "seqs.fna"))
         env.ex([map_fname, fa_fname, qual_fname], 
                split_seqs_fname,
-               "split_libraries.py",
+               "qiime_cmd split_libraries.py",
                verbose=True,
                dry_run=dry_run,
+               _nopositional=True,
                m=map_fname,
                f=fa_fname,
                q=qual_fname,

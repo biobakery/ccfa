@@ -2,7 +2,6 @@
 
 import os
 import sys
-import json
 import subprocess
 from optparse import OptionParser, make_option
 
@@ -23,6 +22,8 @@ from . import (
     interpret
 )
 
+from ..util import serialize
+
 def print_workflows():
     for _, workflow in workflows.all().iteritems():
         print "%s\t%s" %(workflow.func_name, workflow.func_doc)
@@ -30,7 +31,7 @@ def print_workflows():
 
 def run_workflow(workflow, input_files, 
                  scons_arguments=list(), verbose=False, dry_run=False):
-    os.environ[MIBC_ENV_VAR] = json.dumps(
+    os.environ[MIBC_ENV_VAR] = serialize(
         {"workflow"   : workflow,
          "input_files": [ os.path.abspath(f) for f in input_files],
          "dry_run"    : dry_run}
@@ -40,7 +41,7 @@ def run_workflow(workflow, input_files,
 
 def build_directory(directory, 
                     scons_arguments=list(), verbose=False, dry_run=False):
-    os.environ[MIBC_ENV_VAR] = json.dumps(
+    os.environ[MIBC_ENV_VAR] = serialize(
         {"directory": os.path.abspath(directory),
          "dry_run"  : dry_run}
     )
@@ -57,7 +58,7 @@ def launch_scons(scons_arguments, verbose=False, dry_run=False):
 
     if dry_run:
         dag = interpret.file(proc.stdout)
-        json.dump(dag, sys.stdout)
+        serialize(list(dag), to_fp=sys.stdout)
     else:
         for line in iter(proc.stdout.readline, ''):
             print line.strip()

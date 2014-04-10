@@ -2,7 +2,9 @@
 import sys
 import logging
 import optparse
+import tempfile
 from pprint import pformat
+from contextlib import nested
 
 from Bio import SeqIO
 
@@ -20,10 +22,10 @@ opts_list = [
     optparse.make_option('-F', '--format', action="store", 
                          dest="from_format", type="string",
                          help="The file format to convert from"),
-    optparse.make_option('-f', '--fasta-out', action="store", 
+    optparse.make_option('-f', '--fasta_out', action="store", 
                          dest="fasta_outfile", type="string",
                          help="File to which to write fasta records"),
-     optparse.make_option('-q', '--qual-out', action="store", 
+     optparse.make_option('-q', '--qual_out', action="store", 
                          dest="qual_outfile", type="string",
                          help="File to which to write qual records"),
      optparse.make_option('-l', '--logging', action="store", type="string",
@@ -52,14 +54,27 @@ def main():
         parser.print_usage()
         sys.exit(1)
 
-    with open(opts.fasta_outfile, 'w') as fa_file, \
+    if not args:
+        logging.debug("Writing input to temporary file")
+        tmp_fp = tempfile.TemporaryFile()
+        tmp_fp.write(sys.stdin.read())
+        tmp_fp.seek(0)
+        args = [tmp_fp]
+    else:
+        args = [ open(f) for f in args ]
+        
+
+    with nested(*args), \
+         open(opts.fasta_outfile, 'w') as fa_file, \
          open(opts.qual_outfile, 'w') as qual_file:
-        for i, record in enumerate(SeqIO.parse(sys.stdin, opts.from_format)):
-            fa_file.writelines(fa(record))
-            qual_file.writelines(ql(record))
-            if logging.getLogger().isEnabledFor(logging.DEBUG):
-                if i % 250 == 0:
-                    logging.debug("Converted %d records", i)
+
+        for fp in args:
+            for i, record in enumerate(SeqIO.parse(fp, opts.from_format)):
+                fa_file.writelines(fa(record))
+                qual_file.writelines(ql(record))
+                if logging.getLogger().isEnabledFor(logging.DEBUG):
+                    if i % 250 == 0 and i != 0:
+                        logging.debug("Converted %d records", i)
             
                 
 
