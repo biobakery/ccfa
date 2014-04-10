@@ -2,7 +2,7 @@
 import os
 import operator
 import itertools
-from collections import defaultdict
+from collections import OrderedDict
 
 from . import misc
 
@@ -27,12 +27,10 @@ def demultiplex(env, samples, infiles_list, dry_run=False, **opts):
             samples, operator.attrgetter("SampleID")):
         sample_group = list(sample_group)
 
-        sample_dir = env.ex([], sample_id, "mkdir", verbose=True, 
-                            dry_run=dry_run)
-        
         # Generate map.txt file for a sampleID
-        map_fname   = env.fout(os.path.join(sample_id, "map.txt"))
-        map_dict = defaultdict(list)
+        map_fname = env.fout(os.path.join(sample_id, "map.txt"))
+        map_dict = OrderedDict([ (key, []) 
+                                 for key in sample_group[0]._fields])
         for _, samples_bycode in itertools.groupby(
                 sample_group, operator.attrgetter("BarcodeSequence")):
             # get the first (hopefully only) sample from the samples
@@ -40,9 +38,12 @@ def demultiplex(env, samples, infiles_list, dry_run=False, **opts):
             # under the same ID for the same barcode
             sample = samples_bycode.next()
             for k, v in sample._asdict().iteritems():
+                # uniq-ify to make qiime happy
+                if k == 'SampleID':
+                    v += "_" + sample.BarcodeSequence
                 map_dict[k].append(v)
 
-        map_dict = dict([
+        map_dict = OrderedDict([
             (key, ",".join(val)) for key, val in map_dict.iteritems()
         ])
         env.ex([], map_fname, "mibc_map_writer",
@@ -89,7 +90,7 @@ def demultiplex(env, samples, infiles_list, dry_run=False, **opts):
                m=map_fname,
                f=fa_fname,
                q=qual_fname,
-               o=sample_dir[0].abspath,
+               o=os.path.split(map_fname)[0],
                **all_opts
         )
         
