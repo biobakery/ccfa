@@ -377,9 +377,9 @@ class ooSfle:
                     else: noout.append(k)
             if not args_after:
                 cmd += pa
-            if not inpipe or _nopositional is False:
+            if _nopositional is False and not inpipe:
                 cmd += [f for i,f in enumerate(io.inpf) if not i in noin]
-            if not outpipe or _nopositional is False:
+            if _nopositional is False and not outpipe:
                 cmd += [f for i,f in enumerate(io.outf) if not i in noout]
             if args_after:
                 cmd += pa
