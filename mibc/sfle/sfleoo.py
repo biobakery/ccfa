@@ -131,7 +131,9 @@ class IO:
 
 #@singleton
 class ooSfle:
-    def __init__( self, le = None, path = [], fileDirInput = "input", fileDirOutput = ".", fileDirTmp = ".", fileDirSrc = "src" ):
+    def __init__( self, le           = None,    path          = [], 
+                        fileDirInput = "input", fileDirOutput = ".",  
+                        fileDirTmp   = ".",     fileDirSrc    = "src" ):
         self.lenv = le if le else e.Environment()
         for p in path:
             self.lenv.PrependENVPath('PATH', p)
@@ -139,16 +141,23 @@ class ooSfle:
         self.fileDirOutput = fileDirOutput
         self.fileDirTmp = fileDirTmp
         self.fileDirSrc = fileDirSrc
-        import subprocess as sb
 
     def rebase( self, pPath, strFrom = None, strTo = "" ):
         return sfle.rebase( pPath, strFrom, strTo )
 
-    def glob( self, fn ):
-        return sorted([self.fin(a) for a in self.lenv.Glob( sfle.d( self.fileDirInput, fn ) )])
+    def glob( self, query_str, dir=None):
+        dir = dir or self.fileDirInput
+        return sorted([
+            self.fin(fname_str) 
+            for fname_str in self.lenv.Glob( 
+                    sfle.d(dir, query_str)
+            )
+        ])
     
-    def glob_tmp( self, fn ):
-        return sorted([str(a) for a in self.lenv.Glob( sfle.d( self.fileDirTmp, fn ) )])
+
+    def glob_tmp( self, query_str ):
+        return  self.glob(query_str, dir=self.fileDirTmp)
+
 
     def File(self, **kwargs):
         """Track files with sfleoo.
@@ -221,8 +230,10 @@ class ooSfle:
             return [self.ftmp(fn.format(m)) for m in mult]
         return str(self.lenv.File( sfle.d( self.fileDirTmp, fn ) ))
 
-    def f(  self, srs, tgt, func, srs_dep = None, tgt_dep = None, 
-            __kwargs_dict__ = None, fname = None, attempts = 1, **kwargs ):
+    def f(self, srs, tgt, func, 
+                srs_dep         = None, tgt_dep = None, 
+                __kwargs_dict__ = None, fname   = None, 
+                attempts = 1, **kwargs ):
         if srs_dep is None: srs_dep = []
         if tgt_dep is None: tgt_dep = []
         if srs is None:
