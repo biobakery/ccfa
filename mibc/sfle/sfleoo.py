@@ -25,6 +25,7 @@ import sys
 import sfle
 import time
 import shutil
+import shlex
 import random
 import time
 import itertools
@@ -354,7 +355,7 @@ class ooSfle:
             pargs += ([k] if k else []) + val 
         
         def _ex_( io ):
-            cmd = [str(excmd)]
+            cmd = shlex.split(excmd)
             pa, noin, noout = [], [], []
             for p in pargs:
                 if type(p) is str: pa.append(p)
