@@ -3,8 +3,9 @@ import os
 import sys
 
 from mibc import (
+    util,
     models,
-    util
+    validate,
 )
 
 from mibc.sfle import (
@@ -55,7 +56,7 @@ def run_workflow():
 
     if workflow not in workflows.all():
         print >> sys.stderr, "The workflow %s does not exist" %(workflow)
-        sys.exit(1)
+        sys.exit(util.retcodes.SYS_ERROR)
     else:
         workflow_func = workflows.all()[workflow]
 
@@ -64,7 +65,7 @@ def run_workflow():
     if missing_files:
         print >> sys.stderr, "No such file or directory: %s" %(
             "\n".join(missing_files))
-        sys.exit(1)
+        sys.exit(util.retcodes.SYS_ERROR)
 
     return workflow_func(_getenv(), input_files, dry_run=dry_run)
 
@@ -73,12 +74,12 @@ def build_directory():
     if not os.path.exists(_gettarget()["directory"]):
         print >> sys.stderr, "The targeted directory does not exist: %s" \
             %(_gettarget())
-        sys.exit(1)
+        sys.exit(util.retcodes.SYS_ERROR)
 
     if not os.path.isdir(_gettarget()["directory"]):
         print >> sys.stderr, "The target 'directory' is not a directory: %s" \
             %(_gettarget())
-        sys.exit(1)
+        sys.exit(util.retcodes.SYS_ERROR)
 
     try:
         project = models.Project.from_path(_gettarget()["directory"])
@@ -87,6 +88,12 @@ def build_directory():
             %(_gettarget()["directory"])
         raise e
     
+    messages = validate.validate(project)
+    if not validate.all_ok(messages):
+        print >> sys.stderr, "The project does not pass quality checks"
+        util.serialize(messages, to_fp=sys.stderr)
+        sys.exit(util.retcodes.USER_ERROR)
+
     dry_run = _gettarget().get("dry_run", False)
 
     if getattr(project, "16s_data", None) is None:

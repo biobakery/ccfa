@@ -6,6 +6,10 @@ def stat(path, f):
         os.path.join(path,f)
         )
 
+class retcodes:
+    SYS_ERROR  = 1
+    USER_ERROR = 2
+
 ###
 # Serialization, etc
 
