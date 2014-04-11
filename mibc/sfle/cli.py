@@ -53,7 +53,7 @@ def launch_scons(scons_arguments, verbose=False, dry_run=False):
         print " ".join(["MIBC_TARGET="+os.environ[MIBC_ENV_VAR]]+\
                        scons_cmd(scons_arguments))
     proc = subprocess.Popen(scons_cmd(scons_arguments), 
-                            stderr=subprocess.STDOUT,
+                            stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
 
     if dry_run:
@@ -63,7 +63,11 @@ def launch_scons(scons_arguments, verbose=False, dry_run=False):
         for line in iter(proc.stdout.readline, ''):
             print line.strip()
 
-    return proc.wait()
+    retcode = proc.wait()
+    if retcode != 0:
+        sys.stderr.write(proc.stderr.read())
+
+    return retcode
     
 
 def scons_cmd(extra_arguments):
