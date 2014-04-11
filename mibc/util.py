@@ -43,7 +43,10 @@ class SerializableMixin(object):
 
     @property
     def _serializable_attrs(self):
-        return dict([
-            (key, getattr(self, key))
-            for key in self.serializable_attrs
-        ])
+        if hasattr(self, "_custom_serialize"):
+            return self._custom_serialize()
+        else:
+            return dict([
+                (key, getattr(self, key))
+                for key in self.serializable_attrs
+            ])
