@@ -24,5 +24,6 @@ def guess_seq_filetype(guess_from):
 
 biopython_to_metaphlan = {
     "fasta": "multifasta",
-    "fastq": "multifastq"
+    "fastq": "multifastq",
+    "bam"  : "bam",
 }
