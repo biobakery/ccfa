@@ -33,9 +33,7 @@ def path_wgs(env, project, dry_run=False):
         product = workflows.metaphlan2(
             env, 
             files_list = files_batch,
-            dry_run    = dry_run,
-            mpa_pkl    = settings.workflows.metaphlan2.mpa_pkl,
-            bowtie2db  = settings.workflows.metaphlan2.bowtie2db,
+            dry_run    = dry_run
         )
         to_build.append(product)
 

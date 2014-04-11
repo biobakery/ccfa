@@ -41,7 +41,10 @@ def metaphlan2(env, files_list, dry_run=False, **opts):
     outfile       = env.fout(addext(files_list[0], "metaphlan2"))
     bowtie2out    = env.fout(addext(files_list[0], "bowtie2out.txt"))
 
-    all_opts = { 'bt2_ps'   : 'very-sensitive' }
+    all_opts = { 'bt2_ps'   : 'very-sensitive',
+                 'bowtie2db': settings.workflows.metaphlan2.bowtie2db,
+                 'mpa_pkl'  : settings.workflows.metaphlan2.mpa_pkl,
+    }
     all_opts.update(opts)
 
     step_one = chain_starters.cat(
@@ -53,8 +56,6 @@ def metaphlan2(env, files_list, dry_run=False, **opts):
                in_pipe     = step_one,
                stop        = outfile,
 
-               bowtie2db   = settings.workflows.metaphlan2.bowtie2db,
-               mpa_pkl     = settings.workflows.metaphlan2.mpa_pkl,
                bowtie2out  = bowtie2out,
                output_file = outfile,
                input_type  = biopython_to_metaphlan[
