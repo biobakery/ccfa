@@ -16,6 +16,8 @@ class retcodes:
 def deserialize_csv(file_handle):
     for i, line in enumerate(file_handle):
         cols = line.split('\t')
+        if line.strip() == "":
+            continue
         if len(cols) < 2:
             raise AttributeError(
                 "Improper formatting in file %s - "
