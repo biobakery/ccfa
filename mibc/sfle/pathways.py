@@ -29,13 +29,13 @@ def path_wgs(env, project, dry_run=False):
     for sample_id, _ in project.map.groupby(0):
         files_batch = [ filename for filename in project.filename
                         if str(sample_id) in filename ]
-        
-        product = workflows.metaphlan2(
-            env, 
-            files_list = files_batch,
-            dry_run    = dry_run
-        )
-        to_build.append(product)
+        if files_batch:
+            product = workflows.metaphlan2(
+                env, 
+                files_list = files_batch,
+                dry_run    = dry_run
+            )
+            to_build.append(product)
 
     return to_build
 
