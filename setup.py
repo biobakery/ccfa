@@ -11,7 +11,8 @@ setup(
         'nose>=1.3.0',
         'python-dateutil>=2.2',
         'six>=1.4.1',
-        'biopython>=1.63'
+        'biopython>=1.63',
+        'bottle>=0.10'
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha"
@@ -24,6 +25,7 @@ setup(
             'mibc_build       = mibc.sfle.cli:main',
             'mibc_fastq_split = mibc.utility_scripts.seqsplit:main',
             'mibc_map_writer  = mibc.utility_scripts.mapwrite:main',
+            'mibc_web_worker  = mibc.web:main',
         ],
     }
 )
