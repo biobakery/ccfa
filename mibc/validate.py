@@ -18,3 +18,7 @@ def validate(obj, **opts):
     #   that down because it's possible someone might want the number
     #   of tests that failed
     return validator.conditions
+
+def all_ok(validator_conditions):
+    return all( passed is True 
+                for passed, _ in validator_conditions )
