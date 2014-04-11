@@ -1,6 +1,14 @@
 import os
 import json
 
+def stat(path, f):
+    return os.stat(
+        os.path.join(path,f)
+        )
+
+###
+# Serialization, etc
+
 def deserialize_csv(file_handle):
     for i, line in enumerate(file_handle):
         cols = line.split('\t')
@@ -16,11 +24,6 @@ def deserialize_csv(file_handle):
             [ col.strip() for col in cols[1].split(',') ] 
             )
         
-def stat(path, f):
-    return os.stat(
-        os.path.join(path,f)
-        )
-
 def serialize(obj, to_fp=None):
     defaultfunc = lambda o: o._serializable_attrs
     if to_fp:
@@ -33,7 +36,6 @@ def deserialize(s=None, from_fp=None):
         return json.loads(s)
     elif from_fp:
         return json.load(from_fp)
-
 
 class SerializableMixin(object):
     """Mixin that defines a few methods to simplify serializing objects
