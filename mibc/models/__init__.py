@@ -78,6 +78,9 @@ class User(usermixins.LDAP):
         self._last_updated = None
 
         
+    def exists(self):
+        return os.path.exists(self.path)
+
     def newly_updated(self, since=datetime.now()):
         return [ 
             p for p in self.projects.all() if since < p.last_updated 
@@ -119,6 +122,11 @@ class Project(projectmixins.validation):
             self.autopopulate()
 
         self._last_updated = None
+
+        
+    def exists(self):
+        return os.path.exists(self.path) and self.user.exists()
+
 
     @property
     def last_updated(self):
