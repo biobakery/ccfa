@@ -218,7 +218,7 @@ class Project_Test(ValidatorBase):
                        self.project.researcher_contact_email: 
 
             x = re.match(
-                r'[a-zA-Z0-9]+@[0-9a-zA-Z]+\.[0-9a-zA-Z]+', 
+                r'[a-zA-Z0-9._-]+@[0-9a-zA-Z._-]+\.[0-9a-zA-Z]+', 
                 address
                 )
             self.cond(x is not None,
