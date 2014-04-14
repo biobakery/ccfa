@@ -66,7 +66,9 @@ class Repository(object):
 
 
 
-class User(usermixins.LDAP):
+class User(util.SerializableMixin, usermixins.LDAP):
+
+    serializable_attrs = ['name', 'path', 'last_updated']
     
     def __init__(self, name, repo=None, autopopulate=False):
         self.name = name
@@ -110,7 +112,7 @@ class User(usermixins.LDAP):
 
 
 
-class Project(projectmixins.validation):
+class Project(util.SerializableMixin, projectmixins.validation):
     
     def __init__(self, name, user, autopopulate=False):
         self.name = name
@@ -127,6 +129,12 @@ class Project(projectmixins.validation):
     def exists(self):
         return os.path.exists(self.path) and self.user.exists()
 
+    def _custom_serialize(self):
+        if not self._autopopulated:
+            self.autopopulate()
+        return dict( (key, val) 
+                     for key, val in self.__dict__.iteritems()
+                     if not key.startswith('_') )
 
     @property
     def last_updated(self):
