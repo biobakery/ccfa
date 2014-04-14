@@ -1,5 +1,6 @@
 import os
 import json
+import datetime
 
 def stat(path, f):
     return os.stat(
@@ -12,6 +13,9 @@ class retcodes:
 
 ###
 # Serialization, etc
+
+class SerializationError(TypeError):
+    pass
 
 def deserialize_csv(file_handle):
     for i, line in enumerate(file_handle):
@@ -30,12 +34,20 @@ def deserialize_csv(file_handle):
             [ col.strip() for col in cols[1].split(',') ] 
             )
         
+def _defaultfunc(obj):
+    if hasattr(obj, '_serializable_attrs'):
+        return obj._serializable_attrs
+    elif hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+        
+    raise SerializationError("Unable to serialize object %s" %(obj))
+        
+
 def serialize(obj, to_fp=None):
-    defaultfunc = lambda o: o._serializable_attrs
     if to_fp:
-        return json.dump(obj, to_fp, default=defaultfunc)
+        return json.dump(obj, to_fp, default=_defaultfunc)
     else:
-        return json.dumps(obj, default=defaultfunc)
+        return json.dumps(obj, default=_defaultfunc)
 
 def deserialize(s=None, from_fp=None):
     if s:
