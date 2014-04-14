@@ -60,12 +60,14 @@ def parallel_validate(*efo_ids, **kwargs):
         thread.start()
         
     ret = dict()
-    while True:
+    while len(ret) < len(efo_ids):
         try:
             efo, status = out_queue.get(timeout=timeout)
             ret.update(status)
         except Queue.Empty:
-            return ret
+            continue
+
+    return ret
         
     
 ###
