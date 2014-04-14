@@ -68,7 +68,7 @@ class Repository(object):
 
 class User(util.SerializableMixin, usermixins.LDAP):
 
-    serializable_attrs = ['name', 'path', 'last_updated']
+    serializable_attrs = ['name', 'path', 'last_updated', 'projects']
     
     def __init__(self, name, repo=None, autopopulate=False):
         self.name = name
@@ -189,12 +189,17 @@ class Project(util.SerializableMixin, projectmixins.validation):
 
 
 
-class BaseRoster(object):
+class BaseRoster(util.SerializableMixin):
 
     parent = None
 
     def __init__(self, MemberClass):
         self.MemberClass = MemberClass
+
+
+    def _custom_serialize(self):
+        return [ f for f in os.listdir(self.parent.path)
+                 if os.path.isdir(os.path.join(self.parent.path, f)) ]
 
 
     def get(self, key):
