@@ -18,12 +18,13 @@ setup(
     ],
     entry_points= {
         'console_scripts': [
-            'email-validate   = mibc.email.cli:main',
-            'sequence-convert = mibc.utility_scripts.convert:main',
-            'assembly         = mibc.assembly:main',
-            'mibc_build       = mibc.sfle.cli:main',
-            'mibc_fastq_split = mibc.utility_scripts.seqsplit:main',
-            'mibc_map_writer  = mibc.utility_scripts.mapwrite:main',
+            'email-validate    = mibc.email.cli:main',
+            'assembly          = mibc.assembly:main',
+            'mibc_build        = mibc.sfle.cli:main',
+            'mibc_convert      = mibc.utility_scripts.convert:main',
+            'mibc_fastq_split  = mibc.utility_scripts.seqsplit:main',
+            'mibc_map_writer   = mibc.utility_scripts.mapwrite:main',
+            'mibc_web_worker   = mibc.web:main',
         ],
     }
 )
