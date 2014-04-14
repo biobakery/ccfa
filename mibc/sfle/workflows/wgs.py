@@ -50,16 +50,26 @@ def metaphlan2(env, files_list, dry_run=False, **opts):
     step_one = chain_starters.cat(
         env, infiles_list, guess_from = infiles_list[0])
 
+    pipe_in = step_one
+    
+    seqtype = guess_seq_filetype(infiles_list[0])
+    if seqtype != 'fasta':
+        step_two = env.chain( "mibc_convert",
+                              in_pipe = step_one,
+                              
+                              format = guess_seq_filetype(infiles_list[0]),
+                              to     = "fasta" )
+        pipe_in = step_two
+
     env.chain( "metaphlan2.py",
                verbose     = True,
                dry_run     = dry_run,
-               in_pipe     = step_one,
+               in_pipe     = pipe_in,
                stop        = outfile,
 
                bowtie2out  = bowtie2out,
                output_file = outfile,
-               input_type  = biopython_to_metaphlan[
-                   guess_seq_filetype(infiles_list[0])],
+               input_type  = biopython_to_metaphlan['fasta'],
                **all_opts )
 
     return outfile
