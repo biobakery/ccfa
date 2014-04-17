@@ -63,6 +63,8 @@ def demultiplex(env, samples, infiles_list, dry_run=False, **opts):
         # TODO: should probably check with the consortium about this...
         input_seq_files = [ f for f in infiles_list
                             if any(s.Run_accession in f for s in sample_group) ]
+        if not input_seq_files:
+            input_seq_files = infiles_list
 
         extracted = misc.extract(
             env, input_seq_files, 
