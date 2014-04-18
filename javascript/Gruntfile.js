@@ -9,8 +9,8 @@ module.exports = function(grunt) {
 		    bare: true
 		},
 		files: {
-		    "mibc/dist/assets/mibc.js": "mibc/lib/test.coffee",
-		    "mibc/dist/assets/metadata.js": "mibc/lib/metadata.js.coffee"
+		    "dist/assets/mibc.js": "mibc/lib/test.coffee",
+		    "dist/assets/metadata.js": "mibc/lib/metadata.js.coffee"
 		},
 	    },
 	},
@@ -28,16 +28,16 @@ module.exports = function(grunt) {
 	    all: {
 		files: [
 		    {expand: true, cwd: "mibc/css/",
-		     src: ["**"], dest: "mibc/dist/css/"},
+		     src: ["**"], dest: "dist/css/"},
 		    {expand: true, cwd: "mibc/html/",
-		     src: ["**"], dest: "mibc/dist/"},
+		     src: ["**"], dest: "dist/"},
 		],
 	    },
 	},
 
 	clean: {
 	    all: {
-		src: ['mibc/dist/*'],
+		src: ['dist/*'],
 	    },
 	},
 
