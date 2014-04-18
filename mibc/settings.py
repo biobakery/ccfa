@@ -26,6 +26,10 @@ class workflows(object):
         otu_refseq   = "/vagrant/ccfa/data/gg_13_8_otus/rep_set/99_otus.fasta"
 
 
+class web(object):
+    host = "0.0.0.0"
+    port = 8080
+
 # Pay no attention to that man behind the curtain
 
 _settings_file = ""

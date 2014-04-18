@@ -33,15 +33,6 @@ def validate(*efo_ids):
                 raise
     return ret
 
-def _consume(in_queue, out_queue, timeout):
-    while True:
-        try:
-            val = in_queue.get(timeout=timeout)
-            if val:
-                out_queue.put( (val, validate(val)), 
-                               timeout=timeout )
-        except Queue.Empty:
-            return
 
 def parallel_validate(*efo_ids, **kwargs):
     threads = kwargs.get('threads', 5)
@@ -52,20 +43,28 @@ def parallel_validate(*efo_ids, **kwargs):
     for efo_id in efo_ids:
         in_queue.put(efo_id)
 
-    workers = list()
+    def _consume():
+        while True:
+            try:
+                val = in_queue.get(timeout=timeout)
+                if val:
+                    out_queue.put( (val, validate(val)), 
+                                   timeout=timeout )
+            except Queue.Empty:
+                return
+
     for _ in range(threads):
-        thread = threading.Thread(target=_consume, 
-                                 args=(in_queue, out_queue, timeout))
-        workers.append(thread)
-        thread.start()
+        threading.Thread(target=_consume).start()
         
     ret = dict()
-    while True:
+    while len(ret) < len(efo_ids):
         try:
-            efo, status = out_queue.get(timeout=timeout)
+            _, status = out_queue.get(timeout=timeout)
             ret.update(status)
         except Queue.Empty:
-            return ret
+            continue
+
+    return ret
         
     
 ###

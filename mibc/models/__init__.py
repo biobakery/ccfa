@@ -66,7 +66,9 @@ class Repository(object):
 
 
 
-class User(usermixins.LDAP):
+class User(util.SerializableMixin, usermixins.LDAP):
+
+    serializable_attrs = ['name', 'path', 'last_updated', 'projects']
     
     def __init__(self, name, repo=None, autopopulate=False):
         self.name = name
@@ -78,6 +80,9 @@ class User(usermixins.LDAP):
         self._last_updated = None
 
         
+    def exists(self):
+        return os.path.exists(self.path)
+
     def newly_updated(self, since=datetime.now()):
         return [ 
             p for p in self.projects.all() if since < p.last_updated 
@@ -107,7 +112,7 @@ class User(usermixins.LDAP):
 
 
 
-class Project(projectmixins.validation):
+class Project(util.SerializableMixin, projectmixins.validation):
     
     def __init__(self, name, user, autopopulate=False):
         self.name = name
@@ -119,6 +124,17 @@ class Project(projectmixins.validation):
             self.autopopulate()
 
         self._last_updated = None
+
+        
+    def exists(self):
+        return os.path.exists(self.path) and self.user.exists()
+
+    def _custom_serialize(self):
+        if not self._autopopulated:
+            self.autopopulate()
+        return dict( (key, val) 
+                     for key, val in self.__dict__.iteritems()
+                     if not key.startswith('_') )
 
     @property
     def last_updated(self):
@@ -140,6 +156,7 @@ class Project(projectmixins.validation):
     def autopopulate(self):
         self.__dict__.update( self._gather('metadata.txt') )
         self.map = mapping_file.load('map.txt', basepath=self.path)
+        self.map_headers = self.map[0]._fields
 
         self._autopopulated = True
 
@@ -172,12 +189,17 @@ class Project(projectmixins.validation):
 
 
 
-class BaseRoster(object):
+class BaseRoster(util.SerializableMixin):
 
     parent = None
 
     def __init__(self, MemberClass):
         self.MemberClass = MemberClass
+
+
+    def _custom_serialize(self):
+        return [ f for f in os.listdir(self.parent.path)
+                 if os.path.isdir(os.path.join(self.parent.path, f)) ]
 
 
     def get(self, key):

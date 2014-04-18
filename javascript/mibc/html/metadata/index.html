@@ -4,36 +4,12 @@
   <head>
     <title>metadata.txt</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
-    <link href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
-    <style type="text/css">
-      body {
-        margin:         3% 6%;
-        font-family:    'Amethysta';
-        font-size:      17px;
-        line-height:    1.22;
-        text-rendering: optimizelegibility;
-      }
 
-      @font-face {
-        font-family: 'Amethysta'; 
-        font-style:  normal; 
-        font-weight: 400; 
-        src:         local(Amethysta),local(Amethysta-Regular),url(https://themes.googleusercontent.com/static/fonts/amethysta/v1/uuO0VFu8kdKx34ju6adj-LO3LdcAZYWl9Si6vvxL-qU.woff) format("woff");
-      }
+    <link href="/assets/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/mibc.css" rel="stylesheet" type="text/css">
 
-      .hidden {
-        display: none;
-        visibility: hidden;
-      }
-
-      input[type=checkbox] {
-        margin-bottom: 10px;
-      }
-
-    </style>
-    
+    <script src="/assets/jquery/jquery.min.js"></script>
+    <script src="/assets/jquery-validation/jquery.validate.js"></script>
   </head>
 
   <body>
@@ -42,7 +18,7 @@
 	<h3>Automagic metadata generator</h3>
 	<p>Fill out this form to get your metadata.txt file</p>
 
-	<div class="span10">
+	<div class="col-md10">
 	  <div id="message_box" class="span8 well well-large hidden">
 	    <input type="checkbox" id="save_override"> Save anyway?
 	    <hr />
@@ -52,13 +28,13 @@
 	    <input required="required" type="text" placeholder="PI Last Name" name="pi_last_name">
 	    <input required="required" type="email" placeholder="PI Email" name="pi_contact_email">
 	    <input required="required" type="text" placeholder="Lab Name" name="lab_name">
-	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
+	    <a href="#"><i class="rowadd glyphicon glyphicon-plus-sign"></i></a>
 	  </div>
 	  <div class="row">
 	    <input required="required" type="text" placeholder="Researcher First Name" name="researcher_first_name">
 	    <input required="required" type="text" placeholder="Researcher Last Name" name="researcher_last_name">
 	    <input required="required" type="email" placeholder="Researcher Email" name="researcher_contact_email">
-	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
+	    <a href="#"><i class="rowadd glyphicon glyphicon-plus-sign"></i></a>
 	  </div>
 	  <div class="row">
 	    <input required="required" type="text" placeholder="Study Title" name="study_title">
@@ -72,7 +48,7 @@
 	  </div>
 	  <div class="row">
 	    <input required="required" type="text" placeholder="Filename" name="filename">
-	    <a href="#"><i class="rowadd icon-plus-sign"></i></a>
+	    <a href="#"><i class="rowadd glyphicon glyphicon-plus-sign"></i></a>
 	  </div>
 	  <div class="row">
 	    <label for="collection_start_date" >Collection Start Date</label>
@@ -104,7 +80,7 @@
 	</div>
       </div>
     </form>
-    <script src="/metadata/metadata.js"></script>
+    <script src="/assets/metadata.js"></script>
   </body>
 
 </html>
