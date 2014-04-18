@@ -8,7 +8,7 @@ from contextlib import nested
 
 from Bio import SeqIO
 
-HELP="""%prog [options] -F <format> --fasta-out <file> --qual_out <file>
+HELP="""%prog [options] -F <format> --fasta-out <file> [--qual_out <file>]
 
 %prog - Read in a sequence file from stdin, splitting sequence records
         to a pair of fasta and qual files, specified by the
@@ -26,7 +26,7 @@ opts_list = [
                          dest="fasta_outfile", type="string",
                          help="File to which to write fasta records"),
      optparse.make_option('-q', '--qual_out', action="store", 
-                         dest="qual_outfile", type="string",
+                         dest="qual_outfile", type="string", default=None,
                          help="File to which to write qual records"),
      optparse.make_option('-l', '--logging', action="store", type="string",
                          dest="logging", default="INFO",
@@ -50,7 +50,7 @@ def main():
     logging.basicConfig(
         format="%(asctime)s %(levelname)s: %(message)s")
 
-    if not opts.fasta_outfile or not opts.qual_outfile:
+    if not opts.fasta_outfile:
         parser.print_usage()
         sys.exit(1)
 
@@ -63,15 +63,22 @@ def main():
     else:
         args = [ open(f) for f in args ]
         
+            
+    with nested(*args), open(opts.fasta_outfile, 'w') as fa_file:
 
-    with nested(*args), \
-         open(opts.fasta_outfile, 'w') as fa_file, \
-         open(opts.qual_outfile, 'w') as qual_file:
+        if opts.qual_outfile:
+            # opening the qual_file here pains me
+            qual_file = open(opts.qual_outfile, 'w')
+            def _output(record):
+                fa_file.writelines(fa(record))
+                qual_file.writelines(ql(record))
+        else:
+            def _output(record):
+                fa_file.writelines(fa(record))
 
         for fp in args:
             for i, record in enumerate(SeqIO.parse(fp, opts.from_format)):
-                fa_file.writelines(fa(record))
-                qual_file.writelines(ql(record))
+                _output(record)
                 if logging.getLogger().isEnabledFor(logging.DEBUG):
                     if i % 250 == 0 and i != 0:
                         logging.debug("Converted %d records", i)
