@@ -57,7 +57,7 @@ def main():
     if not args:
         logging.debug("Writing input to temporary file")
         tmp_fp = tempfile.TemporaryFile()
-        tmp_fp.write(sys.stdin.read())
+        map(tmp_fp.write, sys.stdin)
         tmp_fp.seek(0)
         args = [tmp_fp]
     else:
