@@ -155,6 +155,7 @@ def pick_otus_closed_ref(env, infiles_list,
         env.ex( infile,          outfile, 
                 "qiime_cmd pick_closed_reference_otus.py",
                 verbose=True,    i=infile, o=os.path.dirname(outfile), 
+                _nopositional=True,
                 dry_run=dry_run, **all_opts )
 
     return outfiles_list
