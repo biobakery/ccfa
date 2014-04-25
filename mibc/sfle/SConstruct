@@ -96,7 +96,7 @@ def build_directory():
 
     dry_run = _gettarget().get("dry_run", False)
 
-    if getattr(project, "16s_data", None) == "true":
+    if getattr(project, "16s_data", None)[0] == "true":
         return pathways.path_16s(_getenv(project), project, dry_run=dry_run)
     else:
         return pathways.path_wgs(_getenv(project), project, dry_run=dry_run)

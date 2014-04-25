@@ -2,6 +2,7 @@
 import os
 import re
 import datetime
+import mimetypes
 from types import *
 from itertools import chain
 
@@ -243,6 +244,39 @@ class Project_Test(ValidatorBase):
                        "Guessed EFO %s is not valid" %(efo_id)
                    )
 
+        assert self.all_tests_passed()
+
+    def test_no_tars(self):
+        for filename in self.project.filename:
+            self.cond( 
+                "application/x-tar" not in mimetypes.guess_type(filename),
+                "Uploaded tarfiles are not supported"
+            )
+
+        assert self.all_tests_passed()
+
+
+    def test_16S_things(self):
+        if getattr(self.project, "16s_data", [False])[0] == "true":
+            self.cond( self.project.exists() is True,
+                       "The project does not exist" )
+            self.cond( len(self.project.map) > 0,
+                       "The project has an empty mapfile")
+
+            test_sample = self.project.map[0]
+            self.cond( test_sample._fields[0] == "SampleID",
+                       "The project's map.txt does not have 'SampleID' "\
+                       +"as the first column")
+            self.cond( test_sample._fields[-1] == "Description",
+                       "The project's map.txt does not have 'Description' "\
+                       +"as the last column" )
+            self.cond( hasattr(test_sample, "BarcodeSequence") is True,
+                       "The project's map.txt has no 'BarcodeSequence' column")
+        else:
+            self.cond( True is True,
+                       "" 
+            )
+            
         assert self.all_tests_passed()
         
 

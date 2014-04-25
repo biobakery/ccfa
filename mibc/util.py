@@ -8,8 +8,8 @@ def stat(path, f):
         )
 
 class retcodes:
-    SYS_ERROR  = 1
-    USER_ERROR = 2
+    SYS_ERROR  = 2
+    USER_ERROR = 1
 
 ###
 # Serialization, etc

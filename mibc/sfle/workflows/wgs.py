@@ -65,7 +65,7 @@ def metaphlan2(env, files_list, dry_run=False, **opts):
                verbose     = True,
                dry_run     = dry_run,
                in_pipe     = pipe_in,
-               stop        = outfile,
+               stop        = [outfile, bowtie2out],
 
                bowtie2out  = bowtie2out,
                output_file = outfile,
