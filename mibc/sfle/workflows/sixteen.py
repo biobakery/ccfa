@@ -138,7 +138,7 @@ def pick_otus_closed_ref(env, infiles_list,
                 os.path.abspath(
                     os.path.dirname(f)
                 ),
-                "otus", 
+                "otu-picks", 
                 "otu_table.biom"
             )
         )
