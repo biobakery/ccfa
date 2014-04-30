@@ -9,7 +9,14 @@ module.exports = function(grunt) {
 		    bare: true
 		},
 		files: {
-		    "dist/assets/metadata.js": "mibc/js/metadata.js.coffee"
+		    "dist/assets/metadata.js": [ 
+			"mibc/js/MIBC.coffee"
+			, "mibc/js/metadata.js.coffee"
+			]
+		    , "dist/assets/validator.js": [ 
+			"mibc/js/MIBC.coffee" 
+			, "mibc/js/validator.js.coffee"
+			]
 		},
 	    },
 	},

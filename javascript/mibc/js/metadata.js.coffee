@@ -1,9 +1,8 @@
-$(document).ready ->
-  MIBC = {}
 
-  MIBC.config =
-    api_base: "/mibc/"
-        
+# from MIBC: MIBC
+
+$(document).ready ->
+
   MIBC._val = (el) ->
     (if el.type is "checkbox" then el.checked else el.value)
 
@@ -151,7 +150,5 @@ $(document).ready ->
       else
         $("#load_form").fadeOut()
       
-  window.MIBC = MIBC
-
   return
 
