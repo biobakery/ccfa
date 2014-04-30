@@ -36,14 +36,15 @@ def project_or_404(username, projectname):
         return project
 
 
-@get('/')
-@get('//')
+@get('/users')
+@get('//users')
 @authentication_required
 def root_get():
-    return util.serialize({ 'users': repo.users.all() })
+    return util.serialize(repo.users.all())
 
-@get('/<name>')
-@get('//<name>')
+@get('/users/<name>')
+@get('//users/<name>')
+@authentication_required
 def user_get(name):
     user = repo.users[name]
     if user.exists():
@@ -51,23 +52,24 @@ def user_get(name):
     else:
         abort(404, 'User not found')
 
-@get('/<username>/<projectname>')
-@get('//<username>/<projectname>')
+@get('/projects/<username>/<projectname>')
+@get('//projects/<username>/<projectname>')
+@authentication_required
 def project_get(username, projectname):
     project = project_or_404(username, projectname)
     return util.serialize(project)
 
-
-
-@get('/<username>/<projectname>/validate')
-@get('//<username>/<projectname>/validate')
+@get('/projects/<username>/<projectname>/validate')
+@get('//projects/<username>/<projectname>/validate')
+@authentication_required
 def validate_get(username, projectname):
     project = project_or_404(username, projectname)
     validation_results = validate.validate(project)
     return util.serialize(validation_results)
 
-@get('/<username>/<projectname>/mapvalidate')
-@get('//<username>/<projectname>/mapvalidate')
+@get('/projects/<username>/<projectname>/mapvalidate')
+@get('//projects/<username>/<projectname>/mapvalidate')
+@authentication_required
 def mapvalidate_get(username, projectname):
     project = project_or_404(username, projectname)
     

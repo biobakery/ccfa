@@ -9,8 +9,14 @@ module.exports = function(grunt) {
 		    bare: true
 		},
 		files: {
-		    "mibc/dist/assets/mibc.js": "mibc/lib/test.coffee",
-		    "mibc/dist/assets/metadata.js": "mibc/lib/metadata.js.coffee"
+		    "dist/assets/metadata.js": [ 
+			"mibc/js/MIBC.coffee"
+			, "mibc/js/metadata.js.coffee"
+			]
+		    , "dist/assets/validator.js": [ 
+			"mibc/js/MIBC.coffee" 
+			, "mibc/js/validator.js.coffee"
+			]
 		},
 	    },
 	},
@@ -28,16 +34,16 @@ module.exports = function(grunt) {
 	    all: {
 		files: [
 		    {expand: true, cwd: "mibc/css/",
-		     src: ["**"], dest: "mibc/dist/css/"},
+		     src: ["**"], dest: "dist/css/"},
 		    {expand: true, cwd: "mibc/html/",
-		     src: ["**"], dest: "mibc/dist/"},
+		     src: ["**"], dest: "dist/"},
 		],
 	    },
 	},
 
 	clean: {
 	    all: {
-		src: ['mibc/dist/*'],
+		src: ['dist/*'],
 	    },
 	},
 
@@ -48,6 +54,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks("grunt-shell");
 
     grunt.registerTask("default", ["coffee", "shell", "copy"]);
+    grunt.registerTask("dev", ["coffee", "copy"]);
     grunt.registerTask("clean", ["clean"]);
 
 };

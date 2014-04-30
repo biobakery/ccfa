@@ -1,8 +1,43 @@
+
+# from MIBC: MIBC
+
 $(document).ready ->
-  MIBC = {}
+
   MIBC._val = (el) ->
     (if el.type is "checkbox" then el.checked else el.value)
 
+  MIBC.load_metadata = (user, pass) ->
+    $("#loading").removeClass("hidden")
+    $.get MIBC.config.api_base + ["projects", user, pass].join "/"
+      .done (data) ->
+        MIBC.update_form $.parseJSON(data)
+        $("#load_form > span").addClass("hidden").empty()
+        $("#load_form").fadeOut()
+      .error (jqxhr, status, errormsg) ->
+        $("#load_form > span").text(errormsg).removeClass("hidden")
+      .always ->
+        $("#loading").addClass("hidden")
+
+  MIBC.update_form = (data) ->
+    $("#metadata input, #metadata select").each (i, el) ->
+      if data[el.name]?
+        attr_arr = data[el.name]
+        fields = $("[name='"+el.name+"']")
+        if fields.parent().length < attr_arr.length
+          for [1..attr_arr.length-1]
+            row = MIBC.rowadd $(el).parent()
+            fields.push $(row).find("[name='"+el.name+"']")[0]
+        j = 0
+        fields.each (_, field) ->
+          if field.type is "checkbox" and attr_arr[j] is "true"
+            $(field).prop "checked", true
+            $(field).change()
+            return
+          if not $(field).val()
+            $(field).val attr_arr[j]
+            j += 1
+            return
+          
   MIBC.generate_metadata = ->
     records = {}
     rows = []
@@ -16,7 +51,7 @@ $(document).ready ->
     $.each records, (key, val) ->
       rows.push [
         key
-        val.join(",")
+        val.join("\t")
       ].join("\t")
       return
 
@@ -25,6 +60,15 @@ $(document).ready ->
   MIBC.rowdel = ->
     $(this).parents().filter(".row").remove()
     return
+
+  MIBC.rowadd = ($row) ->
+    anchor = $row.clone().insertAfter($row).find("a")
+    anchor.on "click", MIBC.rowdel
+    anchor.children().first()
+      .removeClass("rowadd glyphicon-plus-sign")
+      .addClass "glyphicon-minus-sign"
+    return anchor.parent()
+
 
   MIBC.url = (el) ->
     $(el).attr
@@ -77,19 +121,13 @@ $(document).ready ->
   
   # Event listeners
   $(".rowadd").click ->
-    gparents = $(this).parent().parent()
-    anchor = $(gparents).clone().insertAfter(gparents).find("a")
-    anchor.on "click", MIBC.rowdel
-    anchor.children().first().removeClass("rowadd icon-plus-sign").addClass "icon-minus-sign"
-    return
+    MIBC.rowadd $(this).parent().parent()
 
-  $("#metadata input[type=checkbox]").click ->
+  $("#metadata :checkbox").change ->
     row = $("#" + @name)
     row.toggleClass "hidden"
     row.children().attr "required", (idx, oldAttr) ->
       not oldAttr
-
-    return
 
   $("#save_btn").click ->
     if $("form").valid() or $("#save_override")[0].checked
@@ -98,7 +136,19 @@ $(document).ready ->
     else
       $(this).removeClass("btn-primary").addClass "btn-danger"
       $(this).attr "href", "#"
-    return
 
+  $("#load_btn").click ->
+    if $(this).attr("clicked") isnt "true"
+      $(this).attr("clicked", true)
+      $("#load_form").fadeIn()
+    else
+      $(this).attr("clicked", false)
+      [user, pass] = $("#load_form").children().map ->
+        $(this).val()
+      if user and pass
+        MIBC.load_metadata user, pass
+      else
+        $("#load_form").fadeOut()
+      
   return
 

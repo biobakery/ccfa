@@ -14,15 +14,16 @@
 
   <body>
     <form>
-      <div id="metadata" >
-	<h3>Automagic metadata generator</h3>
-	<p>Fill out this form to get your metadata.txt file</p>
+      <h3>Automagic metadata generator</h3>
+      <p>Fill out this form to get your metadata.txt file</p>
 
-	<div class="col-md10">
-	  <div id="message_box" class="span8 well well-large hidden">
-	    <input type="checkbox" id="save_override"> Save anyway?
-	    <hr />
-	  </div>
+      <div class="col-md10">
+	<div id="message_box" class="span8 well well-large hidden">
+	  <input type="checkbox" id="save_override" class="hidden"> 
+	  Save anyway?
+	  <hr />
+	</div>
+	<div id="metadata" >
 	  <div class="row">
 	    <input required="required" name="pi_first_name" type="text" placeholder="PI First Name">
 	    <input required="required" type="text" placeholder="PI Last Name" name="pi_last_name">
@@ -39,7 +40,8 @@
 	  <div class="row">
 	    <input required="required" type="text" placeholder="Study Title" name="study_title">
 	    <input required="required" type="text" placeholder="Study Description" name="study_description">
-	    <select name="sample_type" required="required"> <option> Sample Type </option>
+	    <select name="sample_type" required="required"> 
+	      <option value="" selected> Sample Type </option>
 	      <option value="human_gut">Human, Gut </option> 
 	      <option value="human_oral">Human, Oral </option>
 	      <option value="human_associated">Human, Other</option>
@@ -71,13 +73,22 @@
 	    <input type="text" placeholder="Reverse Primer" name="reverse_primer">
 	    <input type="text" placeholder="Platform" name="platform">
 	  </div>
-	  <div class="row">
-	    <a id="save_btn" class="btn btn-primary" href="#" style="color: #ffffff">Save</a>
-	  </div>
-	  <br />
-	  <br />
-	  <br />
 	</div>
+	<div class="row">
+	  <a id="save_btn" class="btn btn-primary" href="#"
+	     style="color: #ffffff">Save</a>
+	  <a id="load_btn" class="btn btn-primary" href="#"
+	     style="color: #ffffff">Load</a>
+	  <span id="load_form" style="display: none"> 
+	    <input id="load_usr" placeholder="User Name"> 
+	    <input id="load_proj" placeholder="Project Name">
+	    <div id="loading" class="glyphicon glyphicon-time hidden"></div>
+	    <span class="label label-danger hidden"></span>
+	  </span>
+	</div>
+	<br />
+	<br />
+	<br />
       </div>
     </form>
     <script src="/assets/metadata.js"></script>
