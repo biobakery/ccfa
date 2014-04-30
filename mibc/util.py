@@ -31,7 +31,7 @@ def deserialize_csv(file_handle):
 
         yield ( 
             cols[0], 
-            [ col.strip() for col in cols[1].split(',') ] 
+            [ col.strip() for col in cols[1:] ] 
             )
         
 def _defaultfunc(obj):

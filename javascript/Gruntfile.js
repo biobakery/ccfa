@@ -9,8 +9,7 @@ module.exports = function(grunt) {
 		    bare: true
 		},
 		files: {
-		    "dist/assets/mibc.js": "mibc/lib/test.coffee",
-		    "dist/assets/metadata.js": "mibc/lib/metadata.js.coffee"
+		    "dist/assets/metadata.js": "mibc/js/metadata.js.coffee"
 		},
 	    },
 	},
@@ -48,6 +47,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks("grunt-shell");
 
     grunt.registerTask("default", ["coffee", "shell", "copy"]);
+    grunt.registerTask("dev", ["coffee", "copy"]);
     grunt.registerTask("clean", ["clean"]);
 
 };
