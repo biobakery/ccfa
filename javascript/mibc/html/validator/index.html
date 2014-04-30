@@ -1,0 +1,49 @@
+<!doctype html>
+
+<html>
+  <head>
+    <title>Project Validator</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
+
+    <link href="/assets/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/mibc.css" rel="stylesheet" type="text/css">
+
+    <script src="/assets/jquery/jquery.min.js"></script>
+  </head>
+
+  <body>
+    <div class="row">
+      <h3>Project Validator</h3>
+    </div>
+    <div class="row">
+      <form id="load_form" class="form-inline"> 
+	<input type="text" class="form-control" 
+	       id="load_usr" placeholder="User Name"> 
+	<input type="text" id="load_proj" class="form-control"
+	       placeholder="Project Name">
+	<a id="load_btn" class="btn btn-primary" href="#"
+	   style="color: #ffffff">Load</a>
+	<div id="loading" 
+	     class="glyphicon glyphicon-time hidden">
+	</div>
+	<span id="errmsg" class="label label-danger hidden"></span>
+      </form>
+    </div>
+    <div class="row">
+      Status: <div id="status" class="glyphicon hidden btn"></div>	
+    </div>
+    <br />
+    <div class="row">
+      <ul id="validation_errors">
+      </ul>
+    </div>
+
+    <div class="hidden">
+      <li class="alert alert-danger" id="error_tpl"></li>
+    </div>
+    <script src="/assets/validator.js"></script>
+  </body>
+
+</head>
+
+      
