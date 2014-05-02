@@ -69,14 +69,6 @@ $(document).ready ->
       .addClass "glyphicon-minus-sign"
     return anchor.parent()
 
-
-  MIBC.url = (el) ->
-    $(el).attr
-      href: "data:Content-type: text/plain, " + escape(MIBC.generate_metadata())
-      download: "metadata.txt"
-
-    return
-
   
   # Validation logic
   validator = $("form").validate(
