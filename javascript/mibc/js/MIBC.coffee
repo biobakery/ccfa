@@ -3,6 +3,9 @@ MIBC = {}
 MIBC.config =
   api_base: "/mibc/"
 
+MIBC.keys =
+  ENTER: 13
+
 MIBC.error = (msg) ->
   $("#errmsg").text(msg).removeClass("hidden")
 
@@ -19,8 +22,8 @@ MIBC.loadwrapper = (user, proj, loadfunc) ->
   loadfunc user, proj
   MIBC.noerror()
     
-MIBC.url = (el) ->
+MIBC.url = (el, str, fname) ->
   $(el).attr
-    href: "data:Content-type: text/plain, " + escape(MIBC.generate_metadata())
-    download: "metadata.txt"
+    href: "data:Content-type: text/plain, " + escape str
+    download: fname
   return
