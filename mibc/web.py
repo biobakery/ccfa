@@ -89,6 +89,42 @@ def mapvalidate_get(username, projectname):
     return util.serialize(validation_results)
         
 
+@get('/utilities/efovalidate')
+@get('//utilities/efovalidate')
+@authentication_required
+def mapvalidate_get(username, projectname):
+
+    to_validate = iter( 
+        (idx, val) 
+        for idx, val in request.json["data"]
+        if efo.guess(val) 
+    )
+
+    coords, efo_ids = izip(*to_validate)
+    validation_results = zip(coords,efo.parallel_validate(*efo_ids).items())
+
+    return util.serialize(validation_results)
+
+
+@get('/utilities/efosuggest')
+@get('//utilities/efosuggest')
+@authentication_required
+def mapvalidate_get(username, projectname):
+
+    terms = [ ( idx, re.sub('\W+',' ',term ) )
+             for idx, term in enumerate(request.json["data"])
+             if not re.match(r'.*\d.*', term) ]
+
+    idxs, terms = zip(*[ 
+        term for term in terms 
+        if term[1] 
+    ])
+
+    results = efo.parallel_suggest(*terms)
+
+    return util.serialize(zip(idxs, results))
+
+
 
 def main():
     run(host=settings.web.host, port=settings.web.port, 
