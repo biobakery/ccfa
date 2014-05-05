@@ -1,11 +1,13 @@
 
 import re
 import Queue
+import urllib
 import urllib2
 import threading
 
 EFO_BASE_URL="http://www.ebi.ac.uk/efo"
 rx_efo = r'EFO_\d{7}$'
+rx_suggest = r'<a.*href\s*=\s*"(\S+_\d\S+)">\s*(\S+)\s*</a>'
 
 def head(url):
     request = urllib2.Request(url)
@@ -66,6 +68,58 @@ def parallel_validate(*efo_ids, **kwargs):
 
     return ret
         
+
+def suggest(*terms):
+    ret = dict()
+    for term in terms:
+        url = "%s/search?%s" %( 
+            EFO_BASE_URL, 
+            urllib.urlencode({"query": term, "submitSearch": "Search" }) 
+        )
+        try:
+            matches = iter( re.search(rx_suggest, line) 
+                            for line in urllib2.urlopen(url) )
+        except urllib2.HTTPError as e:
+            pass
+        
+        ret[term] = [ match.groups() 
+                      for match in matches if match  ]
+
+    return ret
+
+
+def parallel_suggest(*terms, **kwargs):
+    threads = kwargs.pop('threads', 5)
+    timeout = kwargs.pop('timeout', 0.2)
+
+    in_queue, out_queue = Queue.Queue(), Queue.Queue()
+
+    for term in terms:
+        in_queue.put(term)
+
+    def _consume():
+        while True:
+            try:
+                val = in_queue.get(timeout=timeout)
+                if val:
+                    out_queue.put( (val, suggest(val)), 
+                                   timeout=timeout )
+            except Queue.Empty:
+                return
+
+    for _ in range(threads):
+        threading.Thread(target=_consume).start()
+        
+    ret = dict()
+    while len(ret) < len(terms):
+        try:
+            _, status = out_queue.get(timeout=timeout)
+            ret.update(status)
+        except Queue.Empty:
+            continue
+
+    return ret
+
     
 ###
 # Tests
