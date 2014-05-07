@@ -7,7 +7,7 @@ from pprint import pformat
 from contextlib import nested
 
 from Bio import SeqIO
-
+from Bio import BiopythonParserWarning
 HELP="""%prog [options] -F <format> --fasta-out <file> [--qual_out <file>]
 
 %prog - Read in a sequence file from stdin, splitting sequence records
@@ -78,7 +78,10 @@ def main():
 
         for fp in args:
             for i, record in enumerate(SeqIO.parse(fp, opts.from_format)):
-                _output(record)
+                try:
+                    _output(record)
+                except BiopythonParserWarning as e:
+                    print >> sys.stderr, e
                 if logging.getLogger().isEnabledFor(logging.DEBUG):
                     if i % 250 == 0 and i != 0:
                         logging.debug("Converted %d records", i)
