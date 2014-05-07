@@ -9,6 +9,12 @@ EFO_BASE_URL="http://www.ebi.ac.uk/efo"
 rx_efo = r'EFO_\d{7}$'
 rx_suggest = r'<a.*href\s*=\s*"(\S+_\d\S+)">\s*(\S+)\s*</a>'
 
+IGNORED_TERMS = set([
+    'SampleID', 'BarcodeSequence', 
+    'LinkerPrimerSequence', 'Run_accession',
+    'Description'
+])
+
 def head(url):
     request = urllib2.Request(url)
     request.get_method = lambda : 'HEAD'
@@ -70,8 +76,19 @@ def parallel_validate(*efo_ids, **kwargs):
         
 
 def suggest(*terms):
+
+    guesses = guess(*terms)
+
     ret = dict()
     for term in terms:
+        if guesses[term] is True:
+            ret[term] = [(term, term)]
+            continue
+
+        if term in IGNORED_TERMS:
+            ret[term] = []
+            continue
+
         url = "%s/search?%s" %( 
             EFO_BASE_URL, 
             urllib.urlencode({"query": term, "submitSearch": "Search" }) 
@@ -82,8 +99,9 @@ def suggest(*terms):
         except urllib2.HTTPError as e:
             pass
         
-        ret[term] = [ match.groups() 
-                      for match in matches if match  ]
+        ret[term] = [ (match.group(1).split('/')[-1], match.group(2))
+                      for match in matches 
+                      if match and "EFO" in match.group(0) ]
 
     return ret
 
