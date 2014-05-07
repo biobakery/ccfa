@@ -1,4 +1,5 @@
 
+import re
 import sys
 from functools import wraps
 from itertools import izip, chain
@@ -6,6 +7,7 @@ from itertools import izip, chain
 from bottle import (
     run,
     get,
+    post,
     abort,
     request
 )
@@ -89,31 +91,39 @@ def mapvalidate_get(username, projectname):
     return util.serialize(validation_results)
         
 
-@get('/utilities/efovalidate')
-@get('//utilities/efovalidate')
+@post('/utilities/efovalidate')
+@post('//utilities/efovalidate')
 @authentication_required
-def mapvalidate_get(username, projectname):
+def efovalidate_post():
 
-    to_validate = iter( 
+    data = util.deserialize(request.body.read())["data"]
+
+    ret = zip(*[ 
         (idx, val) 
-        for idx, val in request.json["data"]
-        if efo.guess(val) 
-    )
+        for idx, val in data
+        if efo.guess(val)[val]
+    ])
 
-    coords, efo_ids = izip(*to_validate)
+    if not ret:
+        return util.serialize([])
+    else:
+        coords, efo_ids = ret
+
     validation_results = zip(coords,efo.parallel_validate(*efo_ids).items())
 
     return util.serialize(validation_results)
 
 
-@get('/utilities/efosuggest')
-@get('//utilities/efosuggest')
+@post('/utilities/efosuggest')
+@post('//utilities/efosuggest')
 @authentication_required
-def mapvalidate_get(username, projectname):
+def efosuggest_post():
 
-    terms = [ ( idx, re.sub('\W+',' ',term ) )
-             for idx, term in enumerate(request.json["data"])
-             if not re.match(r'.*\d.*', term) ]
+    data = util.deserialize(request.body.read())["data"]
+
+    terms = [ ( idx, re.sub(r'\W+', ' ', term ) )
+              for idx, term in data
+              if not re.match(r'.*\d.*', term) ]
 
     idxs, terms = zip(*[ 
         term for term in terms 
@@ -122,7 +132,7 @@ def mapvalidate_get(username, projectname):
 
     results = efo.parallel_suggest(*terms)
 
-    return util.serialize(zip(idxs, results))
+    return util.serialize(zip(idxs, results.iteritems()))
 
 
 
