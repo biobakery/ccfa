@@ -74,7 +74,9 @@ def _deserialize(file_pointer):
     """Returns a list of namedtuples according to the contents of the
     file_pointer
     """
-    header = [ s.strip().replace('#', '') 
+    mangle = lambda field: re.sub(r'\s+', '_', field.strip.replace('#', ''))
+
+    header = [ mangle(s)
                for s in file_pointer.readline().split('\t') ]
 
     cls = namedtuple('Sample', header, rename=True)
