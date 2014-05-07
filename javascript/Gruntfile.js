@@ -17,6 +17,10 @@ module.exports = function(grunt) {
 			"mibc/js/MIBC.coffee" 
 			, "mibc/js/validator.js.coffee"
 			]
+		    , "dist/assets/samplemeta.js": [ 
+			"mibc/js/MIBC.coffee" 
+			, "mibc/js/samplemeta.js.coffee"
+			]
 		},
 	    },
 	},

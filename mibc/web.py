@@ -1,4 +1,5 @@
 
+import re
 import sys
 from functools import wraps
 from itertools import izip, chain
@@ -6,6 +7,7 @@ from itertools import izip, chain
 from bottle import (
     run,
     get,
+    post,
     abort,
     request
 )
@@ -88,6 +90,50 @@ def mapvalidate_get(username, projectname):
 
     return util.serialize(validation_results)
         
+
+@post('/utilities/efovalidate')
+@post('//utilities/efovalidate')
+@authentication_required
+def efovalidate_post():
+
+    data = util.deserialize(request.body.read())["data"]
+
+    ret = zip(*[ 
+        (idx, val) 
+        for idx, val in data
+        if efo.guess(val)[val]
+    ])
+
+    if not ret:
+        return util.serialize([])
+    else:
+        coords, efo_ids = ret
+
+    validation_results = zip(coords,efo.parallel_validate(*efo_ids).items())
+
+    return util.serialize(validation_results)
+
+
+@post('/utilities/efosuggest')
+@post('//utilities/efosuggest')
+@authentication_required
+def efosuggest_post():
+
+    data = util.deserialize(request.body.read())["data"]
+
+    terms = [ ( idx, re.sub(r'\W+', ' ', term ) )
+              for idx, term in data
+              if not re.match(r'.*\d.*', term) ]
+
+    idxs, terms = zip(*[ 
+        term for term in terms 
+        if term[1] 
+    ])
+
+    results = efo.parallel_suggest(*terms)
+
+    return util.serialize(zip(idxs, results.iteritems()))
+
 
 
 def main():

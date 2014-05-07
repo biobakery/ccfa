@@ -69,14 +69,6 @@ $(document).ready ->
       .addClass "glyphicon-minus-sign"
     return anchor.parent()
 
-
-  MIBC.url = (el) ->
-    $(el).attr
-      href: "data:Content-type: text/plain, " + escape(MIBC.generate_metadata())
-      download: "metadata.txt"
-
-    return
-
   
   # Validation logic
   validator = $("form").validate(
@@ -132,7 +124,7 @@ $(document).ready ->
   $("#save_btn").click ->
     if $("form").valid() or $("#save_override")[0].checked
       $(this).removeClass("btn-primary").addClass "btn-success"
-      MIBC.url this
+      MIBC.url this, MIBC.generate_metadata(), "metadata.txt"
     else
       $(this).removeClass("btn-primary").addClass "btn-danger"
       $(this).attr "href", "#"
