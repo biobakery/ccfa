@@ -28,14 +28,19 @@ opts_list = [
      optparse.make_option('-q', '--qual_out', action="store", 
                          dest="qual_outfile", type="string", default=None,
                          help="File to which to write qual records"),
+     optparse.make_option('-r', '--no_reverse_compliment', action="store_true", 
+                          default=False,
+                          help="Write the sequence reverse compliment. "+
+                          "Defaults to True"),
      optparse.make_option('-l', '--logging', action="store", type="string",
-                         dest="logging", default="INFO",
-                         help="Logging verbosity, options are debug, info, "+
-                         "warning, and critical")
+                          dest="logging", default="INFO",
+                          help="Logging verbosity, options are debug, info, "+
+                          "warning, and critical")
 ]
 
 def fa(record):
     return ">%s\n" %(record.id), "%s\n" %(str(record.seq[4:]))
+        
 
 def ql(record):
     return ">%s\n" %(record.id), "%s\n" %(
@@ -76,10 +81,23 @@ def main():
             def _output(record):
                 fa_file.writelines(fa(record))
 
+        if opts.no_reverse_compliment:
+            pass
+        else:
+            def output(record):
+                record =  SeqIO.SeqRecord(
+                    record.reverse_complement().seq,
+                    letter_annotations=record.letter_annotations,
+                    id=record.id, 
+                    name=record.name, 
+                    description=record.description
+                )
+                return _output(record)
+
         for fp in args:
             for i, record in enumerate(SeqIO.parse(fp, opts.from_format)):
                 try:
-                    _output(record)
+                    output(record)
                 except BiopythonParserWarning as e:
                     print >> sys.stderr, e
                 if logging.getLogger().isEnabledFor(logging.DEBUG):
