@@ -4,6 +4,7 @@ Functions and classes representing sample-specific metadata
 """
 
 import os
+import re
 import operator
 import itertools
 from collections import namedtuple
@@ -74,7 +75,7 @@ def _deserialize(file_pointer):
     """Returns a list of namedtuples according to the contents of the
     file_pointer
     """
-    mangle = lambda field: re.sub(r'\s+', '_', field.strip.replace('#', ''))
+    mangle = lambda field: re.sub(r'\s+', '_', field.strip().replace('#', ''))
 
     header = [ mangle(s)
                for s in file_pointer.readline().split('\t') ]
