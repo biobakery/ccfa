@@ -18,6 +18,10 @@ setup(
         "Development Status :: 2 - Pre-Alpha"
     ],
     entry_points= {
+        'distutils.commands': [
+            'web_setup = web_cms.local_setup:LocalSetupCommand'
+        ],
+
         'console_scripts': [
             'email-validate    = mibc.email.cli:main',
             'assembly          = mibc.assembly:main',

@@ -22,8 +22,8 @@ class workflows(object):
         bowtie2db = "/vagrant/metaphlandb/mpa.200.ffn"
         mpa_pkl   = "/vagrant/metaphlandb/mpa.200.pkl"
     class sixteen(object):
-        otu_taxonomy = "/vagrant/ccfa/data/gg_13_8_otus/taxonomy/99_otu_taxonomy.txt"
-        otu_refseq   = "/vagrant/ccfa/data/gg_13_8_otus/rep_set/99_otus.fasta"
+        otu_taxonomy = "/vagrant/data/ccfa/gg_13_8_otus/taxonomy/99_otu_taxonomy.txt"
+        otu_refseq   = "/vagrant/data/ccfa/gg_13_8_otus/rep_set/99_otus.fasta"
 
 
 class web(object):
@@ -38,7 +38,7 @@ if settings_env_var in os.environ:
 else:
     # please go from global to local in this tuple literal as the last
     # item, if it exists, is used as the settings file
-    for _p in ("/etc/mibc/settings.py", "settings.py"):
+    for _p in ("/etc/mibc/settings.py",):
         if os.path.exists(_p):
             _settings_file = _p
 

@@ -101,7 +101,7 @@ def demultiplex(env, samples, infiles_list, dry_run=False, **opts):
                     
                     format    = sequence_type,
                     fasta_out = fa_fname,
-                    qual_out  = qual_fname
+                    qual_out  = qual_fname,
             )
             qiime_args = dict( m=map_fname,
                                f=fa_fname,

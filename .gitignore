@@ -2,3 +2,4 @@
 jquery.validate.js
 *.pyc
 *.egg-info
+.fuse_hidden

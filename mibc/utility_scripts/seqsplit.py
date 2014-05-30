@@ -28,7 +28,7 @@ opts_list = [
      optparse.make_option('-q', '--qual_out', action="store", 
                          dest="qual_outfile", type="string", default=None,
                          help="File to which to write qual records"),
-     optparse.make_option('-r', '--no_reverse_compliment', action="store_true", 
+     optparse.make_option('-r', '--reverse_compliment', action="store_true", 
                           default=False,
                           help="Write the sequence reverse compliment. "+
                           "Defaults to True"),
@@ -81,9 +81,7 @@ def main():
             def _output(record):
                 fa_file.writelines(fa(record))
 
-        if opts.no_reverse_compliment:
-            pass
-        else:
+        if opts.reverse_compliment:
             def output(record):
                 record =  SeqIO.SeqRecord(
                     record.reverse_complement().seq,
@@ -93,6 +91,8 @@ def main():
                     description=record.description
                 )
                 return _output(record)
+        else:
+            output=_output
 
         for fp in args:
             for i, record in enumerate(SeqIO.parse(fp, opts.from_format)):
