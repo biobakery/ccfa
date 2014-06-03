@@ -39,12 +39,12 @@ opts_list = [
 ]
 
 def fa(record):
-    return ">%s\n" %(record.id), "%s\n" %(str(record.seq[4:]))
+    return ">%s\n" %(record.id), "%s\n" %(str(record.seq))
         
 
 def ql(record):
     return ">%s\n" %(record.id), "%s\n" %(
-        ' '.join([ str(x) for x in record.letter_annotations['phred_quality'][4:] ])
+        ' '.join([ str(x) for x in record.letter_annotations['phred_quality'] ])
     )
 
 def main():
@@ -75,11 +75,11 @@ def main():
             # opening the qual_file here pains me
             qual_file = open(opts.qual_outfile, 'w')
             def _output(record):
-                fa_file.writelines(fa(record))
-                qual_file.writelines(ql(record))
+                SeqIO.write(record, fa_file, "fasta")
+                SeqIO.write(record, qual_file, "qual")
         else:
             def _output(record):
-                fa_file.writelines(fa(record))
+                SeqIO.write(record, fa_file, "fasta")
 
         if opts.reverse_compliment:
             def output(record):
