@@ -3,7 +3,14 @@ from os.path import join
 
 from doit.task import dict_to_task
 
-from . import workflows
+from .. import (
+    settings
+)
+
+from . import (
+    workflows,
+    util
+)
 
 class Pathway(object):
     """ Class that encapsulates a set of workflows.
@@ -42,11 +49,15 @@ class Pathway(object):
         if project:
             self.project = project
 
+        product_basedir = join(self.project.path, 
+                               settings.workflows.product_directory)
+
         default_tasks = list()
         self.tasks = list()
         for workflow in self.workflows:
             task_dicts = self._configure(workflow, self.project)
             for d in task_dicts:
+                util.new_file(*d.get("targets", []), basedir=product_basedir)
                 default_tasks.append(d["name"])
                 self.tasks.append( dict_to_task(d) )
 

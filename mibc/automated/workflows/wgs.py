@@ -44,4 +44,5 @@ def metaphlan2(files_list, **opts):
 
     return dict(name     = outfile,
                 actions  = [cmd],
-                file_dep = infiles_list)
+                file_dep = infiles_list,
+                targets  = [outfile, bowtie2out])
