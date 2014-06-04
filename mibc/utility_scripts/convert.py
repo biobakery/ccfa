@@ -4,8 +4,10 @@ import logging
 import optparse
 from pprint import pformat
 from contextlib import nested
+from functools import partial
 
-from Bio import SeqIO
+import pysam
+from Bio import SeqIO, Seq, SeqRecord
 
 HELP="""%prog [options] -f <format> [-t <format>] [<file> [<file> [ ...]]]
 
@@ -14,7 +16,6 @@ results to stdout
 
 Available formats:
 """ 
-HELP+=pformat(SeqIO._FormatToWriter.keys())
 
 opts_list = [
     optparse.make_option('-f', '--format', action="store", 
@@ -30,10 +31,63 @@ opts_list = [
 ]
 
 
-def main():
+def open(f, *args, **kwargs):
+    if f == '-':
+        return sys.stdin
+    else:
+        return open(f, *args, **kwargs)
+
+
+
+def handle_samfile(file_str, filemode="r"):
+    sam_file = pysam.Samfile(file_str, filemode, 
+                             check_header=False, check_sq=False)
+    for read in sam_file:
+        seq = Seq.Seq(read.seq)
+        qual = [ ord(x)-32 for x in read.qual ]
+        if read.is_reverse:
+            seq = seq.reverse_complement()
+        yield SeqRecord.SeqRecord(
+            seq, read.qname, "", "",
+            letter_annotations={"phred_quality": qual}
+        )
+            
+
+def handle_biopython(file_str, format=None):
+    with open(file_str) as in_file:
+        return SeqIO.parse(in_file, format)
+
+formats = {
+    None: handle_biopython,
+    "sam": handle_samfile,
+    "bam": partial(handle_samfile, filemode="rb"),
+}
+formats.update( (key, partial(handle_biopython, format=key)) 
+                for key in SeqIO._FormatToWriter.keys() )
+
+def handle_cli():
+    global HELP
+    HELP += pformat(formats.keys())
     parser = optparse.OptionParser(option_list=opts_list, 
                                    usage=HELP)
-    (opts, args) = parser.parse_args()
+    return parser.parse_args()
+
+def convert(*input_files, **opts):
+    from_format = opts["format"]
+    to_format = opts["to"]
+    for in_file in input_files:
+        logging.debug("Converting %s from %s to %s", 
+                      in_file, from_format, to_format)
+        sequences = formats[from_format](in_file)
+        for i, inseq in enumerate(sequences):
+            SeqIO.write(inseq, sys.stdout, to_format)
+
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
+                if i % 250 == 0 and i != 0:
+                    logging.debug("Converted %d records", i)
+
+def main():
+    (opts, input_files) = handle_cli()
     logging.getLogger().setLevel(getattr(logging, opts.logging.upper()))
     logging.basicConfig(
         format="%(asctime)s %(levelname)s: %(message)s")
@@ -42,23 +96,17 @@ def main():
         parser.print_usage()
         sys.exit(1)
 
-    if args:
-        input_files = [ open(f, 'r') for f in args ]
-    else:
-        input_files = [sys.stdin]
+    if not input_files:
+        input_files = ['-']
+        
+    try:
+        convert(*input_files, format=opts.from_format, to=opts.to_format)
+    except IOError as e:
+        if e.errno == 32:
+            pass
+        else:
+            raise
 
-    with nested(*input_files):
-        for in_file in input_files:
-            logging.debug("Converting %s from %s to %s", 
-                          in_file, opts.from_format, opts.to_format)
-            sequences = SeqIO.parse(in_file, opts.from_format)
-            for i, inseq in enumerate(sequences):
-                SeqIO.write(inseq, sys.stdout, opts.to_format)
-                if logging.getLogger().isEnabledFor(logging.DEBUG):
-                    if i % 250 == 0 and i != 0:
-                        logging.debug("Converted %d records", i)
-
-                
 
 if __name__ == '__main__':
     main()
