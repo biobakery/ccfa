@@ -10,9 +10,9 @@ setup(
     install_requires=[
         'nose>=1.3.0',
         'python-dateutil>=2.2',
-        'six>=1.4.1',
         'biopython>=1.63',
-        'bottle>=0.10'
+        'bottle>=0.10',
+        'doit==0.25.0'
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha"
@@ -25,7 +25,7 @@ setup(
         'console_scripts': [
             'email-validate    = mibc.email.cli:main',
             'assembly          = mibc.assembly:main',
-            'mibc_build        = mibc.sfle.cli:main',
+            'mibc_build        = mibc.automated.cli:main',
             'mibc_convert      = mibc.utility_scripts.convert:main',
             'mibc_fastq_split  = mibc.utility_scripts.seqsplit:main',
             'mibc_map_writer   = mibc.utility_scripts.mapwrite:main',

@@ -18,6 +18,8 @@ class users(object):
     ignored = ['admin']
 
 class workflows(object):
+    product_directory = "mibc_products"
+
     class metaphlan2(object):
         bowtie2db = "/vagrant/metaphlandb/mpa.200.ffn"
         mpa_pkl   = "/vagrant/metaphlandb/mpa.200.pkl"
