@@ -12,7 +12,8 @@ setup(
         'python-dateutil>=2.2',
         'biopython>=1.63',
         'bottle>=0.10',
-        'doit==0.25.0'
+        'doit==0.25.0',
+        'pysam==0.7.8'
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha"
