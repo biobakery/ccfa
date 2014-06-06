@@ -1,6 +1,7 @@
 import re
 import os
 import errno
+import mimetypes
 
 biopython_to_metaphlan = {
     "fasta": "multifasta",
@@ -63,3 +64,16 @@ def new_file(*names, **opts):
         return iterator.next()
     else:
         return list(iterator)
+
+def is_compressed(fname):
+    recognized_compression_types = ("gzip", "bzip2")
+    return mimetypes.guess_type(fname)[1] in recognized_compression_types
+
+def filter_compressed(fname_list):
+    """Return only files that are known to be compressed and in a
+    recognized compression format"""
+
+    return [
+        fname for fname in fname_list
+        if is_compressed(fname)
+    ]
