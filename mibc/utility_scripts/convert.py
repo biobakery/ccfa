@@ -24,6 +24,9 @@ opts_list = [
     optparse.make_option('-t', '--to', action="store", 
                          dest="to_format", type="string", default="fasta",
                          help="The file format to convert to"),
+    optparse.make_option('-r', '--reverse_compliment', action="store_true", 
+                         dest="revcomp", 
+                         help="Write the reverse complement sequence"),
      optparse.make_option('-l', '--logging', action="store", type="string",
                          dest="logging", default="INFO",
                          help="Logging verbosity, options are debug, info, "+
@@ -72,13 +75,31 @@ def handle_cli():
                                    usage=HELP)
     return parser.parse_args()
 
+def maybe_reverse_complement(seqs, do_reverse):
+    if not do_reverse:
+        for record in seqs:
+            yield record
+    else:
+        for record in seqs:
+            revcomp = record.reverse_compliment()
+            yield SeqIO.SeqRecord(
+                revcomp.seq,
+                letter_annotations=revcomp.letter_annotations,
+                id=record.id,
+                name=record.name,
+                description=record.description
+            )
+
 def convert(*input_files, **opts):
     from_format = opts["format"]
     to_format = opts["to"]
+    revcomp = opts["revcomp"]
+
     for in_file in input_files:
         logging.debug("Converting %s from %s to %s", 
                       in_file, from_format, to_format)
         sequences = formats[from_format](in_file)
+        sequences = maybe_reverse_complement(sequences, revcomp)
         for i, inseq in enumerate(sequences):
             SeqIO.write(inseq, sys.stdout, to_format)
 
