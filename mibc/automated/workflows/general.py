@@ -33,8 +33,8 @@ def extract(files_list):
 
 
 def fastq_split(files_list, name, dir, reverse_complement=False):
-    fasta_fname = new_file(addext(name_base, "fa"), basedir=dir)
-    qual_fname = new_file(addext(name_base, "qual"), basedir=dir)
+    fasta_fname = new_file(addext(name, "fa"), basedir=dir)
+    qual_fname = new_file(addext(name, "qual"), basedir=dir)
 
     seqtype = guess_seq_filetype(files_list[0])
     cmd = ("mibc_fastq_split"+
