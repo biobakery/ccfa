@@ -34,7 +34,7 @@ opts_list = [
 ]
 
 
-def open(f, *args, **kwargs):
+def my_open(f, *args, **kwargs):
     if f == '-':
         return sys.stdin
     else:
@@ -57,8 +57,8 @@ def handle_samfile(file_str, filemode="r"):
             
 
 def handle_biopython(file_str, format=None):
-    with open(file_str) as in_file:
-        return SeqIO.parse(in_file, format)
+    in_file = my_open(file_str)
+    return SeqIO.parse(in_file, format)
 
 formats = {
     None: handle_biopython,
@@ -81,7 +81,7 @@ def maybe_reverse_complement(seqs, do_reverse):
             yield record
     else:
         for record in seqs:
-            revcomp = record.reverse_compliment()
+            revcomp = record.reverse_complement()
             yield SeqIO.SeqRecord(
                 revcomp.seq,
                 letter_annotations=revcomp.letter_annotations,
@@ -119,9 +119,12 @@ def main():
 
     if not input_files:
         input_files = ['-']
-        
+
     try:
-        convert(*input_files, format=opts.from_format, to=opts.to_format)
+        convert(*input_files, 
+                format=opts.from_format, 
+                to=opts.to_format,
+                revcomp=opts.revcomp)
     except IOError as e:
         if e.errno == 32:
             pass
