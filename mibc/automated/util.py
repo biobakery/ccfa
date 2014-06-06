@@ -30,12 +30,31 @@ def guess_seq_filetype(guess_from):
     elif '.bam' in guess_from:
         return 'bam'
 
-def dict_to_cmd_opts(opts_dict):
-    opts_list = [
-        "--%s=%s"% (key, val)
-        for key, val in opts_dict.iteritems()
-    ]
-    return " ".join(opts_list)
+def dict_to_cmd_opts_iter(opts_dict, sep="=", singlesep=" "):
+    """sep separates long options and their values, singlesep separates
+    short options and their values e.g. --long=foobar vs -M 2
+
+    """
+
+    for key, val in opts_dict.iteritems():
+        if len(key) > 1:
+            key = "--%s"% (key)
+        else:
+            key = "-%s"% (key)
+            
+        if val:
+            if len(key) == 2:
+                yield key+singlesep+val
+            else:
+                yield key+sep+val
+        else:
+            yield key
+
+
+def dict_to_cmd_opts(opts_dict, sep="=", singlesep=" "):
+    return " ".join(dict_to_cmd_opts_iter(
+        opts_dict, sep=sep, singlesep=singlesep))
+
 
 def mkdirp(path):
     try:
