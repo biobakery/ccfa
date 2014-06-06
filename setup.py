@@ -10,9 +10,9 @@ setup(
     install_requires=[
         'nose>=1.3.0',
         'python-dateutil>=2.2',
-        'six>=1.4.1',
         'biopython>=1.63',
-        'bottle>=0.10'
+        'bottle>=0.10',
+        'doit==0.25.0'
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha"
