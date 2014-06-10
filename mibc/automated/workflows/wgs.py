@@ -42,7 +42,7 @@ def metaphlan2(files_list, **opts):
             + " --input_type="+biopython_to_metaphlan['fasta']
             + " "+all_opts )
 
-    return dict(name     = outfile,
+    return dict(name     = "metaphlan2:"+outfile,
                 actions  = [cmd],
                 file_dep = infiles_list,
                 targets  = [outfile, bowtie2out])

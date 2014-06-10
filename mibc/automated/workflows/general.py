@@ -25,7 +25,7 @@ def extract(files_list):
             pass
 
     return {
-        "name": "decompress",
+        "name": "decompress:"+infiles_list[0],
         "targets": targets,
         "actions": actions,
         "file_dep": infiles_list
@@ -48,7 +48,7 @@ def fastq_split(files_list, name, dir, reverse_complement=False):
     cmd += " "+" ".join(files_list)
 
     return {
-        "name": "fastq_split_"+name,
+        "name": "fastq_split:"+name,
         "actions": [cmd],
         "file_dep": files_list,
         "targets": [fasta_fname, qual_fname]

@@ -37,7 +37,7 @@ def write_map(sample_group, sample_dir):
                 print >> map_file, "\t".join(sample)
 
     return {
-        "name": map_fname,
+        "name": "write_map:"+map_fname,
         "actions": [_write],
         "targets": [map_fname]
     }
