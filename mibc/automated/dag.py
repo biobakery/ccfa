@@ -2,9 +2,7 @@ import sys
 from operator import add, attrgetter, itemgetter
 from collections import defaultdict, deque
 
-from doit.loader import flat_generator
-
-from ..util import SerializableMixin
+from ..util import SerializableMixin, generator_flatten
 from . import picklerunner
 
 TMP_FILE_DIR = "/tmp"
@@ -186,6 +184,27 @@ class Assembler(object):
         return list(set(flattened)) # deduped
 
 
+def group_by_depth(dag):
+    """return a list of lists, where each item in the list is a list of
+    nodes that can be run in parallel
+    """
+    levels = list()
+    for child, depth in generator_flatten(all_children(dag)):
+        try:
+            levels[depth].append(child)
+        except IndexError:
+            for _ in range(len(levels), depth+1):
+                levels.append(list())
+            levels[depth].append(child)
+
+    for level in levels:
+        for node in level:
+            node.children = []
+
+    return levels
+
+                
+
 def indexby(task_list, attr):
     key_func = attrgetter(attr)
     idx = defaultdict(list)
@@ -195,15 +214,16 @@ def indexby(task_list, attr):
             
     return idx
 
-def all_children(node):
-    yield node
+def all_children(node, depth=0):
+    yield node, depth
     if node.children:
+        depth += 1
         for child in node.children:
-            yield all_children(child)
+            yield all_children(child, depth=depth)
 
 
 def outermost_children(node):
-    for child, _ in flat_generator(all_children(node)):
+    for child, _ in generator_flatten(all_children(node)):
         if not child.children:
             yield child
 

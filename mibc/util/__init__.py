@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import inspect
 
 def stat(path, f):
     return os.stat(
@@ -11,8 +12,13 @@ class retcodes:
     SYS_ERROR  = 2
     USER_ERROR = 1
 
-###
-# Serialization, etc
+def generator_flatten(gen):
+    for item in gen:
+        if inspect.isgenerator(item):
+            for value in generator_flatten(item):
+                yield value
+        else:
+            yield item
 
 class SerializationError(TypeError):
     pass
