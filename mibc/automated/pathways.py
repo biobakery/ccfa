@@ -82,7 +82,7 @@ class SixteenSPathway(Pathway):
                 if any(s.Run_accession in f for s in sample_group) 
             ]
         except AttributeError:
-            return files_list
+            return [ join(basedir, f) for f in files_list ]
 
     
     @staticmethod
