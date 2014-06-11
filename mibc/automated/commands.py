@@ -25,7 +25,8 @@ opt_loader = dict(
     short = "l",
     long  = "loader",
     default = "projectloader",
-    help = "Choose which loader to use when loading tasks"
+    help = "Choose which loader to use when loading tasks",
+    type=str
 )
 
 opt_project = dict(
@@ -33,16 +34,25 @@ opt_project = dict(
     short = "P",
     long  = "project",
     default = "project",
-    help = "Path to the project to build"
+    help = "Path to the project to build",
+    type=str
 )
 
 opt_runner = dict(
     name  = "runner",
-    short = None,
     long  = "runner",
     default = "MRunner",
     help = ("Runner to use for building the project."
-            " Choices: "+",".join(RUNNER_MAP.keys()) )
+            " Choices: "+",".join(RUNNER_MAP.keys()) ),
+    type=str
+)
+
+opt_tmpfiles = dict(
+    name    = "tmpfiledir",
+    long    = "tmpfiledir",
+    default = "/tmp",
+    help    = "Where to save temporary files",
+    type=str
 )
 
 
@@ -165,7 +175,7 @@ class RunProject(ProjectCmdBase, Run):
 
 
 class ListDag(ProjectCmdBase, List):
-    my_opts = (opt_project,)
+    my_opts = (opt_project, opt_tmpfiles)
 
     name = "dag"
 
@@ -181,7 +191,8 @@ class ListDag(ProjectCmdBase, List):
 
         if not private:
             print_list = [t for t in print_list if (not t.name.startswith('_'))]
-
+            
+        dag.TMP_FILE_DIR = self.opt_values["tmpfiledir"]
         the_dag = dag.assemble(tasks.values())
         return self._print_dag(the_dag)
 

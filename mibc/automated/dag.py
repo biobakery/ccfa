@@ -7,6 +7,8 @@ from doit.loader import flat_generator
 from ..util import SerializableMixin
 from . import picklerunner
 
+TMP_FILE_DIR = "/tmp"
+
 class DagNode(SerializableMixin):
     def __init__(self, name, action_func, targets, deps, children, parents):
         self.name = name
@@ -25,7 +27,10 @@ class DagNode(SerializableMixin):
     @property
     def _command(self):
         if self._orig_task and not self._cmd:
-            self._cmd = picklerunner.tmp(self._orig_task).path
+            self._cmd = picklerunner.tmp(
+                self._orig_task, 
+                dir=TMP_FILE_DIR
+            ).path
         return self._cmd
 
     def execute(self):
