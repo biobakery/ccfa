@@ -70,3 +70,8 @@ class SerializableMixin(object):
                 (key, getattr(self, key))
                 for key in self.serializable_attrs
             ])
+
+def islambda(func):
+    return getattr(func,'func_name') == '<lambda>'
+
+

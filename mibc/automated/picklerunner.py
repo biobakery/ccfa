@@ -2,7 +2,7 @@
 
 from tempfile import NamedTemporaryFile
 
-from cloud.serialization import cloudpickle
+from ..pickler import cloudpickle
 
 template = \
 """#!/usr/bin/env python
