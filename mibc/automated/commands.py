@@ -192,7 +192,7 @@ class ListDag(ProjectCmdBase, List):
             print_list = [t for t in print_list if (not t.name.startswith('_'))]
             
         dag.TMP_FILE_DIR = self.opt_values["tmpfiledir"]
-        the_dag = dag.assemble(tasks.values())
+        the_dag = dag.assemble(print_list)
         return self._print_dag(the_dag)
 
 
