@@ -94,19 +94,36 @@ class DagNodeGroup(DagNode):
     __repr__ = __str__
 
 
-nodes_by_dep = dict()
-nodes_by_target = dict()
-nodes = list()
-def assemble(tasks):
-    global nodes_by_dep, nodes_by_target, nodes
-    nodes = [ DagNode.from_doit_task(t) for t in tasks ]
-    done = set()
-    nodes_by_dep = indexby(nodes, attr="deps")
-    nodes_by_target = indexby(nodes, attr="targets")
+class Assembler(object):
+    def __init__(self, tasks):
+        self.tasks = tasks
+        self.nodes_by_dep = dict()
+        self.nodes_by_target = dict()
+        self.nodes = list()
 
-    def _walk_down(node):
+
+    def assemble(self):
+        self.nodes = [ DagNode.from_doit_task(t) for t in self.tasks ]
+        self.nodes_by_dep = indexby(self.nodes, attr="deps")
+        self.nodes_by_target = indexby(self.nodes, attr="targets")
+        done = set()
+
+        for node in self.nodes:
+            node = self._walk_down(node)
+            node = self._walk_up(node)
+            done.add(node)
+            
+        return  DagNode(name="root",
+                        action_func=None, 
+                        targets=list(), 
+                        deps=list(), 
+                        children=list(done), 
+                        parents=None)
+
+
+    def _walk_down(self, node):
         children_groups = [
-            (tip_node, map_targets_to_children(tip_node, nodes_by_dep))
+            (tip_node, self._map_targets_to_children(tip_node))
             for tip_node in outermost_children(node)
         ]
         if any(children for _, children in children_groups):
@@ -114,40 +131,54 @@ def assemble(tasks):
                 map(tip_node.children.add, children)
                 map(lambda child: child.parents.add(tip_node), children)
                 for child in children:
-                    return _walk_down(child)
+                    return self._walk_down(child)
         else:
             return node
 
-    def _walk_up(node):
-        parents = map_deps_to_parent(node, nodes_by_target)
+    def _walk_up(self, node):
+        parents = self._map_deps_to_parent(node)
         if len(parents) > 1:
-            global nodes_by_dep, nodes_by_target, nodes
             group = DagNodeGroup(*parents)
             map(node.parents.add, group.parents)
             group.children.add(node)
-            map(nodes.remove, parents)
-            for parent in parents:
-                nodes_by_target, nodes_by_dep = _update_indices(
-                    parent, group, nodes_by_target, nodes_by_dep)
-            return _walk_up(group)
+            self._sub_nodes_for_group(parents, group)
+            return self._walk_up(group)
         if len(parents) == 1:
             map(node.parents.add, parents)
             map(lambda parent: parent.children.add(node), parents)
-            return _walk_up(parents[0])
+            return self._walk_up(parents[0])
         else:
             return node
     
-    for node in nodes:
-        node = _walk_down(node)
-        node = _walk_up(node)
-        done.add(node)
+    def _sub_nodes_for_group(self, nodes, group):
+        # expensive; hope it doesn't happen too often
+        map(self.nodes.remove, nodes)
+        for node in nodes:
+            for attr, idx in (("targets",self.nodes_by_target), 
+                              ("deps",self.nodes_by_dep)):
+                for item in getattr(node, attr):
+                    l = idx[item]
+                    l.remove(node)
+                    l.append(group)
+            
+    def _map_targets_to_children(self, node):
+        """Destroys the index as it searches for targets; good since all
+        children of the current node shouldn't at the same time be
+        children of other nodes.
+        """
+        idx = self.nodes_by_dep
+        who_needs_our_stuff = map(lambda x: idx.pop(x, []), node.targets)
+        flattened = reduce(add, who_needs_our_stuff, []) 
+        return list(set(flattened)) # deduped
 
-    return  DagNode(name="root",
-                    action_func=None, 
-                    targets=list(), 
-                    deps=list(), 
-                    children=list(done), 
-                    parents=None)
+    def _map_deps_to_parent(self, node):
+        """non-destructive search; many different nodes can rely on the same
+        parent.
+        """
+        idx = self.nodes_by_target 
+        who_fills_my_deps = map(lambda x: idx.get(x, []), node.deps)
+        flattened = reduce(add, who_fills_my_deps, []) 
+        return list(set(flattened)) # deduped
 
 
 def indexby(task_list, attr):
@@ -158,16 +189,6 @@ def indexby(task_list, attr):
             idx[item].append(task)
             
     return idx
-
-def map_targets_to_children(node, idx):
-    who_needs_our_stuff = map(lambda x: idx.pop(x, []), node.targets)
-    who_needs_our_stuff = reduce(add, who_needs_our_stuff, []) 
-    return list(set(who_needs_our_stuff))
-
-def map_deps_to_parent(node, idx):
-    who_fills_my_deps = map(lambda x: idx.get(x, []), node.deps)
-    who_fills_my_deps = reduce(add, who_fills_my_deps, []) 
-    return list(set(who_fills_my_deps))
 
 def all_children(node):
     yield node
@@ -181,34 +202,5 @@ def outermost_children(node):
         if not child.children:
             yield child
 
-def _update_indices(parent, group, nodes_by_target, nodes_by_dep):
-    for attr, idx in (("targets",nodes_by_target), ("deps",nodes_by_dep)):
-        for item in getattr(parent, attr):
-            l = idx[item]
-            l.remove(parent)
-            l.append(group)
-        
-    return nodes_by_target, nodes_by_dep
-
-
-    # def _walk_up(node):
-    #     global nodes_by_target, nodes_by_dep
-    #     parents = map_deps_to_parent(node, nodes_by_target)
-    #     if any(parents):
-    #         group = DagNodeGroup(*parents)
-    #         nodes.appendleft(group)
-    #         # remove is expensive; hope it doesn't happen too often
-    #         try:
-    #             map(nodes.remove, parents)
-    #             for parent in parents:
-    #                 nodes_by_target, nodes_by_dep = _update_indices(
-    #                     parent, group, nodes_by_target, nodes_by_dep)
-    #         except ValueError:
-    #             import pdb; pdb.set_trace()
-    #         _walk_up(node)
-    #     elif len(parents) == 1:
-    #         map(node.parents.add, parents)
-    #         map(lambda parent: parent.children.add(node), parents)
-    #         _walk_up(node)
-    #     else:
-    #         return node
+def assemble(tasks):
+    return Assembler(tasks).assemble()
