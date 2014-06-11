@@ -7,10 +7,15 @@ from cloud.serialization import cloudpickle
 template = \
 """#!/usr/bin/env python
 
+import os
 import sys
 import cPickle as pickle
 
 the_pickle = {pickle}
+
+def remove_myself():
+    myself = os.path.dirname(os.path.realpath(__file__))
+    os.remove(myself)
 
 def main():
     task = pickle.loads(the_pickle)
@@ -20,6 +25,8 @@ def main():
 
 if __name__ == '__main__':
     ret = main()
+    if "-r" in sys.argv or "--remove" in sys.argv:
+        remove_myself()
     sys.exit(ret)
 
 """
