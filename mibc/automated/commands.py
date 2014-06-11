@@ -70,8 +70,7 @@ class ProjectCmdBase(DoitCmdBase):
         loader_cls = LOADER_MAP[ self.opt_values.get("loader") ]
         self._loader = loader_cls()
         super(ProjectCmdBase, self).execute(*args, **kwargs)
-        #TODO actually instantiate the loader, don't just get a string
-
+        
 
 class RunProject(ProjectCmdBase, Run):
     my_opts = (opt_project, opt_runner)

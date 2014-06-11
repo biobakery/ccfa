@@ -71,7 +71,7 @@ class PickleScript(object):
 
 def tmp(task, *args, **kwargs):
     kwargs.pop('delete', None)
-    suffix = kwargs.pop('suffixx', '') + "_picklerunner.py"
+    suffix = kwargs.pop('suffix', '') + "_picklerunner.py"
     with NamedTemporaryFile(delete=False, suffix=suffix, 
                             *args, **kwargs) as tmp_file:
         script = PickleScript(task)
