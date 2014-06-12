@@ -1,5 +1,6 @@
 """Save a task to a script for running by other programs"""
 
+import os
 from tempfile import NamedTemporaryFile
 
 from ..pickler import cloudpickle
@@ -69,13 +70,14 @@ class PickleScript(object):
         return self.render()
 
 
-def tmp(task, *args, **kwargs):
-    kwargs.pop('delete', None)
+def tmp(task, chmod=0o755, *args, **kwargs):
+    kwargs.pop('delete', None) # don't delete it
     suffix = kwargs.pop('suffix', '') + "_picklerunner.py"
     with NamedTemporaryFile(delete=False, suffix=suffix, 
                             *args, **kwargs) as tmp_file:
         script = PickleScript(task)
         script.save(to_fp=tmp_file)
+    os.chmod(script.path, chmod)
     return script
 
         
