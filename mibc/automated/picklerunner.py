@@ -20,9 +20,8 @@ def remove_myself():
 
 def main():
     task = pickle.loads(the_pickle)
-    task._actions = task.some_actions
-    task._action_instances = None
-    task.execute()
+    task.__init__(task.name, task.some_actions)
+    task.execute(out=sys.stdout, err=sys.stderr)
 
 if __name__ == '__main__':
     ret = main()
