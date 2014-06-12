@@ -54,3 +54,16 @@ def fastq_split(files_list, name, dir, reverse_complement=False):
         "targets": [fasta_fname, qual_fname]
     }
 
+
+
+###
+# Example workflow function for returning multiple tasks
+# 
+# def myworkflow(somefiles):
+#     stuff = _magic()
+
+#     for item in stuff:
+#         yield {
+#             "name": item.name,
+#             ...
+#         }
