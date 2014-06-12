@@ -96,6 +96,12 @@ class SixteenSPathway(Pathway):
             bcode_len = length_histogram.most_common(1)[0][0]
             return str(bcode_len)
 
+    @staticmethod
+    def _all_otu_tables(project):
+        ret = list()
+        for sample_id, _ in project.map.groupby(0):
+            ret.append( join(sample_id, "otus", "otu_table.biom") )
+        return ret
 
     def _configure(self, project):
         all_files = project.filename
@@ -130,6 +136,10 @@ class SixteenSPathway(Pathway):
             otu_dir = join(sample_dir, "otus")
             yield workflows.sixteen.pick_otus_closed_ref(
                 input_dir=sample_dir, output_dir=otu_dir)
+
+        # now merge all otus together
+        yield workflows.merge_otu_tables(self._all_otu_tables(project), 
+                                         project.path)
 
 
 

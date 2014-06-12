@@ -105,3 +105,17 @@ def pick_otus_closed_ref(input_dir, output_dir, qiime_opts={}):
         "targets": [output_fname],
         "file_dep": [input_fname]
     }
+
+
+def merge_otu_tables(files_list, name):
+    
+    cmd = "qiime_cmd merge_otu_tables.py -i {filenames} -o {name}"
+    cmd = cmd.format( filenames = ",".join(files_list), 
+                      name       = name )
+    return {
+        "name": "merge_otu_tables: "+os.path.basename(name),
+        "actions": [cmd],
+        "targets": [name],
+        "file_dep": files_list
+    }
+
