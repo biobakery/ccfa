@@ -75,6 +75,9 @@ class ProjectCmdBase(DoitCmdBase):
 class RunProject(ProjectCmdBase, Run):
     my_opts = (opt_project, opt_runner)
 
+    doc_purpose = "run a project locally"
+    doc_usage   = "-P <project_dir>/ [TASK ...]"
+
     def _execute(self, outfile,
                  verbosity=None, always=False, continue_=False,
                  reporter='default', num_process=0, par_type='process',
@@ -177,6 +180,8 @@ class ListDag(ProjectCmdBase, List):
     my_opts = (opt_project, opt_tmpfiles)
 
     name = "dag"
+    dog_purpose = "print execution tree"
+    doc_usage = "-P <project_dir> [TASK ...]"
 
     def _execute(self, subtasks=False, quiet=True, status=False,
                  private=False, list_deps=False, template=None, pos_args=None):
@@ -204,6 +209,8 @@ class ListLevels(ProjectCmdBase, List):
     my_opts = (opt_project, opt_tmpfiles)
 
     name = "levels"
+    doc_purpose = "print project tasks by hierarchy"
+    doc_usage = "-P <project_dir> [TASK ...]"
 
     def _execute(self, subtasks=False, quiet=True, status=False,
                  private=False, list_deps=False, template=None, pos_args=None):
