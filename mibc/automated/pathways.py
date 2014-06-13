@@ -97,13 +97,18 @@ class SixteenSPathway(Pathway):
             return str(bcode_len)
 
     @staticmethod
-    def _all_otu_tables(project):
+    def _all_otu_tables(project, products_dir):
         ret = list()
         for sample_id, _ in project.map.groupby(0):
-            ret.append( join(sample_id, "otus", "otu_table.biom") )
+            ret.append( 
+                os.path.realpath(
+                    join(products_dir, sample_id, "otus", "otu_table.biom") 
+                )
+            )
         return ret
 
     def _configure(self, project):
+        products_dir = join(project.path, settings.workflows.product_directory)
         all_files = project.filename
         compressed_files = util.filter_compressed(all_files)
         if compressed_files:
@@ -114,9 +119,7 @@ class SixteenSPathway(Pathway):
             yield workflows.general.extract(compressed_files)
 
         for sample_id, sample_group in project.map.groupby(0):
-            sample_dir = join(project.path, 
-                              settings.workflows.product_directory,
-                              sample_id)
+            sample_dir = join(products_dir, sample_id)
             sample_group = list(sample_group)
             yield workflows.sixteen.write_map(sample_group, sample_dir)
 
@@ -138,8 +141,11 @@ class SixteenSPathway(Pathway):
                 input_dir=sample_dir, output_dir=otu_dir)
 
         # now merge all otus together
-        yield workflows.merge_otu_tables(self._all_otu_tables(project), 
-                                         project.path)
+        yield workflows.merge_otu_tables(
+            self._all_otu_tables(project, products_dir),
+            name=project.name+"_merged.biom",
+            output_dir=products_dir
+        )
 
 
 

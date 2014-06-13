@@ -1,5 +1,6 @@
 """16S workflows"""
 
+import os
 import operator
 import itertools
 from os.path import join
@@ -67,7 +68,7 @@ def demultiplex(input_dir, name_base, qiime_opts={}):
 
 def pick_otus_closed_ref(input_dir, output_dir, qiime_opts={}):
     input_fname = new_file("seqs.fna", basedir=input_dir)
-    output_fname = new_file("otu_table.biom", basedir=input_dir)
+    output_fname = new_file("otu_table.biom", basedir=output_dir)
     revcomp_fname = new_file("revcomp.fna", basedir=input_dir)
 
     default_opts = {
@@ -107,15 +108,15 @@ def pick_otus_closed_ref(input_dir, output_dir, qiime_opts={}):
     }
 
 
-def merge_otu_tables(files_list, name):
-    
-    cmd = "qiime_cmd merge_otu_tables.py -i {filenames} -o {name}"
+def merge_otu_tables(files_list, name, output_dir):
+    output_file = new_file(name, basedir=output_dir)
+    cmd = "qiime_cmd merge_otu_tables.py -i {filenames} -o {output}"
     cmd = cmd.format( filenames = ",".join(files_list), 
-                      name       = name )
+                      output    = output_file  )
     return {
         "name": "merge_otu_tables: "+os.path.basename(name),
         "actions": [cmd],
-        "targets": [name],
+        "targets": [output_file],
         "file_dep": files_list
     }
 
