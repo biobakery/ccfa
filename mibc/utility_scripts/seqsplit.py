@@ -96,6 +96,9 @@ def main():
 
         for fp in args:
             for i, record in enumerate(SeqIO.parse(fp, opts.from_format)):
+                tmp = record.letter_annotations.pop('phred_quality')[4:]
+                record.seq = record.seq[4:]
+                record.letter_annotations['phred_quality'] = tmp
                 try:
                     output(record)
                 except BiopythonParserWarning as e:
