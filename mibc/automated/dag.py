@@ -38,9 +38,9 @@ class DagNode(SerializableMixin):
         ret =  {
             "id": hash(self),
             "name": self.name,
-            "command": self._command,
-            "produces": list(self.targets),
-            "depends": list(self.deps),
+            "command": "",#self._command,
+            "produces": [],#list(self.targets),
+            "depends": [],#list(self.deps),
             "children": [child._custom_serialize() for child in self.children]
         }
         return ret
@@ -83,16 +83,18 @@ class DagNodeGroup(DagNode):
     def _custom_serialize(self):
         return {
             "id": hash(self),
-            "name": self.name,
-            "command": "; ".join(node._command for node in self._nodes
-                                 if node._command),
-            "produces": list(self.targets),
-            "depends": list(self.deps),
+            "name": "group (%i tasks)"%(len(self.children)),
+            "command": "",
+            "produces": list(),
+            "depends": list(),
             "children": [child._custom_serialize() for child in self.children]
         }
 
     def __str__(self):
-        return str(self.name)
+        if len(self.name) > 60:
+            return str(self.name)[:60] + "...(%i tasks)" %(len(self.children))
+        else:
+            return str(self.name)
 
     __repr__ = __str__
 
@@ -106,15 +108,18 @@ class Assembler(object):
 
 
     def assemble(self):
-        self.nodes = [ DagNode.from_doit_task(t) for t in self.tasks ]
-        self.nodes_by_dep = indexby(self.nodes, attr="deps")
-        self.nodes_by_target = indexby(self.nodes, attr="targets")
+        self.nodes = dict([ (t.name, DagNode.from_doit_task(t))
+                            for t in self.tasks ])
+        self.nodes_by_dep = indexby(self.nodes.itervalues(), attr="deps")
+        self.nodes_by_target = indexby(self.nodes.itervalues(), attr="targets")
         done = set()
 
-        for node in self.nodes:
-            node = self._walk_down(node)
-            node = self._walk_up(node)
-            done.add(node)
+        import pdb; pdb.set_trace()
+        for _, node in self.nodes.iteritems():
+            if node:
+                node = self._walk_down(node)
+                node = self._walk_up(node)
+                done.add(node)
             
         return  DagNode(name="root",
                         action_func=None, 
@@ -154,15 +159,15 @@ class Assembler(object):
             return node
     
     def _sub_nodes_for_group(self, nodes, group):
-        # expensive; hope it doesn't happen too often
-        map(self.nodes.remove, nodes)
         for node in nodes:
+            self.nodes[node.name] = None
             for attr, idx in (("targets",self.nodes_by_target), 
                               ("deps",self.nodes_by_dep)):
                 for item in getattr(node, attr):
                     l = idx[item]
-                    l.remove(node)
-                    l.append(group)
+                    if node in l:
+                        l.remove(node)
+                        l.append(group)
             
     def _map_targets_to_children(self, node):
         """Destroys the index as it searches for targets; good since all
