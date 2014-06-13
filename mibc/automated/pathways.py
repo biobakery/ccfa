@@ -151,9 +151,13 @@ class SixteenSPathway(Pathway):
 
 class WGSPathway(Pathway):
     def _configure(self, project):
+        products_dir = join(project.path, settings.workflows.product_directory)
         for sample_id, _ in project.map.groupby(0):
             files_batch = [ join(project.path, filename) 
                             for filename in project.filename
                             if str(sample_id) in filename ]
             if files_batch:
-                yield workflows.metaphlan2(files_batch)
+                fastq_file = util.new_file(sample_id+"_merged.fastq", 
+                                           basedir=products_dir)
+                yield workflows.sequence_convert(files_batch, fastq_file)
+                yield workflows.metaphlan2([fastq_file])

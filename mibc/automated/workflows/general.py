@@ -55,6 +55,23 @@ def fastq_split(files_list, name, dir, reverse_complement=False):
     }
 
 
+def sequence_convert(files_list, output_file=None, format_to="fastq"):
+    if not output_file:
+        output_file = files_list[0] + "_merged."+format_to
+
+    cmd = ("mibc_convert"
+           + " --format="+guess_seq_filetype(files_list[0])
+           + " --to="+format_to
+           + " "+" ".join(files_list)
+           + " > "+output_file)
+
+    return {
+        "name": "sequence_convert_to_%s: %s..."%(format_to, files_list[0]),
+        "actions": [cmd],
+        "file_dep": files_list,
+        "targets": [output_file]
+    }
+
 
 ###
 # Example workflow function for returning multiple tasks
