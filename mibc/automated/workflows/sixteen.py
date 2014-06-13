@@ -3,6 +3,7 @@
 import os
 import operator
 import itertools
+import os
 from os.path import join
 
 from doit.action import CmdAction
