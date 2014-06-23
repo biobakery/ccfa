@@ -13,7 +13,8 @@ setup(
         'biopython>=1.63',
         'bottle>=0.10',
         'doit==0.25.0',
-        'pysam==0.7.8'
+        'pysam==0.7.8',
+        'networkx==1.9'
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha"
