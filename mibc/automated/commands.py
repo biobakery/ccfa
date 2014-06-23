@@ -14,6 +14,8 @@ from doit.cmd_list import List
 from doit.cmd_base import DoitCmdBase
 from doit.cmdparse import CmdOption
 
+import networkx
+
 from ..util import serialize
 
 from . import dag
@@ -202,7 +204,12 @@ class ListDag(ProjectCmdBase, List):
 
 
     def _print_dag(self, dag, key="dag"):
-        return serialize({ "dag": dag }, to_fp=sys.stdout)
+        nodes = [ 
+            {"node": node,
+             "parents": dag.predecessors(node)}
+            for node in networkx.algorithms.dag.topological_sort(dag) 
+        ]
+        return serialize({ "dag": nodes }, to_fp=sys.stdout)
 
 
 class ListLevels(ProjectCmdBase, List):
