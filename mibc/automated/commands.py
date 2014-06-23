@@ -210,7 +210,7 @@ class ListLevels(ProjectCmdBase, List):
 
     name = "levels"
     doc_purpose = "print project tasks by hierarchy"
-    doc_usage = "-P <project_dir> [TASK ...]"
+    doc_usage = "--project <project_dir> [TASK ...]"
 
     def _execute(self, subtasks=False, quiet=True, status=False,
                  private=False, list_deps=False, template=None, pos_args=None):
