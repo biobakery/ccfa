@@ -211,34 +211,7 @@ class ListDag(ProjectCmdBase, List):
         ]
         return serialize({ "dag": nodes }, to_fp=sys.stdout)
 
-
-class ListLevels(ProjectCmdBase, List):
-    my_opts = (opt_project, opt_tmpfiles)
-
-    name = "levels"
-    doc_purpose = "print project tasks by hierarchy"
-    doc_usage = "--project <project_dir> [TASK ...]"
-
-    def _execute(self, subtasks=False, quiet=True, status=False,
-                 private=False, list_deps=False, template=None, pos_args=None):
-        filter_tasks = pos_args
-        tasks = dict([(t.name, t) for t in self.task_list])
-
-        if filter_tasks:
-            print_list = self._list_filtered(tasks, filter_tasks, subtasks)
-        else:
-            print_list = self._list_all(tasks, subtasks)
-
-        if not private:
-            print_list = [t for t in print_list if (not t.name.startswith('_'))]
-            
-        dag.TMP_FILE_DIR = self.opt_values["tmpfiledir"]
-        the_dag = dag.assemble(print_list)
-        levels = dag.group_by_depth(the_dag)
-        return serialize({ "levels": levels }, to_fp=sys.stdout)
-
-
 class ListProject(ProjectCmdBase, List):
     my_opts = (opt_project,)
 
-all = (RunProject, ListProject, ListDag, ListLevels)
+all = (RunProject, ListProject, ListDag)
