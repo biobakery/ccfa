@@ -5,6 +5,7 @@ from collections import Counter
 
 from doit.task import dict_to_task
 from doit.loader import flat_generator
+from doit.control import no_none
 
 from .. import (
     settings
@@ -55,6 +56,7 @@ class Pathway(object):
 
         default_tasks = list()
         self.tasks = list()
+        self._configure = no_none(self._configure)
         task_dicts = self._configure(self.project)
         for d, _ in flat_generator(task_dicts):
             default_tasks.append(d["name"])
@@ -155,9 +157,17 @@ class WGSPathway(Pathway):
         for sample_id, _ in project.map.groupby(0):
             files_batch = [ join(project.path, filename) 
                             for filename in project.filename
-                            if str(sample_id) in filename ]
-            if files_batch:
-                fastq_file = util.new_file(sample_id+"_merged.fastq", 
-                                           basedir=products_dir)
-                yield workflows.sequence_convert(files_batch, fastq_file)
-                yield workflows.metaphlan2([fastq_file])
+                            if sample_id in filename ]
+            if not files_batch:
+                continue
+            sample_dir = join(products_dir, sample_id)
+            fastq_file = util.new_file(sample_id+"_merged.fastq", 
+                                       basedir=sample_dir)
+            yield workflows.sequence_convert(files_batch, fastq_file)
+            yield workflows.metaphlan2([fastq_file])
+
+            bam_file = util.new_file(fastq_file+".sam", basedir=sample_dir)
+            yield workflows.bowtie2_align([fastq_file], bam_file)
+            yield workflows.humann([bam_file], workdir=sample_dir)
+
+
