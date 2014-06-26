@@ -1,8 +1,6 @@
 import sys
 import six
 import codecs
-import operator
-from collections import defaultdict, deque
 
 from doit.task import Task
 from doit.exceptions import InvalidCommand
@@ -13,10 +11,6 @@ from doit.reporter import REPORTERS
 from doit.cmd_list import List
 from doit.cmd_base import DoitCmdBase
 from doit.cmdparse import CmdOption
-
-import networkx
-
-from ..util import serialize
 
 from . import dag
 from .loader import LOADER_MAP
@@ -178,38 +172,17 @@ class RunProject(ProjectCmdBase, Run):
 
 
 
-class ListDag(ProjectCmdBase, List):
-    my_opts = (opt_project, opt_tmpfiles)
-
+class ListDag(RunProject):
+    my_opts = (opt_project, opt_runner, opt_tmpfiles)
     name = "dag"
     dog_purpose = "print execution tree"
     doc_usage = "-P <project_dir> [TASK ...]"
 
-    def _execute(self, subtasks=False, quiet=True, status=False,
-                 private=False, list_deps=False, template=None, pos_args=None):
-        filter_tasks = pos_args
-        tasks = dict([(t.name, t) for t in self.task_list])
-
-        if filter_tasks:
-            print_list = self._list_filtered(tasks, filter_tasks, subtasks)
-        else:
-            print_list = self._list_all(tasks, subtasks)
-
-        if not private:
-            print_list = [t for t in print_list if (not t.name.startswith('_'))]
-            
+    def _execute(self, outfile, *args, **kwargs):
+        self.opt_values['runner'] = 'jenkins'
         dag.TMP_FILE_DIR = self.opt_values["tmpfiledir"]
-        the_dag = dag.assemble(print_list)
-        return self._print_dag(the_dag)
+        super(ListDag, self)._execute(outfile, *args, **kwargs)
 
-
-    def _print_dag(self, dag, key="dag"):
-        nodes = [ 
-            {"node": node,
-             "parents": dag.predecessors(node)}
-            for node in networkx.algorithms.dag.topological_sort(dag) 
-        ]
-        return serialize({ "dag": nodes }, to_fp=sys.stdout)
 
 class ListProject(ProjectCmdBase, List):
     my_opts = (opt_project,)

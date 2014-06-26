@@ -119,6 +119,24 @@ def assemble(tasks):
     dag = networkx.DiGraph()
     dag.add_edges_from(
         taskiter(nodes, nodes_by_dep, nodes_by_target, root_node))
+    return dag, nodes
+
+
+def prune(dag, nodes_to_prune):
+    """Remove `nodes_to_prune` from `dag`, making sure that children of
+    the pruned node are not removed"""
+
+    prune_set = set(nodes_to_prune)
+    while True:
+        try:
+            node = prune_set.pop()
+        except KeyError:
+            break
+
+        parents = dag.predecessors(node)
+        if all( bool(n in prune_set) for n in parents ):
+            to_remove = [node] + parents
+            map(prune_set.discard, to_remove)
+            dag.remove_nodes_from(to_remove)
+
     return dag
-
-
