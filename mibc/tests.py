@@ -189,6 +189,17 @@ class Project_Test(ValidatorBase):
         assert self.all_tests_passed()
 
 
+    def test_emptyDates(self):
+        self.cond( any(self.project.collection_start_date),
+                   "Project %s has an emtpy collection_start_date"%(
+                       self.project.name) )
+        self.cond( any(self.project.collection_end_date),
+                   "Project %s has an emtpy collection_end_date"%(
+                       self.project.name) )
+
+        assert self.all_tests_passed()
+
+
     def test_realisticDates(self):
         beg = dateutil.parser.parse(
             self.project.collection_start_date[0]
