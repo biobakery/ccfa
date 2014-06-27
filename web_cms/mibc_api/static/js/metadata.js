@@ -126,7 +126,7 @@ $(document).ready(function() {
       "16s_data": {
         required: false
       },
-      submit_to_insdc: {
+      submit_to_sra: {
         required: false
       }
     },
@@ -145,7 +145,6 @@ $(document).ready(function() {
       collection_end_date: "Please give a valid date for when data collection finished",
       geo_loc_name: "Please supply the geographic location of your sequence",
       lat_lon: "Please give the latitude and longitude of your location",
-      feature: "Please describe the feature presented",
       reverse_primer: "Please fill in the reverse primer you used",
       platform: "Please fill in what platform you used for 16s sequencing",
       filename: "Please include at least one Filename"
