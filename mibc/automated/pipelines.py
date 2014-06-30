@@ -1,41 +1,28 @@
-
 import os
 from os.path import join
 from collections import Counter
 
-from doit.task import dict_to_task
-from doit.loader import flat_generator
-from doit.control import no_none
+from anadama import util
+from anadama.pipelines import Pipeline as AnadamaPipeline
+
+import anadama_workflows as workflows
 
 from .. import (
     settings
 )
 
-from . import (
-    workflows,
-    util
-)
-
-class Pathway(object):
+class Pipeline(AnadamaPipeline):
     """ Class that encapsulates a set of workflows.
     """
-    
-    def __init__(self, project=None):
-        """ Instantiate the Pathway and associate it with a project
+
+    def __init__(self, project, *args, **kwargs):
+        """ Instantiate the Pipeline and associate it with a project
         """
         self.project = project
-        self.tasks   = None
+        super(Pipeline, self).__init__(*args, **kwargs)
 
 
-    def _configure(self, project):
-        """Configures a single workflow to produce a task. Should generally be
-        overridden in base classes
-
-        """
-        raise NotImplementedError()
-
-
-    def configure(self, project=None):
+    def configure(self, project, *args, **kwargs):
         """Configure the workflows associated with this pathway by calling
         the workflow functions with the project as its only argument.
 
@@ -54,27 +41,10 @@ class Pathway(object):
         product_basedir = join(self.project.path, 
                                settings.workflows.product_directory)
 
-        default_tasks = list()
-        self.tasks = list()
-        self._configure = no_none(self._configure)
-        task_dicts = self._configure(self.project)
-        for d, _ in flat_generator(task_dicts):
-            default_tasks.append(d["name"])
-            self.tasks.append( dict_to_task(d) )
-
-        # return the global doit config dictionary
-        return {
-            "default_tasks": default_tasks,
-            "continue":      True
-        }
+        return super(Pipeline, self).configure(*args, **kwargs)
 
 
-    def tasks(self):
-        for task in self.tasks:
-            yield task
-    
-
-class SixteenSPathway(Pathway):
+class SixteenSPipeline(Pipeline):
 
     @staticmethod
     def _filter_files_for_sample(files_list, sample_group, basedir):
@@ -109,7 +79,8 @@ class SixteenSPathway(Pathway):
             )
         return ret
 
-    def _configure(self, project):
+    def _configure(self):
+        project = self.project
         products_dir = join(project.path, settings.workflows.product_directory)
         all_files = project.filename
         compressed_files = util.filter_compressed(all_files)
@@ -151,8 +122,9 @@ class SixteenSPathway(Pathway):
 
 
 
-class WGSPathway(Pathway):
-    def _configure(self, project):
+class WGSPipeline(Pipeline):
+    def _configure(self):
+        project = self.project
         products_dir = join(project.path, settings.workflows.product_directory)
         for sample_id, _ in project.map.groupby(0):
             files_batch = [ join(project.path, filename) 
