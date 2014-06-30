@@ -10,11 +10,15 @@ setup(
     install_requires=[
         'nose>=1.3.0',
         'python-dateutil>=2.2',
-        'biopython>=1.63',
         'bottle>=0.10',
-        'doit==0.25.0',
-        'pysam==0.7.8',
-        'networkx==1.9'
+        # doit, six, networkx, etc should come with anadama
+        'anadama',
+        'anadama_workflows',
+    ],
+    dependency_links=[
+        'git+https://bitbucket.org/biobakery/anadama.git@master#egg=anadama-0.0.1', 
+        'git+https://bitbucket.org/biobakery/anadama_workflows.git@master#egg=anadama_workflows-0.0.1',
+
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha"
@@ -27,8 +31,6 @@ setup(
         'console_scripts': [
             'email-validate    = mibc.email.cli:main',
             'mibc_build        = mibc.automated.cli:main',
-            'mibc_convert      = mibc.utility_scripts.convert:main',
-            'mibc_fastq_split  = mibc.utility_scripts.seqsplit:main',
         ],
     }
 )

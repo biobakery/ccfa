@@ -5,9 +5,9 @@ from doit.exceptions import InvalidCommand
 
 from .. import models
 
-from . import pathways
+from . import pipelines
 
-class Loader(TaskLoader):
+class ProjectLoader(TaskLoader):
 
     def load_tasks(self, cmd, opt_values, pos_args):
         project_path = os.path.realpath(opt_values["project"])
@@ -23,12 +23,6 @@ class Loader(TaskLoader):
     def get_tasks(self, project):
         project_is_16s = getattr(project, "16s_data") == ["true"]
         if project_is_16s:
-            return pathways.SixteenSPathway(project)
+            return pipelines.SixteenSPipeline(project)
         else:
-            return pathways.WGSPathway(project)
-
-
-LOADER_MAP = {
-    None: Loader,
-    "projectloader": Loader
-}
+            return pipelines.WGSPipeline(project)
