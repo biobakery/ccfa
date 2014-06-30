@@ -3,24 +3,24 @@ import os
 c_repository_root = "/vagrant/data/ccfa/users"
 settings_env_var  = "MIBC_SETTINGS_FILE"
 
-class email(object):
+class email:
     default_from_addr = "ccfa.mibc@gmail.com"
     default_subject   = "A note from the CCFA MIBC"
     default_smtp_serv = "localhost"
 
-class ldap(object):
+class ldap:
     url         = "ldaps://dc2-rc/"
     bind_dn     = "CN=clusterldap,OU=Unmanaged Service Accounts,DC=rc,DC=domain"
     bind_pw     = ""
     search_base = "DC=rc,DC=domain"
 
-class workflows(object):
+class workflows:
     product_directory = "mibc_products"
 
-class users(object):
+class users:
     ignored = ['admin']
 
-class web(object):
+class web:
     host = "0.0.0.0"
     port = 8080
 
