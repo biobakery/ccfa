@@ -31,6 +31,7 @@ setup(
         'console_scripts': [
             'email-validate    = mibc.email.cli:main',
             'mibc_build        = mibc.automated.cli:main',
+            'mibc_tm           = mibc.tm.cli:main',
         ],
     }
 )
