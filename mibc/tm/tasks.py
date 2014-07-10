@@ -67,6 +67,13 @@ class Task(object):
                 return False
         return True
 
+    def hasFailed(self):
+        if self.pid is not None:
+            if self.pid.poll() == 0:
+                return False
+            return True
+        return False
+
     def getParentIds(self):
         idList = []
         for parent in self.json_parents:

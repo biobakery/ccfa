@@ -80,21 +80,23 @@ class Parse(object):
 
             self.status()
             print ""
-            time.sleep(10)
+            time.sleep(5)
             self.parseQueue()
 
 
     def status(self):
         print "=========================="
-        print "completed tasks: " + str(len(self.completedTasks))
-        for task in self.completedTasks:
-            print "  " + task.getName()
+        failed = [x for x in self.completedTasks if x.hasFailed()]
+        #for task in self.completedTasks:
+        print "completed tasks: " + str(len(self.completedTasks)) + " " + str(len(failed)) + " failed."
+        #for task in self.completedTasks:
+        #    print "  " + task.getName()
         print "waiting tasks: " + str(len(self.waitingTasks))
-        for task in self.waitingTasks:
-            print "  " + task.getName()
+        #for task in self.waitingTasks:
+        #    print "  " + task.getName()
         print "queued tasks: " + str(len(self.queuedTasks))
-        for task in self.queuedTasks:
-            print "  " + task.getName()
+        #for task in self.queuedTasks:
+        #    print "  " + task.getName()
 
         print "=========================="
 
