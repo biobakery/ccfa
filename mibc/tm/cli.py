@@ -80,16 +80,19 @@ def main():
         data = json.loads(jsondata);
         jsonfile.close()
 
-    p = parse.Parse(data)
+    p = parse.Parse(data, opts.location.upper())
     p.status()
-    p.parseTasks()
+    p.setupQueue()
     p.status()
-    tlist = p.getTasks()
+    p.parseQueue()
+    p.status()
+    p.runQueue()
+    #tlist = p.getTasks()
 
-    print len(tlist)
-    for task in tlist:
+    #print len(tlist)
+    #for task in tlist:
     #    if task.
-        print task.getParentIds()
+        #print task.getParentIds()
         #print task
         #print task.getJson()
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-import os.path
+import os
+import logging
+import subprocess, tempfile
 
 def nextNum():
     if 'counter' in locals():
@@ -43,12 +45,14 @@ class Task(object):
         self.num = nextNum()
         self.taskType = Type.EC2
         self.result = Result.NA
+        self.pid = None
 
     def getTaskNum(self):
         return self.num
     
     def run(self):
-        print "not implemented in base class"
+        print "in parent Task class setting status to RUNNING"
+        self.status = Status.RUNNING
 
     def canRun(self):
         for dependency in self.json_node['depends']:
@@ -72,6 +76,12 @@ class Task(object):
     def getStatus(self):
         return self.status
 
+    def setStatus(self, givenStatus):
+        if (givenStatus in Status):
+            self.status = givenStatus
+        else: 
+            logging.warning("Setting task status to unknown status: " + givenStatus)
+
     def getResultStatus(self):
         return self.result
 
@@ -80,6 +90,15 @@ class Task(object):
 
     def getID(self):
         return self.json_node['id']
+
+    def getPid(self):
+        return self.pid
+
+    def cleanupPid(self):
+        os.unlink(script.name)
+
+    def getCommand(self):
+        return self.json_node['command']
 
     def getName(self):
         return self.json_node['name']
@@ -99,4 +118,20 @@ class LocalTask(Task):
 
     def run(self):
         print "running task on local host.  tbd..."
+        super(LocalTask, self).run()
+        # create subprocess script
+        script = tempfile.NamedTemporaryFile(delete=False)
+        sub = """#!/bin/sh
+                 #{scriptname}
+                 source /aux/deploy2/bin/activate
+                 cat {name} > {name}.log
+                 {script} >> {name}.log 2>&1 
+              """.format(scriptname=self.getName(), script=self.getCommand(), name=script.name)
+        script.write(sub)
+        script.close()
+        os.chmod(script.name, 0755)
+        scriptpath = os.path.abspath(script.name)
+        print "scriptname: " + scriptpath
+        # spawn subprocess script & store process id/obj
+        self.pid = subprocess.Popen([scriptpath])
 
