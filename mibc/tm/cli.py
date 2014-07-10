@@ -81,13 +81,17 @@ def main():
         jsonfile.close()
 
     p = parse.Parse(data)
+    p.status()
+    p.parseTasks()
+    p.status()
     tlist = p.getTasks()
 
     print len(tlist)
     for task in tlist:
-        print ""
-        print task
-        print task.getJson()
+    #    if task.
+        print task.getParentIds()
+        #print task
+        #print task.getJson()
 
 if __name__ == '__main__':
     main()

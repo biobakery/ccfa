@@ -51,7 +51,23 @@ class Task(object):
         print "not implemented in base class"
 
     def canRun(self):
-        print "not implemented in base class"
+        for dependency in self.json_node['depends']:
+            if (not os.path.isfile(dependency)):
+                print "dependency not found: " + dependency
+                return False
+        return True
+
+    def isFinished(self):
+        for product in self.json_node['produces']:
+            if (not os.path.isfile(product)):
+                return False
+        return True
+
+    def getParentIds(self):
+        idList = []
+        for parent in self.json_parents:
+            idList.append(parent['id'])
+        return idList
 
     def getStatus(self):
         return self.status
@@ -61,6 +77,9 @@ class Task(object):
 
     def getType(self):
         return self.taskType
+
+    def getID(self):
+        return self.json_node['id']
 
     def getName(self):
         return self.json_node['name']

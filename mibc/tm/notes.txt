@@ -1,10 +1,10 @@
 Goals for this software:
 
 Definitions:
-Each set of data bring processed by AnADAMA is called a 'flow'
+Each set of data being processed by AnADAMA is called a 'flow'
 A flow is composed of one (or more) runs numbers 1 thru n
-  based on how many times the flow was re-run due to errors or 
-  new tool versions etc
+  The number is based on how many times the flow was re-run due to errors or 
+   new tool versions etc
 Each run is composted of a number of tasks.
 Each task contains input file(s), output file(s), and parent(s)
   who must complete prior to start
@@ -12,6 +12,7 @@ Each task contains input file(s), output file(s), and parent(s)
 There should be a single json full DAG produced for each flow.
 This DAG shouldn't change between runs.  Tasks that have (potentially)
 completed should still be listled in the DAG.  The TM should
-identify them as complete and update the GUI.
+identify them as complete and update the GUI to reflect all
+changes.
 
 Eash task should have a unique id associated with it (hex number?)
