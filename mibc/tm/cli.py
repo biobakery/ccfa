@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import tasks, optparse, sys, json, pprint, parser
 import os
+import tm as TM
 from pprint import pprint
 
 HELP="""%prog [options] [-i <json encoded inputfile>] [-l location]
@@ -85,7 +86,7 @@ def main():
     for k in d:
         print "task[{key}]: {value}".format(key=k, value=d[k])
 
-    tm = TaskManager(p.getTasks())
+    tm = TM.TaskManager(p.getTasks())
     tm.setupQueue()
     tm.runQueue()
 

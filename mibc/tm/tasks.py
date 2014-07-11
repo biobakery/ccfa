@@ -49,19 +49,18 @@ class Task(object):
         self.result = Result.NA
         self.pid = None
         self.parents = []
-        for parent in self.json_parents:
 
     def getTaskNum(self):
         return self.num
    
-    def setComlete():
+    def setCompleted(self):
         self.completed = True
 
-    def isComplete():
+    def isComplete(self):
         return self.completed
 
     def run(self):
-        print "in parent Task class setting status to RUNNING"
+        #print "in parent Task class setting status to RUNNING"
         self.status = Status.RUNNING
 
     def canRun(self):
@@ -69,8 +68,9 @@ class Task(object):
             if (not os.path.isfile(dependency)):
                 print "dependency not found: " + dependency
                 return False
-        for parentId in getParentIds():
-            if not taskList[parentId].isComplete():
+        #import pdb;pdb.set_trace()
+        for parentId in self.getParentIds():
+            if not self.taskList[parentId].isComplete():
                 return False
         return True
 
@@ -95,14 +95,20 @@ class Task(object):
         return idList
 
     def getStatus(self):
-        if self.pid is not None:
-            if self.pid.poll() == 0:
-                self.status = Status.FINISHED
-                self.result = Result.SUCCESS
-            else:
-                self.status = Status.FINISHED
-                self.result = Result.FAILURE
-            self.setCompleted()
+        if self.isComplete():
+            self.status = Status.FINISHED
+            self.result = Result.SUCCESS
+        elif self.pid is not None:
+            if self.pid.poll() is not None:
+                if self.pid.poll() == 0:
+                    print "COMPLETED TASK: " + self.getName()
+                    self.status = Status.FINISHED
+                    self.result = Result.SUCCESS
+                else:
+                    print "COMPLETED (FAILED) TASK: " + self.getName() + " " + str(self.pid.poll())
+                    self.status = Status.FINISHED
+                    self.result = Result.FAILURE
+                self.setCompleted()
         return self.status
 
     def setStatus(self, givenStatus):
@@ -118,11 +124,8 @@ class Task(object):
     def getType(self):
         return self.taskType
 
-    def getID(self):
+    def getId(self):
         return self.json_node['id']
-
-    def getPid(self):
-        return self.pid
 
     def cleanupPid(self):
         os.unlink(script.name)
@@ -142,12 +145,12 @@ class Task(object):
 class LocalTask(Task):
     """ Tasks run on local workstation"""
 
-    def __init__(self, jsondata):
-        super(LocalTask, self).__init__(jsondata)
+    def __init__(self, jsondata, taskList):
+        super(LocalTask, self).__init__(jsondata, taskList)
         self.taskType = Type.LOCAL
 
     def run(self):
-        print "running task on local host.  tbd..."
+        print "running local task: " + self.getName()
         super(LocalTask, self).run()
         # create subprocess script
         script = tempfile.NamedTemporaryFile(delete=False)

@@ -13,7 +13,6 @@ class TaskManager(object):
         self.completedTasks = []
         self.waitingTasks = []
         self.queuedTasks = []
-        self.data = data
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -28,15 +27,18 @@ class TaskManager(object):
         for key,task in self.taskList.iteritems():
             if task.getName() == 'root':
                 self.completedTasks.append(task)
+                task.setCompleted()
             elif task.isStaticallyFinished():
                 self.completedTasks.append(task)
-                task.setComplete()
+                task.setCompleted()
 
         for key,task in self.taskList.iteritems():
             if task not in self.completedTasks:
                 if task.canRun():
+                    task.setStatus(tasks.Status.QUEUED)
                     self.queuedTasks.append(task)
                 else:
+                    task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
 
     def runQueue(self):
@@ -45,13 +47,14 @@ class TaskManager(object):
             For now, this method will run until all jobs
             are finished...
         """
+        #import pdb; pdb.set_trace()
         while (len(self.waitingTasks) > 0) or (len(self.queuedTasks) > 0):
 
             # loop thru waiting tasks
             for task in self.waitingTasks[:]:
                 if task.canRun():
                     self.queuedTasks.append(task)
-                    task.setStauts(tasks.Status.QUEUED)
+                    task.setStatus(tasks.Status.QUEUED)
                     self.waitingTasks.remove(task)
 
             # loop thru queued tasks
@@ -66,7 +69,6 @@ class TaskManager(object):
             self.status()
             print ""
             time.sleep(5)
-            self.parseQueue()
 
 
     def status(self):
@@ -77,11 +79,11 @@ class TaskManager(object):
         #for task in self.completedTasks:
         #    print "  " + task.getName()
         print "waiting tasks: " + str(len(self.waitingTasks))
-        #for task in self.waitingTasks:
-        #    print "  " + task.getName()
+        for task in self.waitingTasks:
+            print "  " + task.getName()
         print "queued tasks: " + str(len(self.queuedTasks))
-        #for task in self.queuedTasks:
-        #    print "  " + task.getName()
+        for task in self.queuedTasks:
+            print "  " + task.getName()
 
         print "=========================="
 

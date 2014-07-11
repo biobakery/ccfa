@@ -15,12 +15,12 @@ class Parser(object):
         nodes = data['dag']
         for node in nodes:
             if taskType == tasks.Type.LOCAL:
-                task = tasks.LocalTask(node)
-                if task.getId in self.taskList:
-                    print "Error: duplicate task Identifier: " + task.getId
+                task = tasks.LocalTask(node, self.taskList)
+                if task.getId() in self.taskList.keys():
+                    print "Error: duplicate task Identifier: " + task.getId()
                     sys.exit(-1)
-                self.taskList[task.getID] = task;
-            else
+                self.taskList[task.getId()] = task;
+            else:
                 print "Task type: " + taskType + " not supported (yet)"
                 sys.exit(0);
 
