@@ -38,7 +38,9 @@ Result = Enum(['NA', 'SUCCESS', 'FAILURE'])
 class Task(object):
     """ Parent class for all tasks """
 
-    def __init__(self, jsondata):
+    def __init__(self, jsondata, taskList):
+        self.taskList = taskList
+        self.completed = False
         self.json_node = jsondata['node']
         self.json_parents = jsondata['parents']
         self.status = Status.WAITING
@@ -46,10 +48,18 @@ class Task(object):
         self.taskType = Type.EC2
         self.result = Result.NA
         self.pid = None
+        self.parents = []
+        for parent in self.json_parents:
 
     def getTaskNum(self):
         return self.num
-    
+   
+    def setComlete():
+        self.completed = True
+
+    def isComplete():
+        return self.completed
+
     def run(self):
         print "in parent Task class setting status to RUNNING"
         self.status = Status.RUNNING
@@ -59,9 +69,13 @@ class Task(object):
             if (not os.path.isfile(dependency)):
                 print "dependency not found: " + dependency
                 return False
+        for parentId in getParentIds():
+            if not taskList[parentId].isComplete():
+                return False
         return True
 
-    def isFinished(self):
+    def isStaticallyFinished(self):
+        """ Method should only be used prior to running any tasks! """
         for product in self.json_node['produces']:
             if (not os.path.isfile(product)):
                 return False
@@ -81,6 +95,14 @@ class Task(object):
         return idList
 
     def getStatus(self):
+        if self.pid is not None:
+            if self.pid.poll() == 0:
+                self.status = Status.FINISHED
+                self.result = Result.SUCCESS
+            else:
+                self.status = Status.FINISHED
+                self.result = Result.FAILURE
+            self.setCompleted()
         return self.status
 
     def setStatus(self, givenStatus):
@@ -90,6 +112,7 @@ class Task(object):
             logging.warning("Setting task status to unknown status: " + givenStatus)
 
     def getResultStatus(self):
+        getStatus() # force check subprocess for completion
         return self.result
 
     def getType(self):

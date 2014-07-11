@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import tasks, optparse, sys, json, pprint, parse
+import tasks, optparse, sys, json, pprint, parser
 import os
 from pprint import pprint
 
@@ -37,9 +37,9 @@ locations = ('local', 'slurm', 'lsf')
 
 def main():
     global opts
-    parser = optparse.OptionParser(option_list=opts_list,
+    argParser = optparse.OptionParser(option_list=opts_list,
                                    usage=HELP)
-    (opts, args) = parser.parse_args()
+    (opts, args) = argParser.parse_args()
 
     #if opts.verbose:
     #    if opts.bamformat:
@@ -50,7 +50,7 @@ def main():
     if opts.dagfile:
         if not os.path.isfile(opts.dagfile):
             print >> sys.stderr, "opts.dagfile not found."
-            parser.print_usage()
+            argParser.print_usage()
             sys.exit(1)
         else:
             input = opts.dagfile
@@ -63,12 +63,12 @@ def main():
 
     if opts.location is None:
         print >> sys.stderr, "location not specified."
-        parser.print_usage()
+        argParser.print_usage()
         sys.exit(1)
 
     elif opts.location not in locations:
         print >> sys.stderr, "location not of type 'local', 'slurm', or 'lsf'."
-        parser.print_usage()
+        argParser.print_usage()
         sys.exit(1)
 
     if input is "-":
@@ -80,13 +80,19 @@ def main():
         data = json.loads(jsondata);
         jsonfile.close()
 
-    p = parse.Parse(data, opts.location.upper())
-    p.status()
-    p.setupQueue()
-    p.status()
-    p.parseQueue()
-    p.status()
-    p.runQueue()
+    p = parser.Parser(data, opts.location.upper())
+    d = p.getTasks();
+    for k in d:
+        print "task[{key}]: {value}".format(key=k, value=d[k])
+
+    tm = TaskManager(p.getTasks())
+    tm.setupQueue()
+    tm.runQueue()
+
+    #p.status()
+    #p.parseQueue()
+    #p.status()
+    #p.runQueue()
     #tlist = p.getTasks()
 
     #print len(tlist)

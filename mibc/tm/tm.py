@@ -5,55 +5,39 @@ import tasks
 import time
 
 
-#Status = Enum(['WAITING', 'QUEUED', 'RUNNING', 'FINISHED'])
-
-class Parse(object):
+class TaskManager(object):
     """ Parse the json dag passed in via cmdline args """
 
-    def __init__(self, data, taskType):
-        self.taskList = []
+    def __init__(self, taskList):
+        self.taskList = taskList
         self.completedTasks = []
         self.waitingTasks = []
         self.queuedTasks = []
         self.data = data
         self.run = 1 # this should be read from filespace...
 
-        nodes = data['dag']
-        for node in nodes:
-            if taskType == tasks.Type.LOCAL:
-                self.taskList.append(tasks.LocalTask(node))
-
     def getTasks(self):
         return self.taskList
 
-
     def setupQueue(self):
         """ method starts the flow 
-            need to keep track of what run we are on - has this
-            flow been processed before???
+            at this point, no tasks have been run and the filesystem is quiet
+            assume all tasks that have existing products on the filesystem 
+            are complete.  
         """
-        for task in self.taskList:
+        for key,task in self.taskList.iteritems():
             if task.getName() == 'root':
                 self.completedTasks.append(task)
-            elif task.isFinished():
+            elif task.isStaticallyFinished():
                 self.completedTasks.append(task)
+                task.setComplete()
 
-        for task in self.taskList:
+        for key,task in self.taskList.iteritems():
             if task not in self.completedTasks:
                 if task.canRun():
                     self.queuedTasks.append(task)
                 else:
                     self.waitingTasks.append(task)
-
-       
-    def parseQueue(self):
-        """ method searches waiting queue for tasks that
-            could be queued to run 
-        """
-        for task in self.waitingTasks[:]:
-            if task.canRun():
-                self.queuedTasks.append(task)
-                self.waitingTasks.remove(task)
 
     def runQueue(self):
         """ attempts to spawn subprocesses in order to 
@@ -61,22 +45,23 @@ class Parse(object):
             For now, this method will run until all jobs
             are finished...
         """
-        #import pdb; pdb.set_trace()
         while (len(self.waitingTasks) > 0) or (len(self.queuedTasks) > 0):
+
+            # loop thru waiting tasks
+            for task in self.waitingTasks[:]:
+                if task.canRun():
+                    self.queuedTasks.append(task)
+                    task.setStauts(tasks.Status.QUEUED)
+                    self.waitingTasks.remove(task)
+
+            # loop thru queued tasks
             for task in self.queuedTasks[:]:
-                if task.getStatus() == tasks.Status.WAITING:
-                    task.setStatus(tasks.Status.QUEUED)
-                elif task.getStatus() == tasks.Status.QUEUED:
-                    print "running task: " + task.getName()
+                if task.getStatus() == tasks.Status.QUEUED:
+                    task.setStatus(tasks.Status.RUNNING)
                     task.run()
                 elif task.getStatus() == tasks.Status.FINISHED:
                     self.completedTasks.append(task)
                     self.queuedTasks.remove(task)
-                else:
-                    # tasks here are either still running or have finished
-                    pid = task.getPid()
-                    if pid.poll() is not None:
-                        task.setStatus(tasks.Status.FINISHED)
 
             self.status()
             print ""
