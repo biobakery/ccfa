@@ -9,13 +9,14 @@ import sys
 class Parser(object):
     """ Parse the json dag passed in via cmdline args """
 
-    def __init__(self, data, taskType):
+    def __init__(self, data, taskType, directory):
         self.taskList = {}
+        self.directory = directory
 
         nodes = data['dag']
         for node in nodes:
             if taskType == tasks.Type.LOCAL:
-                task = tasks.LocalTask(node, self.taskList)
+                task = tasks.LocalTask(node, self.taskList, self.directory)
                 if task.getId() in self.taskList.keys():
                     print "Error: duplicate task Identifier: " + task.getId()
                     sys.exit(-1)

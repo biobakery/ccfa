@@ -8,11 +8,12 @@ import time
 class TaskManager(object):
     """ Parse the json dag passed in via cmdline args """
 
-    def __init__(self, taskList):
+    def __init__(self, taskList, directory):
         self.taskList = taskList
         self.completedTasks = []
         self.waitingTasks = []
         self.queuedTasks = []
+        self.directory = directory
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -28,7 +29,8 @@ class TaskManager(object):
             if task.getName() == 'root':
                 self.completedTasks.append(task)
                 task.setCompleted()
-            elif task.isStaticallyFinished():
+            elif task.doAllProductsExist():
+                print "Task " + task.getName() + "products already exist."
                 self.completedTasks.append(task)
                 task.setCompleted()
 
@@ -53,8 +55,12 @@ class TaskManager(object):
             # loop thru waiting tasks
             for task in self.waitingTasks[:]:
                 if task.canRun():
-                    self.queuedTasks.append(task)
                     task.setStatus(tasks.Status.QUEUED)
+                    self.queuedTasks.append(task)
+                    self.waitingTasks.remove(task)
+                if task.hasFailed():
+                    #task.setStatus(task.Status.COMPLETED)
+                    self.completedTasks.append(task)
                     self.waitingTasks.remove(task)
 
             # loop thru queued tasks

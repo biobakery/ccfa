@@ -26,6 +26,8 @@ opts_list = [
                          help="Turn on verbose output (to stderr)"),
     optparse.make_option('-i', '--input', action="store", type="string",
                          dest="dagfile", help="Specify json encrypted dag file"),
+    optparse.make_option('-d', '--directory', action="store", type="string", default="",
+                         dest="directory", help="Specify directory where all tasks and logfiles are stored.  Default is /var/tmp/anadama_flows"),
     optparse.make_option('-l', '--l', action="store",
                          dest="location", type="string", 
                          help="The location for running tasks (local, slurm, or lsf)"),
@@ -72,6 +74,14 @@ def main():
         argParser.print_usage()
         sys.exit(1)
 
+    if opts.directory is not None:
+        if os.access(opts.directory, os.W_OK):
+            print >> sys.stderr, "directory " + opts.directory + " is not writable."
+            argParser.print_usage()
+            sys.exit(1)
+    else:
+        opts.directory = "/var/tmp/anadama_flows"
+
     if input is "-":
         data = json.load(sys.stdin);
     else:
@@ -81,12 +91,12 @@ def main():
         data = json.loads(jsondata);
         jsonfile.close()
 
-    p = parser.Parser(data, opts.location.upper())
+    p = parser.Parser(data, opts.location.upper(), opts.directory)
     d = p.getTasks();
     for k in d:
         print "task[{key}]: {value}".format(key=k, value=d[k])
 
-    tm = TM.TaskManager(p.getTasks())
+    tm = TM.TaskManager(p.getTasks(), opts.directory)
     tm.setupQueue()
     tm.runQueue()
 

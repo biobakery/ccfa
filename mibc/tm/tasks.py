@@ -38,8 +38,9 @@ Result = Enum(['NA', 'SUCCESS', 'FAILURE'])
 class Task(object):
     """ Parent class for all tasks """
 
-    def __init__(self, jsondata, taskList):
+    def __init__(self, jsondata, taskList, directory):
         self.taskList = taskList
+        self.directory = directory
         self.completed = False
         self.json_node = jsondata['node']
         self.json_parents = jsondata['parents']
@@ -74,7 +75,7 @@ class Task(object):
                 return False
         return True
 
-    def isStaticallyFinished(self):
+    def doAllProductsExist(self):
         """ Method should only be used prior to running any tasks! """
         for product in self.json_node['produces']:
             if (not os.path.isfile(product)):
@@ -82,10 +83,27 @@ class Task(object):
         return True
 
     def hasFailed(self):
+        # first check our static 'flags' for status
+        if self.isComplete():
+            if self.getResult() == Result.FAILURE:
+                return True
+        # next check if we've finished running
         if self.pid is not None:
             if self.pid.poll() == 0:
                 return False
-            return True
+            else:
+                # we've failed - set our states
+                self.setCompleted()
+                self.setStatus(Status.FINISHED)
+                self.setResult(Result.FAILURE)
+                return True
+        # next check if our parents have failed
+        for parentId in self.getParentIds():
+            if self.taskList[parentId].hasFailed():
+                self.setCompleted()
+                self.setStatus(Status.FINISHED)
+                self.setResult(Result.FAILURE)
+                return True
         return False
 
     def getParentIds(self):
@@ -97,7 +115,6 @@ class Task(object):
     def getStatus(self):
         if self.isComplete():
             self.status = Status.FINISHED
-            self.result = Result.SUCCESS
         elif self.pid is not None:
             if self.pid.poll() is not None:
                 if self.pid.poll() == 0:
@@ -109,16 +126,24 @@ class Task(object):
                     self.status = Status.FINISHED
                     self.result = Result.FAILURE
                 self.setCompleted()
+        if self.result == Result.NA:
+            print "Warning: status is " + self.status + " but result is " + self.result
         return self.status
 
     def setStatus(self, givenStatus):
         if (givenStatus in Status):
             self.status = givenStatus
         else: 
-            logging.warning("Setting task status to unknown status: " + givenStatus)
+            logging.error("Setting task status to unknown status: " + givenStatus)
 
-    def getResultStatus(self):
-        getStatus() # force check subprocess for completion
+    def setResult(self, givenResult):
+        if givenResult in Result:
+            self.result == givenResult
+        else:
+            logging.error("Setting task result to unknown result: " + givenResult)
+
+    def getResult(self):
+        self.getStatus() # force check subprocess for completion
         return self.result
 
     def getType(self):
@@ -145,15 +170,15 @@ class Task(object):
 class LocalTask(Task):
     """ Tasks run on local workstation"""
 
-    def __init__(self, jsondata, taskList):
-        super(LocalTask, self).__init__(jsondata, taskList)
+    def __init__(self, jsondata, taskList, directory):
+        super(LocalTask, self).__init__(jsondata, taskList, directory)
         self.taskType = Type.LOCAL
 
     def run(self):
         print "running local task: " + self.getName()
         super(LocalTask, self).run()
         # create subprocess script
-        script = tempfile.NamedTemporaryFile(delete=False)
+        script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
         sub = """#!/bin/sh
                  #{scriptname}
                  source /aux/deploy2/bin/activate
