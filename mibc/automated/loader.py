@@ -1,11 +1,14 @@
 import os
+from collections import OrderedDict
 
 from doit.cmd_base import TaskLoader
 from doit.exceptions import InvalidCommand
 
-from .. import models
+from anadama.pipelines import route
 
-from . import pipelines
+from anadama_workflows import pipelines
+
+from .. import models, settings
 
 class ProjectLoader(TaskLoader):
 
@@ -16,13 +19,38 @@ class ProjectLoader(TaskLoader):
             raise InvalidCommand("project %s doesn't exist" %(project_path))
 
         task_group = self.get_tasks(project)
-        config = task_group.configure(project)
+        config = task_group.configure()
         return task_group.tasks, config
 
 
     def get_tasks(self, project):
         project_is_16s = getattr(project, "16s_data") == ["true"]
+        products_dir = os.path.join(
+            project.path, settings.workflows.product_directory)
+        files_list = [ os.path.join(project.path, f) for f in project.filename ]
         if project_is_16s:
-            return pipelines.SixteenSPipeline(project)
+            routes = route(
+                files_list,
+                [(r'\.biom$',        'otu_tables'),
+                 (r'_demuxed\.f*a$', 'demuxed_fasta_files'),
+                 (r'.*',             'raw_seq_files')]
+            )
+            return pipelines.SixteenSPipeline(
+                products_dir=products_dir,
+                samples=project.map,
+                # construct the rest of the keyword arguments with the
+                # route function
+                **routes
+            )
         else:
-            return pipelines.WGSPipeline(project)
+            routes = route(
+                files_list,
+                [(r'\.sam$', 'alignment_result_files'),
+                 # Catch all that didn't match at the bottom
+                 (r'.*',     'raw_seq_files')]
+            )
+            return pipelines.WGSPipeline(
+                products_dir=products_dir,
+                # construct the rest of the options with the route function
+                **routes
+            )
