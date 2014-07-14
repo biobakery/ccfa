@@ -30,7 +30,6 @@ class TaskManager(object):
                 self.completedTasks.append(task)
                 task.setCompleted()
             elif task.isComplete():
-                print "task: " + task.getName() + " is complete."
                 self.completedTasks.append(task)
 
         for key,task in self.taskList.iteritems():
@@ -53,20 +52,16 @@ class TaskManager(object):
 
             # loop thru waiting tasks
             for task in self.waitingTasks[:]:
-                print "waiting task " + task.getName()
                 if task.canRun():
                     task.setStatus(tasks.Status.QUEUED)
                     self.queuedTasks.append(task)
                     self.waitingTasks.remove(task)
                 if task.hasFailed():
-                    #task.setStatus(task.Status.COMPLETED)
                     self.completedTasks.append(task)
                     self.waitingTasks.remove(task)
 
             # loop thru queued tasks
             for task in self.queuedTasks[:]:
-                print "working on queued task " + task.getName()
-                print task
                 if task.getStatus() == tasks.Status.QUEUED:
                     task.run()
                 elif task.getStatus() == tasks.Status.FINISHED:
@@ -82,15 +77,15 @@ class TaskManager(object):
         print "=========================="
         failed = [x for x in self.completedTasks if x.hasFailed()]
         #for task in self.completedTasks:
-        print "completed tasks: " + str(len(self.completedTasks)) + " " + str(len(failed)) + " failed."
+        print "completed tasks: (" + str(len(self.completedTasks)) + " " + str(len(failed)) + " failed.)"
         #for task in self.completedTasks:
         #    print "  " + task.getName()
         print "waiting tasks: " + str(len(self.waitingTasks))
-        for task in self.waitingTasks:
-            print "  " + task.getName()
-        print "queued tasks: " + str(len(self.queuedTasks))
-        for task in self.queuedTasks:
-            print "  " + task.getName()
+        #for task in self.waitingTasks:
+        #    print "  " + task.getName()
+        running = [task for task in self.queuedTasks if task.getStatus() == tasks.Status.RUNNING]
+        print "queued tasks: " + str(len(self.queuedTasks)) + " (" + str(len(running)) + " running.)"
+        #    print "  " + task.getName()
 
         print "=========================="
 

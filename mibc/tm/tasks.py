@@ -70,13 +70,12 @@ class Task(object):
         self.status = Status.RUNNING
 
     def canRun(self):
+        for parentId in self.getParentIds():
+            if not self.taskList[parentId].isComplete():
+                return False
         for dependency in self.json_node['depends']:
             if (not os.path.isfile(dependency)):
                 print "dependency not found: " + dependency
-                return False
-        #import pdb;pdb.set_trace()
-        for parentId in self.getParentIds():
-            if not self.taskList[parentId].isComplete():
                 return False
         return True
 
@@ -121,7 +120,7 @@ class Task(object):
                     self.result = Result.FAILURE
                 self.setCompleted()
         if self.status == Status.FINISHED and self.result == Result.NA:
-            print "Warning: task " + self.getName() + " status is " + self.status + " but result is " + self.result
+            print "Warning: task " + self.getName() + " status is " + self.status + " but result is " + self.result +" and completed is " + str(self.isComplete())
         return self.status
 
     def setStatus(self, givenStatus):
@@ -132,7 +131,7 @@ class Task(object):
 
     def setResult(self, givenResult):
         if givenResult in Result:
-            self.result == givenResult
+            self.result = givenResult
         else:
             logging.error("Setting task result to unknown result: " + givenResult)
 
@@ -168,7 +167,6 @@ class LocalTask(Task):
         self.taskType = Type.LOCAL
 
     def run(self):
-        print "running local task: " + self.getName()
         super(LocalTask, self).run()
         # create subprocess script
         script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
@@ -182,7 +180,7 @@ class LocalTask(Task):
         script.close()
         os.chmod(script.name, 0755)
         scriptpath = os.path.abspath(script.name)
-        print "scriptname: " + scriptpath
+        #print "scriptname: " + scriptpath
         # spawn subprocess script & store process id/obj
         self.pid = subprocess.Popen([scriptpath])
 

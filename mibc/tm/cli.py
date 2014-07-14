@@ -102,26 +102,10 @@ def main():
         jsonfile.close()
 
     p = parser.Parser(data, opts.location.upper(), opts.directory)
-    d = p.getTasks();
-    for k in d:
-        print "task[{key}]: {value}".format(key=k, value=d[k])
 
     tm = TM.TaskManager(p.getTasks(), opts.directory)
     tm.setupQueue()
     tm.runQueue()
-
-    #p.status()
-    #p.parseQueue()
-    #p.status()
-    #p.runQueue()
-    #tlist = p.getTasks()
-
-    #print len(tlist)
-    #for task in tlist:
-    #    if task.
-        #print task.getParentIds()
-        #print task
-        #print task.getJson()
 
 if __name__ == '__main__':
     main()
