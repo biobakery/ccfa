@@ -29,10 +29,9 @@ class TaskManager(object):
             if task.getName() == 'root':
                 self.completedTasks.append(task)
                 task.setCompleted()
-            elif task.doAllProductsExist():
-                print "Task " + task.getName() + "products already exist."
+            elif task.isComplete():
+                print "task: " + task.getName() + " is complete."
                 self.completedTasks.append(task)
-                task.setCompleted()
 
         for key,task in self.taskList.iteritems():
             if task not in self.completedTasks:
@@ -54,6 +53,7 @@ class TaskManager(object):
 
             # loop thru waiting tasks
             for task in self.waitingTasks[:]:
+                print "waiting task " + task.getName()
                 if task.canRun():
                     task.setStatus(tasks.Status.QUEUED)
                     self.queuedTasks.append(task)
@@ -65,8 +65,9 @@ class TaskManager(object):
 
             # loop thru queued tasks
             for task in self.queuedTasks[:]:
+                print "working on queued task " + task.getName()
+                print task
                 if task.getStatus() == tasks.Status.QUEUED:
-                    task.setStatus(tasks.Status.RUNNING)
                     task.run()
                 elif task.getStatus() == tasks.Status.FINISHED:
                     self.completedTasks.append(task)

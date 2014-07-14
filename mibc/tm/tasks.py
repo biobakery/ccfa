@@ -50,6 +50,11 @@ class Task(object):
         self.result = Result.NA
         self.pid = None
         self.parents = []
+        # before any tasks are run, find out if this task already ran
+        if self.doAllProductsExist():
+            self.setCompleted()
+            self.status = Status.FINISHED
+            self.result = Result.SUCCESS
 
     def getTaskNum(self):
         return self.num
@@ -83,26 +88,17 @@ class Task(object):
         return True
 
     def hasFailed(self):
-        # first check our static 'flags' for status
-        if self.isComplete():
+        if self.getStatus() == Status.FINISHED:
             if self.getResult() == Result.FAILURE:
                 return True
-        # next check if we've finished running
-        if self.pid is not None:
-            if self.pid.poll() == 0:
-                return False
-            else:
-                # we've failed - set our states
-                self.setCompleted()
-                self.setStatus(Status.FINISHED)
-                self.setResult(Result.FAILURE)
-                return True
+            if self.getResult() == Result.NA:
+                print "Warning: task " + self.getName() + " is complete but result is NA"
         # next check if our parents have failed
         for parentId in self.getParentIds():
             if self.taskList[parentId].hasFailed():
-                self.setCompleted()
                 self.setStatus(Status.FINISHED)
                 self.setResult(Result.FAILURE)
+                self.setCompleted()
                 return True
         return False
 
@@ -113,9 +109,7 @@ class Task(object):
         return idList
 
     def getStatus(self):
-        if self.isComplete():
-            self.status = Status.FINISHED
-        elif self.pid is not None:
+        if not self.isComplete() and self.pid is not None:
             if self.pid.poll() is not None:
                 if self.pid.poll() == 0:
                     print "COMPLETED TASK: " + self.getName()
@@ -126,8 +120,8 @@ class Task(object):
                     self.status = Status.FINISHED
                     self.result = Result.FAILURE
                 self.setCompleted()
-        if self.result == Result.NA:
-            print "Warning: status is " + self.status + " but result is " + self.result
+        if self.status == Status.FINISHED and self.result == Result.NA:
+            print "Warning: task " + self.getName() + " status is " + self.status + " but result is " + self.result
         return self.status
 
     def setStatus(self, givenStatus):
@@ -143,7 +137,6 @@ class Task(object):
             logging.error("Setting task result to unknown result: " + givenResult)
 
     def getResult(self):
-        self.getStatus() # force check subprocess for completion
         return self.result
 
     def getType(self):
@@ -193,3 +186,8 @@ class LocalTask(Task):
         # spawn subprocess script & store process id/obj
         self.pid = subprocess.Popen([scriptpath])
 
+    def __str__(self):
+        str = """Task: {name}
+                 Result: {result}
+                 Status: {status}""".format(name=self.getName(), result = self.result, status=self.status)
+        return str

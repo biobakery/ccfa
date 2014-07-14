@@ -75,12 +75,22 @@ def main():
         sys.exit(1)
 
     if opts.directory is not None:
-        if os.access(opts.directory, os.W_OK):
+        print "directory: " + opts.directory
+        if opts.directory is "":
+            opts.directory = "/var/tmp/anadama_flows"
+
+        if not os.access(opts.directory, os.W_OK):
             print >> sys.stderr, "directory " + opts.directory + " is not writable."
             argParser.print_usage()
             sys.exit(1)
     else:
         opts.directory = "/var/tmp/anadama_flows"
+
+    # create task directory if it doesn't exist
+    if not os.path.exists(opts.directory):
+        os.makedirs(opts.directory)
+
+    print "directory: " + opts.directory
 
     if input is "-":
         data = json.load(sys.stdin);

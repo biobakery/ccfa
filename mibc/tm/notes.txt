@@ -16,3 +16,15 @@ identify them as complete and update the GUI to reflect all
 changes.
 
 Eash task should have a unique id associated with it (hex number?)
+
+Each flow should be identified by a unique name:
+  <Datatype> + <Date?> and or <unique ID>
+ex: 
+/usr/local/anadama_flows/16S_kbayer_1428
+/usr/local/anadama_flows/16S_kbayer_1428_1
+/usr/local/anadama_flows/16S_kbayer_1428_1/run1
+/usr/local/anadama_flows/16S_kbayer_1428_1/run2
+/usr/local/anadama_flows/16S_kbayer_1428_1/run3
+/usr/local/anadama_flows/16S_kbayer_1428_1/run3/<tasknum><shortname>
+/usr/local/anadama_flows/16S_kbayer_1428_1/run3/graph.html
+/usr/local/anadama_flows/16S_kbayer_1428_1/run3/js/...
