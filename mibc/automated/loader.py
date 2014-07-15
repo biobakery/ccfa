@@ -37,7 +37,7 @@ class ProjectLoader(TaskLoader):
             )
             return pipelines.SixteenSPipeline(
                 products_dir=products_dir,
-                samples=project.map,
+                sample_metadata=project.map,
                 # construct the rest of the keyword arguments with the
                 # route function
                 **routes
