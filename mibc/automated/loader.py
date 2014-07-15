@@ -18,9 +18,9 @@ class ProjectLoader(TaskLoader):
         if not project.exists():
             raise InvalidCommand("project %s doesn't exist" %(project_path))
 
-        task_group = self.get_tasks(project)
-        config = task_group.configure()
-        return task_group.tasks, config
+        pipeline = self.get_tasks(project)
+        config = pipeline.configure()
+        return pipeline.tasks(), config
 
 
     def get_tasks(self, project):
