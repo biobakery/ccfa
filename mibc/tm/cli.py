@@ -27,7 +27,7 @@ opts_list = [
     optparse.make_option('-i', '--input', action="store", type="string",
                          dest="dagfile", help="Specify json encrypted dag file"),
     optparse.make_option('-d', '--directory', action="store", type="string", default="",
-                         dest="directory", help="Specify directory where all tasks and logfiles are stored.  Default is /var/tmp/anadama_flows"),
+                         dest="directory", help="Specify directory where all tasks and logfiles are stored.  Default is the current working directory."),
     optparse.make_option('-l', '--l', action="store",
                          dest="location", type="string", 
                          help="The location for running tasks (local, slurm, or lsf)"),
@@ -75,20 +75,15 @@ def main():
         sys.exit(1)
 
     if opts.directory is not None:
-        print "directory: " + opts.directory
         if opts.directory is "":
-            opts.directory = "/var/tmp/anadama_flows"
-
-        if not os.access(opts.directory, os.W_OK):
-            print >> sys.stderr, "directory " + opts.directory + " is not writable."
-            argParser.print_usage()
-            sys.exit(1)
+            opts.directory = os.getcwd() + "/anadama_flows"
     else:
-        opts.directory = "/var/tmp/anadama_flows"
+        opts.directory = os.getcwd() + "/anadama_flows"
 
-    # create task directory if it doesn't exist
-    if not os.path.exists(opts.directory):
-        os.makedirs(opts.directory)
+    if not os.access(os.path.dirname(opts.directory), os.W_OK):
+        print >> sys.stderr, "directory " + opts.directory + " is not writable."
+        argParser.print_usage()
+        sys.exit(1)
 
     print "directory: " + opts.directory
 
@@ -101,9 +96,44 @@ def main():
         data = json.loads(jsondata);
         jsonfile.close()
 
-    p = parser.Parser(data, opts.location.upper(), opts.directory)
+    p = parser.Parser(data, opts.location.upper())
 
-    tm = TM.TaskManager(p.getTasks(), opts.directory)
+    #
+    # create directory structure to store metadata from tasks
+    #
+    hash, product = p.getHashTuple()
+    print "hash: " + hash + " product: " + product
+
+    hashdirectory = opts.directory + "/" + hash
+    print "final directory: " + hashdirectory
+
+    # create task directory if it doesn't exist
+    run = "/run1"
+    if not os.path.exists(hashdirectory):
+        os.makedirs(hashdirectory)
+        rundirectory = hashdirectory + run
+        os.makedirs(rundirectory)
+    else:
+        # get the last run and increment it by one
+        for run in os.walk(hashdirectory).next()[1]:
+            runnum = int(run[3:])
+            runnum += 1;
+        rundirectory = hashdirectory + "/run" + str(runnum)
+        os.makedirs(rundirectory)
+
+    # create link to directory if it doesn't exist
+    symlinkdir = opts.directory + "/by_task_name"
+    if not os.path.exists(symlinkdir):
+        os.makedirs(symlinkdir)
+        
+    symlink = symlinkdir + "/" + product
+    print "symlink: " + symlink
+    if not os.path.exists(symlink):
+        os.symlink(hashdirectory, symlink)
+
+    p.setTaskDir(rundirectory)
+
+    tm = TM.TaskManager(p.getTasks())
     tm.setupQueue()
     tm.runQueue()
 

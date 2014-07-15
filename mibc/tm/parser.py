@@ -4,19 +4,20 @@ import json
 import tasks
 import time
 import sys
+import hashlib
+import datetime
 
 
 class Parser(object):
     """ Parse the json dag passed in via cmdline args """
 
-    def __init__(self, data, taskType, directory):
+    def __init__(self, data, taskType):
         self.taskList = {}
-        self.directory = directory
-
         nodes = data['dag']
+
         for node in nodes:
             if taskType == tasks.Type.LOCAL:
-                task = tasks.LocalTask(node, self.taskList, self.directory)
+                task = tasks.LocalTask(node, self.taskList)
                 if task.getId() in self.taskList.keys():
                     print "Error: duplicate task Identifier: " + task.getId()
                     sys.exit(-1)
@@ -40,3 +41,16 @@ class Parser(object):
         print "Error: " + idx + " not in taskList."
         return None
 
+    def getHashTuple(self):
+        for k, task in self.getTasks().iteritems():
+            if len(task.getProducts()) > 0:
+                md5 = hashlib.md5()
+                print "product for hash: " + task.getProducts()[0]
+                md5.update(task.getProducts()[0])
+                print "hash: " + md5.hexdigest()
+                name = task.getSimpleName() + "." + str(datetime.date.today())
+                return (str(md5.hexdigest())[:5], name)
+
+    def setTaskDir(self, directory):
+        for k, task in self.getTasks().iteritems():
+            task.setDirectory(directory)

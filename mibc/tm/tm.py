@@ -8,12 +8,11 @@ import time
 class TaskManager(object):
     """ Parse the json dag passed in via cmdline args """
 
-    def __init__(self, taskList, directory):
+    def __init__(self, taskList):
         self.taskList = taskList
         self.completedTasks = []
         self.waitingTasks = []
         self.queuedTasks = []
-        self.directory = directory
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):

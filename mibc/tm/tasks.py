@@ -38,9 +38,9 @@ Result = Enum(['NA', 'SUCCESS', 'FAILURE'])
 class Task(object):
     """ Parent class for all tasks """
 
-    def __init__(self, jsondata, taskList, directory):
+    def __init__(self, jsondata, taskList):
         self.taskList = taskList
-        self.directory = directory
+        self.directory = "NA"
         self.completed = False
         self.json_node = jsondata['node']
         self.json_parents = jsondata['parents']
@@ -138,6 +138,9 @@ class Task(object):
     def getResult(self):
         return self.result
 
+    def getProducts(self):
+        return self.json_node['produces']
+
     def getType(self):
         return self.taskType
 
@@ -153,8 +156,14 @@ class Task(object):
     def getName(self):
         return self.json_node['name']
 
+    def getSimpleName(self):
+        return self.getName().split(':')[0]
+
     def getJson(self):
         return self.json_node
+
+    def setDirectory(self, givenDir):
+        self.directory = givenDir
 
     def __str__(self):
         return "Task: " + self.json_node['name']
@@ -162,8 +171,8 @@ class Task(object):
 class LocalTask(Task):
     """ Tasks run on local workstation"""
 
-    def __init__(self, jsondata, taskList, directory):
-        super(LocalTask, self).__init__(jsondata, taskList, directory)
+    def __init__(self, jsondata, taskList):
+        super(LocalTask, self).__init__(jsondata, taskList)
         self.taskType = Type.LOCAL
 
     def run(self):
