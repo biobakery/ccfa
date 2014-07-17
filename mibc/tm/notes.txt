@@ -28,3 +28,21 @@ ex:
 /usr/local/anadama_flows/16S_kbayer_1428_1/run3/<tasknum><shortname>
 /usr/local/anadama_flows/16S_kbayer_1428_1/run3/graph.html
 /usr/local/anadama_flows/16S_kbayer_1428_1/run3/js/...
+
+Tornado changes:
+
+In order to use tornado effectively, we need to modify the
+current task management software:
+
+1. use tornado process.subprocess for launching tasks.
+
+2. no more looping in task mgr - should only wake up when
+jobs finish?  What if jobs don't finish?  stuck jobs?
+control through web gui?  Can we wake the task mgr 
+periodically?
+
+# background update every x seconds
+    task = tornado.ioloop.PeriodicCallback(
+            fx(x),
+            15 * 1000)
+
