@@ -2,9 +2,11 @@
 import tasks, optparse, sys, json, pprint, parser
 import os
 import tm as TM
+import signal
+import tempfile
 from pprint import pprint
 
-HELP="""%prog [options] [-i <json encoded inputfile>] [-l location]
+HELP="""%prog [options] [-i <json encoded inputfile>] [-l location] [-g governor]
 
 %prog - TM (Task Manager) parses the tasks contained in the given 
 json encoded directed acyclic graph (DAG) file.  This command
@@ -31,24 +33,79 @@ opts_list = [
     optparse.make_option('-l', '--l', action="store",
                          dest="location", type="string", 
                          help="The location for running tasks (local, slurm, or lsf)"),
+    optparse.make_option('-g', '--governor', action="store", type="int", default="999",
+                         dest="governor", help="Rate limit the number of concurrent tasks.  Useful for limited resource on local desktops / laptops.")
     #optparse.make_option('-o', '--o', action="store", type="string",
     #                     dest="output_file", 
     #                     help="The FASTA output file."),
 ]
 
 locations = ('local', 'slurm', 'lsf')
+fifo = None
+global opts, p, data
 
-def main():
-    global opts
-    argParser = optparse.OptionParser(option_list=opts_list,
-                                   usage=HELP)
-    (opts, args) = argParser.parse_args()
+def fileHandling():
+   
+    '''create directory structure to store metadata from tasks'''
 
-    #if opts.verbose:
-    #    if opts.bamformat:
-    #        print >> sys.stderr, "processing BAM format (binary)."
-    #    else:
-    #        print >> sys.stderr, "processing SAM format (ascii)."
+    hash, product = p.getHashTuple()
+    #print "hash: " + hash + " product: " + product
+
+    hashdirectory = opts.directory + "/" + hash
+    #print "final directory: " + hashdirectory
+
+    # create task directory if it doesn't exist
+    run = "/run1"
+    if not os.path.exists(hashdirectory):
+        os.makedirs(hashdirectory)
+        rundirectory = hashdirectory + run
+        os.makedirs(rundirectory)
+    else:
+        # get the last run and increment it by one
+        runnum = 1
+        for run in os.walk(hashdirectory).next()[1]:
+            #print "run: " + run
+            curnum = int(run[3:])
+            if runnum < curnum:
+                runnum = curnum
+        runnum += 1;
+        #print "runnum: " + str(runnum)
+        rundirectory = hashdirectory + "/run" + str(runnum)
+        os.makedirs(rundirectory)
+
+    # create link to directory if it doesn't exist
+    symlinkdir = opts.directory + "/by_task_name"
+    if not os.path.exists(symlinkdir):
+        os.makedirs(symlinkdir)
+        
+    symlink = symlinkdir + "/" + product
+    #print "symlink: " + symlink
+    if not os.path.exists(symlink):
+        os.symlink(hashdirectory, symlink)
+
+    p.setTaskDir(rundirectory)
+    graph = p.getJsonGraph()
+    with open(rundirectory + "/graph.json", 'w') as graphFile:
+        graphFile.write("loadData(\n")
+        graphFile.write(graph)
+        graphFile.write("\n);")
+
+def namedPipe():
+    global fifo, pipename, tmpdir
+    # create the named pipe
+    tmpdir = tempfile.mkdtemp()
+    pipename = os.path.join(tmpdir, 'fifo')
+    print "named pipe: " + pipename
+    try:
+        os.mkfifo(pipename)
+    except OSError, e:
+        print "Failed to create FIFO: %s" % e
+    else:
+        print "setting fifo!"
+        fifo = open(pipename, 'w')
+
+def optionHandling():
+    global opts, data
 
     if opts.dagfile:
         if not os.path.isfile(opts.dagfile):
@@ -85,57 +142,55 @@ def main():
         argParser.print_usage()
         sys.exit(1)
 
-    print "directory: " + opts.directory
-
     if input is "-":
-        data = json.load(sys.stdin);
+        #jsonString = iter(stdin.readline, '')
+        jsonString = sys.stdin.read()
+        print "jsonString: " + jsonString
+        data = json.loads(jsonString);
     else:
         jsonfile = open(opts.dagfile)
         jsondata = jsonfile.read()
-        print len(str(jsondata))
         data = json.loads(jsondata);
         jsonfile.close()
 
-    p = parser.Parser(data, opts.location.upper())
 
-    #
-    # create directory structure to store metadata from tasks
-    #
-    hash, product = p.getHashTuple()
-    print "hash: " + hash + " product: " + product
+def main():
+    global opts, p, fifo, argParser
+    fifo = None
 
-    hashdirectory = opts.directory + "/" + hash
-    print "final directory: " + hashdirectory
+    def sigtermSetup():
+        signal.signal(signal.SIGTERM, sigtermHandler)
+        signal.signal(signal.SIGINT, sigtermHandler)
 
-    # create task directory if it doesn't exist
-    run = "/run1"
-    if not os.path.exists(hashdirectory):
-        os.makedirs(hashdirectory)
-        rundirectory = hashdirectory + run
-        os.makedirs(rundirectory)
-    else:
-        # get the last run and increment it by one
-        for run in os.walk(hashdirectory).next()[1]:
-            runnum = int(run[3:])
-            runnum += 1;
-        rundirectory = hashdirectory + "/run" + str(runnum)
-        os.makedirs(rundirectory)
+    def sigtermHandler(signum, frame):
+        print "caught signal " + str(signum)
+        print "cleaning up..."
 
-    # create link to directory if it doesn't exist
-    symlinkdir = opts.directory + "/by_task_name"
-    if not os.path.exists(symlinkdir):
-        os.makedirs(symlinkdir)
-        
-    symlink = symlinkdir + "/" + product
-    print "symlink: " + symlink
-    if not os.path.exists(symlink):
-        os.symlink(hashdirectory, symlink)
+        if fifo is not None:
+            fifo.close()
+            os.remove(pipename)
+            os.rmdir(tmpdir)
+        else:
+            print "fifo was null"
+        sys.exit(0)
 
-    p.setTaskDir(rundirectory)
+    argParser = optparse.OptionParser(option_list=opts_list,
+                                   usage=HELP)
+    (opts, args) = argParser.parse_args()
+    optionHandling()
+
+    # signals
+    sigtermSetup()
+    #namedPipe()
+
+    p = parser.Parser(data, opts.location.upper(), sys.stdout)
+
+    fileHandling()
 
     tm = TM.TaskManager(p.getTasks())
     tm.setupQueue()
-    tm.runQueue()
+    tm.runQueue(opts.governor)
+
 
 if __name__ == '__main__':
     main()
