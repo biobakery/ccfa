@@ -3,7 +3,7 @@ import os.path
 import json
 import tasks
 import time
-
+import sys
 
 class TaskManager(object):
     """ Parse the json dag passed in via cmdline args """
@@ -40,7 +40,8 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
 
-    def runQueue(self):
+    def runQueue(self, governor=99):
+
         """ attempts to spawn subprocesses in order to 
             launch all tasks in queuedTasks
             For now, this method will run until all jobs
@@ -62,31 +63,33 @@ class TaskManager(object):
             # loop thru queued tasks
             for task in self.queuedTasks[:]:
                 if task.getStatus() == tasks.Status.QUEUED:
-                    task.run()
+                    if governor > 0:
+                        governor -= 1
+                        task.run()
                 elif task.getStatus() == tasks.Status.FINISHED:
+                    governor += 1
                     self.completedTasks.append(task)
                     self.queuedTasks.remove(task)
 
-            self.status()
-            print ""
-            time.sleep(5)
+            #self.status()
+            time.sleep(0.2)
 
 
     def status(self):
-        print "=========================="
+        print >> sys.stderr, "=========================="
         failed = [x for x in self.completedTasks if x.hasFailed()]
         #for task in self.completedTasks:
-        print "completed tasks: (" + str(len(self.completedTasks)) + " " + str(len(failed)) + " failed.)"
+        print >> sys.stderr, "completed tasks: (" + str(len(self.completedTasks)) + " " + str(len(failed)) + " failed.)"
         #for task in self.completedTasks:
         #    print "  " + task.getName()
-        print "waiting tasks: " + str(len(self.waitingTasks))
+        print >> sys.stderr, "waiting tasks: " + str(len(self.waitingTasks))
         #for task in self.waitingTasks:
         #    print "  " + task.getName()
         running = [task for task in self.queuedTasks if task.getStatus() == tasks.Status.RUNNING]
-        print "queued tasks: " + str(len(self.queuedTasks)) + " (" + str(len(running)) + " running.)"
+        print >> sys.stderr, "queued tasks: " + str(len(self.queuedTasks)) + " (" + str(len(running)) + " running.)"
         #    print "  " + task.getName()
 
-        print "=========================="
+        print >> sys.stderr, "=========================="
 
     def isQueueEmpty(self):
         if len(self.waitingTasks) > 0:
@@ -95,3 +98,9 @@ class TaskManager(object):
             return False
         return True
 
+    def getFifo(self):
+        if fifo is not None:
+            return fifo
+        else:
+            print "Warning: fifo is null"
+            return None
