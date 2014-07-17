@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os
+import os, sys
 import logging
 import subprocess, tempfile
 
@@ -38,13 +38,14 @@ Result = Enum(['NA', 'SUCCESS', 'FAILURE'])
 class Task(object):
     """ Parent class for all tasks """
 
-    def __init__(self, jsondata, taskList):
+    def __init__(self, jsondata, taskList, fifo):
         self.taskList = taskList
+        self.fifo = fifo
         self.directory = "NA"
         self.completed = False
         self.json_node = jsondata['node']
         self.json_parents = jsondata['parents']
-        self.status = Status.WAITING
+        self.setStatus(Status.WAITING)
         self.num = nextNum()
         self.taskType = Type.EC2
         self.result = Result.NA
@@ -53,7 +54,7 @@ class Task(object):
         # before any tasks are run, find out if this task already ran
         if self.doAllProductsExist():
             self.setCompleted()
-            self.status = Status.FINISHED
+            self.setStatus(Status.FINISHED)
             self.result = Result.SUCCESS
 
     def getTaskNum(self):
@@ -67,7 +68,7 @@ class Task(object):
 
     def run(self):
         #print "in parent Task class setting status to RUNNING"
-        self.status = Status.RUNNING
+        self.setStatus(Status.RUNNING)
 
     def canRun(self):
         for parentId in self.getParentIds():
@@ -111,12 +112,12 @@ class Task(object):
         if not self.isComplete() and self.pid is not None:
             if self.pid.poll() is not None:
                 if self.pid.poll() == 0:
-                    print "COMPLETED TASK: " + self.getName()
-                    self.status = Status.FINISHED
+                    print >> sys.stderr, "COMPLETED TASK: " + self.getName()
+                    self.setStatus(Status.FINISHED)
                     self.result = Result.SUCCESS
                 else:
-                    print "COMPLETED (FAILED) TASK: " + self.getName() + " " + str(self.pid.poll())
-                    self.status = Status.FINISHED
+                    print >> sys.stderr, "COMPLETED (FAILED) TASK: " + self.getName() + " " + str(self.pid.poll())
+                    self.setStatus(Status.FINISHED)
                     self.result = Result.FAILURE
                 self.setCompleted()
         if self.status == Status.FINISHED and self.result == Result.NA:
@@ -126,6 +127,8 @@ class Task(object):
     def setStatus(self, givenStatus):
         if (givenStatus in Status):
             self.status = givenStatus
+            if self.fifo is not None:
+                print >> self.fifo, "Task " + self.getName() + " status is now " + givenStatus
         else: 
             logging.error("Setting task status to unknown status: " + givenStatus)
 
@@ -171,8 +174,8 @@ class Task(object):
 class LocalTask(Task):
     """ Tasks run on local workstation"""
 
-    def __init__(self, jsondata, taskList):
-        super(LocalTask, self).__init__(jsondata, taskList)
+    def __init__(self, jsondata, taskList, fifo):
+        super(LocalTask, self).__init__(jsondata, taskList, fifo)
         self.taskType = Type.LOCAL
 
     def run(self):
