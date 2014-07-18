@@ -8,11 +8,12 @@ import sys
 class TaskManager(object):
     """ Parse the json dag passed in via cmdline args """
 
-    def __init__(self, taskList):
+    def __init__(self, taskList, governor=99):
         self.taskList = taskList
         self.completedTasks = []
         self.waitingTasks = []
         self.queuedTasks = []
+        self.governor = governor
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -40,7 +41,7 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
 
-    def runQueue(self, governor=99):
+    def runQueue(self):
 
         """ attempts to spawn subprocesses in order to 
             launch all tasks in queuedTasks
@@ -48,7 +49,8 @@ class TaskManager(object):
             are finished...
         """
         #import pdb; pdb.set_trace()
-        while (len(self.waitingTasks) > 0) or (len(self.queuedTasks) > 0):
+        #while (len(self.waitingTasks) > 0) or (len(self.queuedTasks) > 0):
+        if True:
 
             # loop thru waiting tasks
             for task in self.waitingTasks[:]:
@@ -63,16 +65,16 @@ class TaskManager(object):
             # loop thru queued tasks
             for task in self.queuedTasks[:]:
                 if task.getStatus() == tasks.Status.QUEUED:
-                    if governor > 0:
-                        governor -= 1
-                        task.run()
+                    if self.governor > 0:
+                        self.governor -= 1
+                        task.run(self)
                 elif task.getStatus() == tasks.Status.FINISHED:
-                    governor += 1
+                    self.governor += 1
                     self.completedTasks.append(task)
                     self.queuedTasks.remove(task)
 
             #self.status()
-            time.sleep(0.2)
+            #time.sleep(0.2)
 
 
     def status(self):

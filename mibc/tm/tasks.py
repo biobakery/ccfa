@@ -2,6 +2,7 @@
 import os, sys
 import logging
 import subprocess, tempfile
+import tornado
 
 def nextNum():
     if 'counter' in locals():
@@ -49,8 +50,10 @@ class Task(object):
         self.num = nextNum()
         self.taskType = Type.EC2
         self.result = Result.NA
+        self.return_code = None
         self.pid = None
         self.parents = []
+        self.tm = None
         # before any tasks are run, find out if this task already ran
         if self.doAllProductsExist():
             self.setCompleted()
@@ -66,9 +69,16 @@ class Task(object):
     def isComplete(self):
         return self.completed
 
-    def run(self):
+    def setReturnCode(self, code):
+        self.return_code = code
+
+    def getReturnCode(self):
+        return self.return_code
+
+    def run(self, callback):
         #print "in parent Task class setting status to RUNNING"
         self.setStatus(Status.RUNNING)
+        self.tm = callback
 
     def canRun(self):
         for parentId in self.getParentIds():
@@ -109,17 +119,16 @@ class Task(object):
         return idList
 
     def getStatus(self):
-        if not self.isComplete() and self.pid is not None:
-            if self.pid.poll() is not None:
-                if self.pid.poll() == 0:
-                    print >> sys.stderr, "COMPLETED TASK: " + self.getName()
-                    self.setStatus(Status.FINISHED)
-                    self.result = Result.SUCCESS
-                else:
-                    print >> sys.stderr, "COMPLETED (FAILED) TASK: " + self.getName() + " " + str(self.pid.poll())
-                    self.setStatus(Status.FINISHED)
-                    self.result = Result.FAILURE
-                self.setCompleted()
+        if not self.isComplete() and self.return_code is not None:
+            if self.return_code == 0:
+                print >> sys.stderr, "COMPLETED TASK: " + self.getName()
+                self.setStatus(Status.FINISHED)
+                self.result = Result.SUCCESS
+            else:
+                print >> sys.stderr, "COMPLETED (FAILED) TASK: " + self.getName() + " " + str(self.getReturnCode())
+                self.setStatus(Status.FINISHED)
+                self.result = Result.FAILURE
+            self.setCompleted()
         if self.status == Status.FINISHED and self.result == Result.NA:
             print "Warning: task " + self.getName() + " status is " + self.status + " but result is " + self.result +" and completed is " + str(self.isComplete())
         return self.status
@@ -168,6 +177,11 @@ class Task(object):
     def setDirectory(self, givenDir):
         self.directory = givenDir
 
+    def callback(self, exit_code):
+        #print "callback task: " + self.getSimpleName() + " " + str(exit_code)
+        self.setReturnCode(exit_code)
+        self.tm.runQueue()
+
     def __str__(self):
         return "Task: " + self.json_node['name']
 
@@ -178,8 +192,8 @@ class LocalTask(Task):
         super(LocalTask, self).__init__(jsondata, taskList, fifo)
         self.taskType = Type.LOCAL
 
-    def run(self):
-        super(LocalTask, self).run()
+    def run(self, callback):
+        super(LocalTask, self).run(callback)
         # create subprocess script
         script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
         sub = """#!/bin/sh
@@ -194,7 +208,9 @@ class LocalTask(Task):
         scriptpath = os.path.abspath(script.name)
         #print "scriptname: " + scriptpath
         # spawn subprocess script & store process id/obj
-        self.pid = subprocess.Popen([scriptpath])
+        # self.pid = subprocess.Popen([scriptpath])
+        self.pid = tornado.process.Subprocess([scriptpath])
+        self.pid.set_exit_callback(self.callback)
 
     def __str__(self):
         str = """Task: {name}

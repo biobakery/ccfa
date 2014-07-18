@@ -5,6 +5,11 @@ import tm as TM
 import signal
 import tempfile
 from pprint import pprint
+import tornado.httpserver
+import tornado.websocket
+import tornado.ioloop
+import tornado.web
+
 
 HELP="""%prog [options] [-i <json encoded inputfile>] [-l location] [-g governor]
 
@@ -41,7 +46,6 @@ opts_list = [
 ]
 
 locations = ('local', 'slurm', 'lsf')
-fifo = None
 global opts, p, data
 
 def fileHandling():
@@ -81,6 +85,7 @@ def fileHandling():
     symlink = symlinkdir + "/" + product
     #print "symlink: " + symlink
     if not os.path.exists(symlink):
+        print "symlink: " + hashdirectory + "  " + symlink
         os.symlink(hashdirectory, symlink)
 
     p.setTaskDir(rundirectory)
@@ -89,20 +94,6 @@ def fileHandling():
         graphFile.write("loadData(\n")
         graphFile.write(graph)
         graphFile.write("\n);")
-
-def namedPipe():
-    global fifo, pipename, tmpdir
-    # create the named pipe
-    tmpdir = tempfile.mkdtemp()
-    pipename = os.path.join(tmpdir, 'fifo')
-    print "named pipe: " + pipename
-    try:
-        os.mkfifo(pipename)
-    except OSError, e:
-        print "Failed to create FIFO: %s" % e
-    else:
-        print "setting fifo!"
-        fifo = open(pipename, 'w')
 
 def optionHandling():
     global opts, data
@@ -153,10 +144,20 @@ def optionHandling():
         data = json.loads(jsondata);
         jsonfile.close()
 
+class WSHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        print 'new connection'
+        self.write_message("Hello World")
+
+    def on_message(self, message):
+        print 'message received %s' % message
+
+    def on_close(self):
+        print 'connection closed'
+
 
 def main():
-    global opts, p, fifo, argParser
-    fifo = None
+    global opts, p, argParser
 
     def sigtermSetup():
         signal.signal(signal.SIGTERM, sigtermHandler)
@@ -165,13 +166,6 @@ def main():
     def sigtermHandler(signum, frame):
         print "caught signal " + str(signum)
         print "cleaning up..."
-
-        if fifo is not None:
-            fifo.close()
-            os.remove(pipename)
-            os.rmdir(tmpdir)
-        else:
-            print "fifo was null"
         sys.exit(0)
 
     argParser = optparse.OptionParser(option_list=opts_list,
@@ -181,15 +175,25 @@ def main():
 
     # signals
     sigtermSetup()
-    #namedPipe()
 
     p = parser.Parser(data, opts.location.upper(), sys.stdout)
 
     fileHandling()
 
-    tm = TM.TaskManager(p.getTasks())
+    tm = TM.TaskManager(p.getTasks(), opts.governor)
     tm.setupQueue()
-    tm.runQueue(opts.governor)
+    tm.runQueue()
+    routes = (
+        ( r'/', WSHandler),
+    )
+
+    app_settings = dict( static_path=os.path.join(os.path.dirname(__file__), 'static'),
+                        template_path=os.path.join(os.path.dirname(__file__), 'templates'),
+                                debug='debug')
+    app = tornado.web.Application( routes, **app_settings )
+    app.listen(8888)
+    ioloop = tornado.ioloop.IOLoop.instance()
+    ioloop.start()
 
 
 if __name__ == '__main__':
