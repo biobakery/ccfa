@@ -8,7 +8,8 @@ from pprint import pprint
 import tornado.httpserver
 import tornado.websocket
 import tornado.ioloop
-import tornado.web
+import tornado.web 
+from tornado.web import RequestHandler
 
 
 HELP="""%prog [options] [-i <json encoded inputfile>] [-l location] [-g governor]
@@ -52,6 +53,8 @@ def fileHandling():
    
     '''create directory structure to store metadata from tasks'''
 
+    global hashdirectory, rundirectory
+
     hash, product = p.getHashTuple()
     #print "hash: " + hash + " product: " + product
 
@@ -91,9 +94,7 @@ def fileHandling():
     p.setTaskDir(rundirectory)
     graph = p.getJsonGraph()
     with open(rundirectory + "/graph.json", 'w') as graphFile:
-        graphFile.write("loadData(\n")
         graphFile.write(graph)
-        graphFile.write("\n);")
 
 def optionHandling():
     global opts, data
@@ -136,7 +137,7 @@ def optionHandling():
     if input is "-":
         #jsonString = iter(stdin.readline, '')
         jsonString = sys.stdin.read()
-        print "jsonString: " + jsonString
+        #print "jsonString: " + jsonString
         data = json.loads(jsonString);
     else:
         jsonfile = open(opts.dagfile)
@@ -145,16 +146,35 @@ def optionHandling():
         jsonfile.close()
 
 class WSHandler(tornado.websocket.WebSocketHandler):
+    @tornado.web.asynchronous
+
     def open(self):
-        print 'new connection'
-        self.write_message("Hello World")
+        print 'new websocket connection'
+        #self.write_message("Hello Some World")
 
     def on_message(self, message):
-        print 'message received %s' % message
+        print "on_message received " + message
+        #import pdb; pdb.set_trace()
+        if message == "dag":
+            print "opening file: " + rundirectory + "/graph.json"
+            with open(rundirectory + "/graph.json", 'r') as f:
+                dag = f.read()
+            self.write_message(dag)
+        #print 'message received %s' % message
 
     def on_close(self):
         print 'connection closed'
 
+class WebHandler(RequestHandler):
+    def get(self):
+        #import pdb;pdb.set_trace()
+        #self.write("Hello World")
+        self.render(os.path.join(opts.directory, "index.html"))
+        #with open(hashdirectory + "/index.htmln", 'r') as f:
+        #    json_data = f.read()
+        #self.write(json_data)
+
+#class MyStaticHandler(tornado.web.StaticFileHandler):
 
 def main():
     global opts, p, argParser
@@ -166,6 +186,7 @@ def main():
     def sigtermHandler(signum, frame):
         print "caught signal " + str(signum)
         print "cleaning up..."
+        print "shutting down webserver..."
         sys.exit(0)
 
     argParser = optparse.OptionParser(option_list=opts_list,
@@ -183,15 +204,23 @@ def main():
     tm = TM.TaskManager(p.getTasks(), opts.governor)
     tm.setupQueue()
     tm.runQueue()
+
     routes = (
-        ( r'/', WSHandler),
+        ( r'/', WebHandler),
+        ( r'/websocket/', WSHandler),
+        ( r'/(.*)', tornado.web.StaticFileHandler, 
+                           {"path": opts.directory},
+        )
     )
 
-    app_settings = dict( static_path=os.path.join(os.path.dirname(__file__), 'static'),
-                        template_path=os.path.join(os.path.dirname(__file__), 'templates'),
-                                debug='debug')
+    app_settings = dict( 
+        static_path=opts.directory,
+        debug=True
+        )
+
     app = tornado.web.Application( routes, **app_settings )
     app.listen(8888)
+    print "webserver listening on localhost:8888..."
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
 
