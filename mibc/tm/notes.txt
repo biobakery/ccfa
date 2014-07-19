@@ -29,6 +29,16 @@ ex:
 /usr/local/anadama_flows/16S_kbayer_1428_1/run3/graph.html
 /usr/local/anadama_flows/16S_kbayer_1428_1/run3/js/...
 
+Current implementation is this:
+
+current working directory is the default:
+./anadama_flows/<hash>/run#
+
+where <hash> is the first 5 characters of the md5 hash of the full
+path to the first product in the list of task contained within the dag.
+This hash should be unique and reproducable if the same data is run
+multiple times.
+ 
 Tornado changes:
 
 In order to use tornado effectively, we need to modify the
@@ -45,4 +55,20 @@ periodically?
     task = tornado.ioloop.PeriodicCallback(
             fx(x),
             15 * 1000)
+(not currently needed - we wake up when a task completes
+or fails)
 
+websocket message passing:
+1. graph (of dag) passed from server to client
+2. individual task updates from server to client
+
+client gets all updates (should strip out ones it doesn't
+care about)
+
+format?
+assuming maps can be passed across a websocket:
+1. map[graph] = { links: ... nodes: ... name: ... }
+2. map[taskflow] = a38cd
+   map[taskrun] = run2
+   map[taskname] = ...
+   map[taskstate] = [ WAITING|QUEUED|RUNNING|SUCCESSFUL COMPLETION|FAILED COMPLETION ]
