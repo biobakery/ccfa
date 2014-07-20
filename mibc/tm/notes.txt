@@ -11,11 +11,11 @@ Each task contains input file(s), output file(s), and parent(s)
 
 There should be a single json full DAG produced for each flow.
 This DAG shouldn't change between runs.  Tasks that have (potentially)
-completed should still be listled in the DAG.  The TM should
+completed should still be listed in the DAG.  The TM should
 identify them as complete and update the GUI to reflect all
 changes.
 
-Eash task should have a unique id associated with it (hex number?)
+Each task should have a unique id associated with it (hex number?)
 
 Each flow should be identified by a unique name:
   <Datatype> + <Date?> and or <unique ID>
@@ -36,7 +36,7 @@ current working directory is the default:
 
 where <hash> is the first 5 characters of the md5 hash of the full
 path to the first product in the list of task contained within the dag.
-This hash should be unique and reproducable if the same data is run
+This hash should be unique and reproducible if the same data is run
 multiple times.
  
 Tornado changes:
@@ -72,3 +72,28 @@ assuming maps can be passed across a websocket:
    map[taskrun] = run2
    map[taskname] = ...
    map[taskstate] = [ WAITING|QUEUED|RUNNING|SUCCESSFUL COMPLETION|FAILED COMPLETION ]
+
+--
+
+In order to support multiple flows / runs happening simultaneously,
+we need to split up the taskmanager into two parts.  The first
+part would handle command line options and stdin json data
+(just as the task manager does now).  However, this piece would
+now only contain the cli.py file.  The parser.py, tm.py, and 
+tasks.py, and tornado functionality would be housed separately 
+in a daemon link tool.  So, the first piece would read in the
+data, and would test to see if the daemon exists, if so, it
+will communicate with it (via a websocket).  If the daemon 
+doesn't exist, it will bring it up (and then communicate with
+it).
+
+The second piece (the daemon) will listen on a particular port
+for connections sending json data for a particular flow and
+run.  After which, it will emit events do the same websocket
+for each change in event status.  The events will need to 
+embed task flow and run to identify which flow the task 
+status change corresponds to.  
+
+Finally, a third message (current status request) needs to be
+caught and processes by the server returning all of the task
+status for the given flow/run.
