@@ -46,8 +46,10 @@ opts_list = [
     #                     help="The FASTA output file."),
 ]
 
+wslisteners = []
+
 locations = ('local', 'slurm', 'lsf')
-global opts, p, data
+global opts, p, data, wslisteners
 
 def fileHandling():
    
@@ -150,20 +152,33 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     def open(self):
         print 'new websocket connection'
+        wslisteners.append(self)
         #self.write_message("Hello Some World")
 
     def on_message(self, message):
-        print "on_message received " + message
-        #import pdb; pdb.set_trace()
-        if message == "dag":
+        data = json.loads(message)
+        print "data: " + str(data)
+        if 'dag' in data:
             print "opening file: " + rundirectory + "/graph.json"
             with open(rundirectory + "/graph.json", 'r') as f:
                 dag = f.read()
-            self.write_message(dag)
+            jsondict = json.loads(dag)
+            d = {'dag': jsondict}
+            return_msg = json.dumps(d)
+            self.write_message(return_msg)
+        if 'update' in data:
+            print "update message received."
+
         #print 'message received %s' % message
 
     def on_close(self):
         print 'connection closed'
+        wslisteners.remove(self)
+
+    def taskUpdate(self, task):
+        d = {'taskUpdate': {'task': task.getName(), 'status': task.getStatus() }}
+        return_msg = json.dumps(d)
+        self.write_message(return_msg)
 
 class WebHandler(RequestHandler):
     def get(self):
@@ -186,6 +201,8 @@ def main():
     def sigtermHandler(signum, frame):
         print "caught signal " + str(signum)
         print "cleaning up..."
+        if tm is not None:
+            tm.cleanup()
         print "shutting down webserver..."
         sys.exit(0)
 
@@ -201,7 +218,7 @@ def main():
 
     fileHandling()
 
-    tm = TM.TaskManager(p.getTasks(), opts.governor)
+    tm = TM.TaskManager(p.getTasks(), wslisteners, opts.governor)
     tm.setupQueue()
     tm.runQueue()
 
