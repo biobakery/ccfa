@@ -60,7 +60,22 @@ or fails)
 
 websocket message passing:
 1. graph (of dag) passed from server to client
+message(dag):
+return(graph)
 2. individual task updates from server to client
+return flowhash,
+       run,
+       task,
+       status
+3. update of task status in from current run
+message(update)
+return flowhash
+       run
+       list of waiting tasks,
+       list of queued tasks,
+       list of running tasks,
+       list of finished tasks
+
 
 client gets all updates (should strip out ones it doesn't
 care about)

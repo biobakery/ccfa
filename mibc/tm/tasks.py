@@ -3,23 +3,26 @@ import os, sys
 import logging
 import subprocess, tempfile
 import tornado
+import signal
+from time import sleep
 
-def nextNum():
-    if 'counter' in locals():
-        counter += 1
-    else: 
-        # read counter from disk...
-        counterFile=os.getcwd() + "/counter.txt"
-        if os.path.isfile(counterFile):
-            with open(counterFile) as f:
-                counter = int(f.readline())
-                counter += 1
-        else:
-            counter = 1
-
-        with open(counterFile, 'w+') as f:
-            f.write(str(counter))
-    return counter 
+# will remove this code soon - don't think we'll need it
+#def nextNum():
+#    if 'counter' in locals():
+#        counter += 1
+#    else: 
+#        # read counter from disk...
+#        counterFile=os.getcwd() + "/counter.txt"
+#        if os.path.isfile(counterFile):
+#            with open(counterFile) as f:
+#                counter = int(f.readline())
+#                counter += 1
+#        else:
+#            counter = 1
+#
+#        with open(counterFile, 'w+') as f:
+#            f.write(str(counter))
+#    return counter 
 
 class Enum(set):
     """ duplicates basic java enum functionality """
@@ -47,7 +50,7 @@ class Task(object):
         self.json_node = jsondata['node']
         self.json_parents = jsondata['parents']
         self.setStatus(Status.WAITING)
-        self.num = nextNum()
+        #self.num = nextNum()
         self.taskType = Type.EC2
         self.result = Result.NA
         self.return_code = None
@@ -159,9 +162,6 @@ class Task(object):
     def getId(self):
         return self.json_node['id']
 
-    def cleanupPid(self):
-        os.unlink(script.name)
-
     def getCommand(self):
         return self.json_node['command']
 
@@ -178,9 +178,17 @@ class Task(object):
         self.directory = givenDir
 
     def callback(self, exit_code):
-        #print "callback task: " + self.getSimpleName() + " " + str(exit_code)
+        print "callback task: " + self.getSimpleName() + " " + str(exit_code)
         self.setReturnCode(exit_code)
         self.tm.runQueue()
+
+    def cleanup(self):
+        print "cleaning up " + self.getName()
+        os.kill(self.pid.pid, signal.SIGTERM)
+        for product in self.getProducts():
+            if os.path.exists(product):
+                print " removed " + product
+                os.unlink(product)
 
     def __str__(self):
         return "Task: " + self.json_node['name']
