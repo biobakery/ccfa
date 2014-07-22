@@ -8,12 +8,13 @@ import sys
 class TaskManager(object):
     """ Parse the json dag passed in via cmdline args """
 
-    def __init__(self, taskList, governor=99):
+    def __init__(self, taskList, wslisteners, governor=99):
         self.taskList = taskList
         self.completedTasks = []
         self.waitingTasks = []
         self.queuedTasks = []
         self.governor = governor
+        self.wslisteners = wslisteners
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -29,17 +30,21 @@ class TaskManager(object):
             if task.getName() == 'root':
                 self.completedTasks.append(task)
                 task.setCompleted()
+                self.notify(task)
             elif task.isComplete():
                 self.completedTasks.append(task)
+                self.notify(task)
 
         for key,task in self.taskList.iteritems():
             if task not in self.completedTasks:
                 if task.canRun():
                     task.setStatus(tasks.Status.QUEUED)
                     self.queuedTasks.append(task)
+                    self.notify(task)
                 else:
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
+                    self.notify(task)
 
     def runQueue(self):
 
@@ -58,9 +63,11 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.QUEUED)
                     self.queuedTasks.append(task)
                     self.waitingTasks.remove(task)
+                    self.notify(task)
                 if task.hasFailed():
                     self.completedTasks.append(task)
                     self.waitingTasks.remove(task)
+                    self.notify(task)
 
             # loop thru queued tasks
             for task in self.queuedTasks[:]:
@@ -68,14 +75,22 @@ class TaskManager(object):
                     if self.governor > 0:
                         self.governor -= 1
                         task.run(self)
+                        self.notify(task)
                 elif task.getStatus() == tasks.Status.FINISHED:
                     self.governor += 1
                     self.completedTasks.append(task)
                     self.queuedTasks.remove(task)
+                    self.notify(task)
 
-            #self.status()
-            #time.sleep(0.2)
+    def cleanup(self):
+        for task in self.queuedTasks[:]:
+            if task.getStatus() == tasks.Status.RUNNING:
+                task.cleanup()
 
+
+    def notify(self, task):
+        for listener in self.wslisteners:
+            listener.taskUpdate(task)
 
     def status(self):
         print >> sys.stderr, "=========================="
