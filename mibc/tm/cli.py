@@ -10,6 +10,7 @@ import tornado.websocket
 import tornado.ioloop
 import tornado.web 
 from tornado.web import RequestHandler
+import re
 
 
 HELP="""%prog [options] [-i <json encoded inputfile>] [-l location] [-g governor]
@@ -46,10 +47,10 @@ opts_list = [
     #                     help="The FASTA output file."),
 ]
 
-wslisteners = []
 
-locations = ('local', 'slurm', 'lsf')
 global opts, p, data, wslisteners
+locations = ('local', 'slurm', 'lsf')
+wslisteners = []
 
 def fileHandling():
    
@@ -68,7 +69,6 @@ def fileHandling():
     if not os.path.exists(hashdirectory):
         os.makedirs(hashdirectory)
         rundirectory = hashdirectory + run
-        os.makedirs(rundirectory)
     else:
         # get the last run and increment it by one
         runnum = 1
@@ -80,7 +80,8 @@ def fileHandling():
         runnum += 1;
         #print "runnum: " + str(runnum)
         rundirectory = hashdirectory + "/run" + str(runnum)
-        os.makedirs(rundirectory)
+
+    os.makedirs(rundirectory)
 
     # create link to directory if it doesn't exist
     symlinkdir = opts.directory + "/by_task_name"
@@ -93,7 +94,6 @@ def fileHandling():
         print "symlink: " + hashdirectory + "  " + symlink
         os.symlink(hashdirectory, symlink)
 
-    p.setTaskDir(rundirectory)
     graph = p.getJsonGraph()
     with open(rundirectory + "/graph.json", 'w') as graphFile:
         graphFile.write(graph)
@@ -187,12 +187,50 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
 class WebHandler(RequestHandler):
     def get(self):
-        #import pdb;pdb.set_trace()
-        #self.write("Hello World")
+        print "new web connection"
         self.render(os.path.join(opts.directory, "index.html"))
         #with open(hashdirectory + "/index.htmln", 'r') as f:
         #    json_data = f.read()
         #self.write(json_data)
+
+class TaskHandler(RequestHandler):
+    def get(self, more):
+        print "new task connection"
+        #import pdb;pdb.set_trace()
+        targetTask = self.get_argument("task", None, True)
+        for k, task in tm.getTasks().iteritems():
+            if task.getName() == targetTask:
+                if os.path.exists(task.getFilename() + ".log"):
+                    self.render(task.getFilename() + ".log")
+                #elif getLastAvailableTaskRun(task) is not None:
+                #    self.write('<html><head><meta http-equiv="refresh" content="3,url={url}"/></head>'
+                #        .format(url=getLastAvailableTaskRun(task)))
+                #    self.write('<body> Redirecting to the last avaiable log for this task... </body></html>')
+                else:
+                    self.write('''<html><body>task has no output log for the current run.  <P>Either it hasn't
+                            run yet, or it was successfully executed during a previous run.</body></html>''')
+                return
+        self.write("Error: task {task} doesn't exist".format(task=targetTask))
+
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+    return [ atoi(c) for c in re.split('(\d+)', text) ]
+
+def getLastAvailableTaskRun(task):
+    ''' search all available runs for the given task and return the latest
+        logfile available'''
+    filename = os.path.basename(task.getFilename()) + ".log"
+    runs = [ runs for runs in os.walk(hashdirectory).next()[1] ]
+    runs.sort(key=natural_keys, reverse=True)
+    for run in runs:
+        tryFilename = hashdirectory + "/" + run + "/" + filename
+        print "tryFilename: " + tryFilename
+        if os.path.exists(tryFilename):
+            print "success: " + tryFilename
+            return tryFilename
+    return None
 
 #class MyStaticHandler(tornado.web.StaticFileHandler):
 
@@ -222,17 +260,24 @@ def main():
     p = parser.Parser(data, opts.location.upper(), sys.stdout)
 
     fileHandling()
-
+    p.setTaskOutputs(rundirectory)
+    
     tm = TM.TaskManager(p.getTasks(), wslisteners, opts.governor)
     tm.setupQueue()
     tm.runQueue()
 
+    print "opts.directory: " + opts.directory
+
     routes = (
-        ( r'/', WebHandler),
+        ( r'/',           WebHandler),
         ( r'/websocket/', WSHandler),
-        ( r'/(.*)', tornado.web.StaticFileHandler, 
-                           {"path": opts.directory},
-        )
+        ( r'/task(.*)',   TaskHandler), 
+        ( r'/(scripts.*)',       tornado.web.StaticFileHandler, 
+                           {"path": opts.directory}
+        ),
+        ( r'/(styles.*)',       tornado.web.StaticFileHandler, 
+                           {"path": opts.directory}
+        ),
     )
 
     app_settings = dict( 
