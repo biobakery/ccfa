@@ -166,8 +166,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             d = {'dag': jsondict}
             return_msg = json.dumps(d)
             self.write_message(return_msg)
-        if 'update' in data:
-            print "update message received."
+        if 'status' in data:
+            print "status message received."
+            for k, task in p.getTasks().iteritems():
+                self.taskUpdate(task)
 
         #print 'message received %s' % message
 
@@ -176,7 +178,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         wslisteners.remove(self)
 
     def taskUpdate(self, task):
-        d = {'taskUpdate': {'task': task.getName(), 'status': task.getStatus() }}
+        if task.getStatus() == tasks.Status.FINISHED:
+            d = {'taskUpdate': {'task': task.getName(), 'status': task.getResult()}}
+        else:
+            d = {'taskUpdate': {'task': task.getName(), 'status': task.getStatus() }}
         return_msg = json.dumps(d)
         self.write_message(return_msg)
 
@@ -192,7 +197,7 @@ class WebHandler(RequestHandler):
 #class MyStaticHandler(tornado.web.StaticFileHandler):
 
 def main():
-    global opts, p, argParser
+    global opts, p, argParser, tm
 
     def sigtermSetup():
         signal.signal(signal.SIGTERM, sigtermHandler)
