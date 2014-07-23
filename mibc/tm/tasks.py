@@ -124,11 +124,11 @@ class Task(object):
     def getStatus(self):
         if not self.isComplete() and self.return_code is not None:
             if self.return_code == 0:
-                print >> sys.stderr, "COMPLETED TASK: " + self.getName()
+                print >> sys.stderr, "FINISHED TASK: " + self.getName()
                 self.setStatus(Status.FINISHED)
                 self.result = Result.SUCCESS
             else:
-                print >> sys.stderr, "COMPLETED (FAILED) TASK: " + self.getName() + " " + str(self.getReturnCode())
+                print >> sys.stderr, "FINISHED (FAILED) TASK: " + self.getName() + " " + str(self.getReturnCode())
                 self.setStatus(Status.FINISHED)
                 self.result = Result.FAILURE
             self.setCompleted()
