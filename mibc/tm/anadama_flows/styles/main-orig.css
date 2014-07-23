@@ -34,11 +34,22 @@ body {
     fill: none;
 }
 
+#dag .node:hover rect {
+    stroke: #828b9e;
+    fill:   #eaeaea;
+}
+
 #dag .edge rect {
     fill: #fff;
 }
 
 #dag .edge path {
+    fill: none;
+    stroke: #333;
+    stroke-width: 1.5px;
+}
+
+#dag .edgePath path {
     fill: none;
     stroke: #333;
     stroke-width: 1.5px;
