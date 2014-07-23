@@ -32,11 +32,20 @@
                 svg.select('g')
                     .attr('transform', 'translate(' + ev.translate + ') scale(' + ev.scale + ')');
             }));
+
+            // Click
+            var d3nodes = d3.selectAll("g.node.enter");
+            d3nodes.on("click", DAG.click)
+        },
+
+        click: function(d) {
+            console.log(d);
+            window.open("http://localhost:8888/task?task=" + d);
         },
 
         getFill: function(status) {
           if (status == "WAITING") {
-            return "#DDD";
+            return "#ADA";
           }
           else if (status == "QUEUED") {
             return "#55F";
@@ -49,6 +58,9 @@
           }
           else if (status == "SUCCESS") {
             return "#585";
+          }
+          else if (status == "RUN_PREVIOUSLY") {
+            return "#ADA";
           }
           else {
             return "#000";
@@ -71,6 +83,7 @@
           selection.each(function(d, i) {
             if (d == task) {
               d3.select(this).style("fill", DAG.getFill(status));
+              d3.select(this).style("stroke", DAG.getFill(status));
             }
             //console.log("d:" + d);
             //console.log("i: " + i);
@@ -85,7 +98,7 @@
  * sets up event listener callbacks for email text and project select boxes
  */
 $(document).ready(function() {
-  alert( "JQuery welcome" );
+  console.log( "JQuery welcome" );
   var ws = new WebSocket("ws://localhost:8888/websocket/");
   ws.onopen = function() {
       var obj = {'dag': 'dag'};
