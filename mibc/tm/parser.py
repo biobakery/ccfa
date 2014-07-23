@@ -8,6 +8,25 @@ import hashlib
 import datetime
 
 
+def nextNum(localDir):
+    #if 'counter' in locals():
+    #    counter += 1
+    #else:
+    if True:
+        # read counter from disk...
+        counterFile=os.path.join(localDir + "/counter.txt")
+        if os.path.isfile(counterFile):
+            with open(counterFile) as f:
+                counter = int(f.readline())
+                counter += 1
+        else:
+            counter = 1
+
+        with open(counterFile, 'w+') as f:
+            f.write(str(counter))
+    return counter
+
+
 class Parser(object):
     """ Parse the json dag passed in via cmdline args """
 
@@ -51,9 +70,9 @@ class Parser(object):
                 name = task.getSimpleName() + "." + str(datetime.date.today())
                 return (str(md5.hexdigest())[:5], name)
 
-    def setTaskDir(self, directory):
-        for k, task in self.getTasks().iteritems():
-            task.setDirectory(directory)
+    #def setTaskDir(self, directory):
+    #    for k, task in self.getTasks().iteritems():
+    #        task.setDirectory(directory)
 
     def getJsonGraph(self):
         graph = {}
@@ -79,3 +98,10 @@ class Parser(object):
         #print "json : " + json_encoded
 
         return json_encoded
+
+    def setTaskOutputs(self, rundirectory):
+        print "RUNDIRECTORY: " + rundirectory
+        for k, task in self.getTasks().iteritems():
+            task.setTaskNum(nextNum(rundirectory))
+            task.setFilename(rundirectory)
+
