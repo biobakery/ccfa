@@ -6,24 +6,6 @@ import tornado
 import signal
 from time import sleep
 
-# will remove this code soon - don't think we'll need it
-#def nextNum():
-#    if 'counter' in locals():
-#        counter += 1
-#    else: 
-#        # read counter from disk...
-#        counterFile=os.getcwd() + "/counter.txt"
-#        if os.path.isfile(counterFile):
-#            with open(counterFile) as f:
-#                counter = int(f.readline())
-#                counter += 1
-#        else:
-#            counter = 1
-#
-#        with open(counterFile, 'w+') as f:
-#            f.write(str(counter))
-#    return counter 
-
 class Enum(set):
     """ duplicates basic java enum functionality """
     def __getattr__(self, name):
@@ -37,7 +19,7 @@ class Enum(set):
 
 Status = Enum(['WAITING', 'QUEUED', 'RUNNING', 'FINISHED'])
 Type = Enum(['LOCAL', 'SLURM', 'LSF', 'EC2'])
-Result = Enum(['NA', 'SUCCESS', 'FAILURE'])
+Result = Enum(['NA', 'SUCCESS', 'RUN_PREVIOUSLY', 'FAILURE'])
 
 class Task(object):
     """ Parent class for all tasks """
@@ -50,7 +32,6 @@ class Task(object):
         self.json_node = jsondata['node']
         self.json_parents = jsondata['parents']
         self.setStatus(Status.WAITING)
-        #self.num = nextNum()
         self.taskType = Type.EC2
         self.result = Result.NA
         self.return_code = None
@@ -61,11 +42,21 @@ class Task(object):
         if self.doAllProductsExist():
             self.setCompleted()
             self.setStatus(Status.FINISHED)
-            self.result = Result.SUCCESS
+            self.result = Result.RUN_PREVIOUSLY
 
     def getTaskNum(self):
         return self.num
-   
+
+    def setTaskNum(self, num):
+        self.num = num
+  
+    def setFilename(self, path):
+        self.setOutputDirectory(path)
+        self.filename = os.path.join(path, str(self.getTaskNum()) + "-" + self.getSimpleName())
+
+    def getFilename(self):
+        return self.filename
+
     def setCompleted(self):
         self.completed = True
 
@@ -174,7 +165,7 @@ class Task(object):
     def getJson(self):
         return self.json_node
 
-    def setDirectory(self, givenDir):
+    def setOutputDirectory(self, givenDir):
         self.directory = givenDir
 
     def callback(self, exit_code):
@@ -203,17 +194,20 @@ class LocalTask(Task):
     def run(self, callback):
         super(LocalTask, self).run(callback)
         # create subprocess script
-        script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
+        #script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
+        script = self.getFilename()
         sub = """#!/bin/sh
                  #{scriptname}
                  source /aux/deploy2/bin/activate
-                 cat {name} > {name}.log
+                 echo "<PRE>" > {name}.log
+                 cat {name} >> {name}.log
                  {script} >> {name}.log 2>&1 
-              """.format(scriptname=self.getName(), script=self.getCommand(), name=script.name)
-        script.write(sub)
-        script.close()
-        os.chmod(script.name, 0755)
-        scriptpath = os.path.abspath(script.name)
+              """.format(scriptname=self.getName(), script=self.getCommand(), name=script)
+        with open(script, 'w+') as f:
+          f.write(sub)
+
+        os.chmod(script, 0755)
+        scriptpath = os.path.abspath(script)
         #print "scriptname: " + scriptpath
         # spawn subprocess script & store process id/obj
         # self.pid = subprocess.Popen([scriptpath])
