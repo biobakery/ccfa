@@ -104,7 +104,7 @@ it).
 
 The second piece (the daemon) will listen on a particular port
 for connections sending json data for a particular flow and
-run.  After which, it will emit events do the same websocket
+run.  After which, it will emit events to the same websocket
 for each change in event status.  The events will need to 
 embed task flow and run to identify which flow the task 
 status change corresponds to.  
@@ -112,3 +112,29 @@ status change corresponds to.
 Finally, a third message (current status request) needs to be
 caught and processes by the server returning all of the task
 status for the given flow/run.
+
+--
+
+List of websocket (json embedded) messages to the daemon:
+
+1. new run json:
+	mibc_build tasks json 
+	anadama flow directory
+	flow
+	run
+	tmp directory
+
+2. status 
+	status
+	flow
+	run
+
+List of websocket (json embedded) messages from the daemon:
+
+1. dag	
+	graph
+
+2. taskUpdate
+	flow
+	run
+	task
