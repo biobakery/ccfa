@@ -195,9 +195,13 @@ class WebHandler(RequestHandler):
 
 class TaskHandler(RequestHandler):
     def get(self, more):
-        print "new task connection"
-        #import pdb;pdb.set_trace()
+        print "new task connection: " + more
+
         targetTask = self.get_argument("task", None, True)
+        if targetTask == "root":
+            self.write("<html><body> Root task has no log file to display.</body></html>")
+            return
+
         for k, task in tm.getTasks().iteritems():
             if task.getName() == targetTask:
                 if os.path.exists(task.getFilename() + ".log"):

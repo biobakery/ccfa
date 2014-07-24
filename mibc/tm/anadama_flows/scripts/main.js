@@ -45,19 +45,19 @@
 
         getFill: function(status) {
           if (status == "WAITING") {
-            return "#ADA";
+            return "#333";
           }
           else if (status == "QUEUED") {
-            return "#55F";
+            return "#33F";
           }
           else if (status == "RUNNING") {
-            return "#5F5";
+            return "#3F3";
           }
           else if (status == "FAILURE") {
-            return "#F55";
+            return "#F33";
           }
           else if (status == "SUCCESS") {
-            return "#585";
+            return "#383";
           }
           else if (status == "RUN_PREVIOUSLY") {
             return "#ADA";
