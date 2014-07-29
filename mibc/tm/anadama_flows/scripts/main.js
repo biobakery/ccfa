@@ -43,55 +43,208 @@
             window.open("http://localhost:8888/task?task=" + d);
         },
 
-        getFill: function(status) {
-          if (status == "WAITING") {
-            return "#333";
-          }
-          else if (status == "QUEUED") {
-            return "#33F";
-          }
-          else if (status == "RUNNING") {
-            return "#3F3";
-          }
-          else if (status == "FAILURE") {
-            return "#F33";
-          }
-          else if (status == "SUCCESS") {
-            return "#383";
-          }
-          else if (status == "RUN_PREVIOUSLY") {
-            return "#ADA";
-          }
-          else {
-            return "#000";
-          }
-        },
-
         updateGraph: function(graph, task, status) {
-          //var svg = d3.select("#dag > svg");
           var selection = d3.selectAll("g.node.enter");
-          /*
-          var index;
-          for (index=0; index< selection.length; ++index) { 
-                  console.log(selection[index][0]);
-                  console.log(selection[index][1]);
-                  console.log("space");
-                  console.log(selection[index]);
-          }
-          */
-          //#var output = selection.map(function(d) { return d.__data__;});
           selection.each(function(d, i) {
             if (d == task) {
-              d3.select(this).style("fill", DAG.getFill(status));
-              d3.select(this).style("stroke", DAG.getFill(status));
+              d3.select(this).style("fill", getFill(status));
+              d3.select(this).style("stroke", getFill(status));
             }
-            //console.log("d:" + d);
-            //console.log("i: " + i);
           });
-          //d3.selectAll("g.node.enter").attr("stroke", "blue");
         }
     };
 })();
+
+(function () {
+    'use strict';
+  window.BAR = 
+  {
+    displayBar: function (data, svgElem) 
+    {
+      var taskTickInterval = setInterval(taskTick, 1000); 
+      var width = 420, barHeight = 20;
+      var x = d3.scale.linear()
+            .domain([0, d3.max(data.nodes)])
+            .range([0, width]);
+
+      x = 20;
+
+      //var y = d3.scale.linear().range([height, 0]);
+
+      //var chart = d3.select(".chart")
+      //              .attr("width", width)
+      //              .attr("height", height);
+
+      var chart = d3.select(".chart")
+              .attr("width", width)
+              .attr("height", barHeight * data.nodes.length);
+
+      var header = chart.selectAll("g")
+         .data(data.nodes)
+         .enter()
+         .append("g")
+         .attr("transform", function(d, i) { return "translate(0," + i * barHeight + ")"; });
+
+      header.append("rect")
+         .attr("width", 200)
+         .attr("height", barHeight - 1);
+
+      header.append("text")
+         //.attr("x", function(d) { return x(d) - 3; })
+         //.attr("y", barHeight / 2)
+         .attr("x", 10)
+         .attr("y", 10)
+         .attr("dy", ".35em")
+         .text(function(d) { return d.value.label; });
+
+      // Click
+      header.on("click", BAR.click)
+
+      var chart2 = d3.select(".chart2")
+              .attr("width", width)
+              .attr("height", barHeight * data.nodes.length);
+      
+      var bars = chart2.selectAll("g")
+          .data(data.nodes);
+
+      var existingBars = bars.enter()
+         .append("g")
+         .attr("transform", function(d, i) {return "translate(220, " + i * barHeight + ")"; });
+
+      existingBars.append("rect")
+         .attr("width", 1)
+         .attr("height", barHeight - 1);
+
+      //bar.append("text")
+         //.attr("x", function(d) { return x(d) - 3; })
+         //.attr("y", barHeight / 2)
+      //   .attr("x", 10)
+      //   .attr("y", 10)
+      //   .attr("dy", ".35em")
+      //   .text(function(d) { return d.value.label; });
+      return bars;
+    },
+
+    updateChart: function(bars, graph, taskid, status) {
+          var chart = d3.select(".chart");
+          var selection = chart.selectAll("g");
+          selection.each(function(d, i) {
+            if (d.id == taskid) {
+              d3.select(this).style("fill", getFill(status));
+              //d3.select(this).style("stroke", getFill(status));
+            }
+          });
+          if (status == "RUNNING") {
+            var now = new Date().getTime() / 1000;
+            console.info("task.id: " + taskid);
+            taskMap[taskid] = now;
+            console.info("taskMap set: ");
+
+            bars.select("text")
+                    .text(function(d) {
+                            return "0:0:1";
+            });
+            /*
+            var chart2 = d3.select(".chart2");
+            bar = chart2.selectAll("g");
+            bar.each(function(d, i) {
+              bar.append("text") 
+               .attr("x", 10)
+               .attr("y", 10)
+               .attr("dy", ".35em")
+               .text(function(d) { 
+                 if (!(isNaN(taskMap[d.id]))) {
+                   taskBar[d.id] = this;
+                   var str = convertDate(Math.round(Math.max(now - taskMap[d.id], 0)));
+                   return str;
+                 }
+                 return "";
+               });
+            });
+            */
+          }
+          if (status == "FAILURE" || status == "SUCCESS" ) {
+            delete taskMap[taskid];
+            delete taskBar[taskid];
+            console.info("taskMap delete: ");
+          }
+    },
+
+    click: function(d) {
+      //console.log(d);
+      window.open("http://localhost:8888/task?task=" + d.id);
+    }
+  }
+})();
+
+
+
+function getFill(status) {
+  if (status == "WAITING") {
+    return "#777";
+  }
+  else if (status == "QUEUED") {
+    return "#44F";
+  }
+  else if (status == "RUNNING") {
+    return "#4F4";
+  }
+  else if (status == "FAILURE") {
+    return "#F44";
+  }
+  else if (status == "SUCCESS") {
+    return "#484";
+  }
+  else if (status == "RUN_PREVIOUSLY") {
+    return "#BDB";
+  }
+  else {
+    return "#000";
+  }
+};
+
+function taskTick() {
+  now = new Date().getTime() / 1000;
+  //console.info(now)
+  //console.info("taskMap: " + taskMap);
+ 
+  console.info("select .chart2"); 
+  chart2 = d3.select(".chart2");
+  bar = chart2.selectAll("g");
+  /* for (var theBar in taskMap) {
+    console.info("select theBar"); 
+  d3.select(bar)
+           .text(function(d) { 
+           if (!(isNaN(taskMap[d.id]))) {
+             sec = Math.round(Math.max(now - taskMap[d.id], 0));
+             str = convertDate(sec);
+             return str;
+           }
+    });
+  };
+  */
+  //bar.each(function(d, i) {
+    bar.select("text")
+         .text(function(d) { 
+           if (!(isNaN(taskMap[d.id]))) {
+             sec = Math.round(Math.max(now - taskMap[d.id], 0));
+             str = convertDate(sec);
+             return str;
+           }
+           else {
+             return null;        
+           }
+         });
+  //});
+};
+
+function convertDate(totalSeconds) {
+  hours = Math.floor(totalSeconds / 3600);
+  totalSeconds %= 3600;
+  minutes = Math.floor(totalSeconds / 60);
+  totalSeconds % 60;
+  return hours + ":" + minutes + ":" + totalSeconds;
+}
 
 /*
  * function called automatically after page load complets;
@@ -99,6 +252,9 @@
  */
 $(document).ready(function() {
   console.log( "JQuery welcome" );
+  taskMap = new Object();
+  taskBar = new Object();
+  var bars = [];
   var ws = new WebSocket("ws://localhost:8888/websocket/");
   ws.onopen = function() {
       var obj = {'dag': 'dag'};
@@ -108,8 +264,9 @@ $(document).ready(function() {
   ws.onmessage = function (evt) {
       var json = JSON.parse(evt.data)
       if (json.hasOwnProperty('dag')) {
-        json_dag = json.dag;
+        var json_dag = json.dag;
         DAG.displayGraph(json.dag, jQuery('#dag-name'), jQuery('#dag > svg'));
+        bars = BAR.displayBar(json.dag, jQuery('#dag > svg'));
         console.log(json.dag);
         // immediately get the status of this dag
         var obj = {'status': ""};
@@ -121,10 +278,16 @@ $(document).ready(function() {
         if (update.hasOwnProperty('task')) 
         {
           //alert(update.task);
-          console.info(update.task + " " + update.status);
+          //console.info(update.task + " " + update.status);
           DAG.updateGraph(json_dag, update.task, update.status);
+          BAR.updateChart(bars, json_dag, update.task, update.status);
         }
       }
-  }
+  };
+  ws.oncolse = function (evt) {
+    console.info("Websocket closed. " + evt.reason)
+    clearInterval(taskTickInterval);
+  };
 });
+
 

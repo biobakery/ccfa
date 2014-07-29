@@ -54,3 +54,23 @@ body {
     stroke: #333;
     stroke-width: 1.5px;
 }
+
+.chart {
+        position: absolute;
+}
+
+.chart rect {
+        fill: #333;
+}
+
+.chart text:hover {
+    stroke: #FF0;
+    fill:   #FF0;
+}
+
+.bar text {
+        fill: black;
+        stroke: red;
+        font: 10px sans-serif;
+        text-anchor: end;
+}
