@@ -8,25 +8,6 @@ import hashlib
 import datetime
 
 
-def nextNum(localDir):
-    #if 'counter' in locals():
-    #    counter += 1
-    #else:
-    if True:
-        # read counter from disk...
-        counterFile=os.path.join(localDir + "/counter.txt")
-        if os.path.isfile(counterFile):
-            with open(counterFile) as f:
-                counter = int(f.readline())
-                counter += 1
-        else:
-            counter = 1
-
-        with open(counterFile, 'w+') as f:
-            f.write(str(counter))
-    return counter
-
-
 class Parser(object):
     """ Parse the json dag passed in via cmdline args """
 
@@ -37,6 +18,12 @@ class Parser(object):
         for node in nodes:
             if taskType == tasks.Type.LOCAL:
                 task = tasks.LocalTask(node, self.taskList, fifo)
+                if task.getId() in self.taskList.keys():
+                    print "Error: duplicate task Identifier: " + task.getId()
+                    sys.exit(-1)
+                self.taskList[task.getId()] = task;
+            elif taskType == tasks.Type.LSF:
+                task = tasks.LSFTask(node, self.taskList, fifo)
                 if task.getId() in self.taskList.keys():
                     print "Error: duplicate task Identifier: " + task.getId()
                     sys.exit(-1)
@@ -98,10 +85,3 @@ class Parser(object):
         #print "json : " + json_encoded
 
         return json_encoded
-
-    def setTaskOutputs(self, rundirectory):
-        print "RUNDIRECTORY: " + rundirectory
-        for k, task in self.getTasks().iteritems():
-            task.setTaskNum(nextNum(rundirectory))
-            task.setFilename(rundirectory)
-
