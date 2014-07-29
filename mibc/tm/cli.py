@@ -11,6 +11,7 @@ import tornado.ioloop
 import tornado.web 
 from tornado.web import RequestHandler
 import re
+import globals
 
 
 HELP="""%prog [options] [-i <json encoded inputfile>] [-l location] [-g governor]
@@ -239,7 +240,7 @@ def getLastAvailableTaskRun(task):
 #class MyStaticHandler(tornado.web.StaticFileHandler):
 
 def main():
-    global opts, p, argParser, tm
+    global opts, p, argParser, tm, config
 
     def sigtermSetup():
         signal.signal(signal.SIGTERM, sigtermHandler)
@@ -253,25 +254,36 @@ def main():
         print "shutting down webserver..."
         sys.exit(0)
 
+    # read in options
     argParser = optparse.OptionParser(option_list=opts_list,
                                    usage=HELP)
     (opts, args) = argParser.parse_args()
     optionHandling()
 
+    # load configuration parameters (if they exist)
+    print "loading globals"
+    globals.init(os.path.dirname(opts.directory))
+
+    # if os.path.exists(os.path.join(opts.directory, "/configuration_parameters.txt")):
+    #    with open("./configuration_parameters") as config_file:
+    #        config = json.load(config_file)
+
     # signals
     sigtermSetup()
 
+    # parse the dag from mibc_build
     p = parser.Parser(data, opts.location.upper(), sys.stdout)
 
+    # setup output directories
     fileHandling()
-    p.setTaskOutputs(rundirectory)
-    
+   
+    # create TaskManager and give it the tasks to run
     tm = TM.TaskManager(p.getTasks(), wslisteners, opts.governor)
+    tm.setTaskOutputs(rundirectory)
     tm.setupQueue()
     tm.runQueue()
 
-    print "opts.directory: " + opts.directory
-
+    # setup Tornado async webservice
     routes = (
         ( r'/',           WebHandler),
         ( r'/websocket/', WSHandler),
