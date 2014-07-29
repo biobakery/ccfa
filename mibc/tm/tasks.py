@@ -5,6 +5,7 @@ import subprocess, tempfile
 import tornado
 import signal
 from time import sleep
+import globals
 
 class Enum(set):
     """ duplicates basic java enum functionality """
@@ -49,6 +50,12 @@ class Task(object):
 
     def setTaskNum(self, num):
         self.num = num
+
+    def getTaskId(self):
+        return str(self.getTaskNum()) + "-" + self.getSimpleName()
+
+    def getTaskList(self):
+        return self.taskList
   
     def setFilename(self, path):
         self.setOutputDirectory(path)
@@ -197,20 +204,26 @@ class LocalTask(Task):
         #script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
         script = self.getFilename()
         sub = """#!/bin/sh
-                 #{scriptname}
-                 source /aux/deploy2/bin/activate
-                 echo "<PRE>" > {name}.log
-                 cat {name} >> {name}.log
-                 {script} >> {name}.log 2>&1 
-              """.format(scriptname=self.getName(), script=self.getCommand(), name=script)
+source /aux/deploy2/bin/activate
+echo "<PRE>" > {name}.log
+date >> {name}.log
+echo {scriptname} >> {name}.log
+echo "-- script --" >> {name}.log
+cat {name} >> {name}.log
+echo >> {name}.log
+echo "-- end script --" >> {name}.log
+echo "-- task cmd output --" >> {name}.log
+time -p -a -o {name}.log {script} >> {name}.log 2>&1
+cmd_exit=`echo $?`
+echo "-- end task cmd output --" >> {name}.log
+date >> {name}.log
+exit $cmd_exit
+            """.format(scriptname=self.getName(), script=self.getCommand(), name=script)
         with open(script, 'w+') as f:
           f.write(sub)
 
         os.chmod(script, 0755)
         scriptpath = os.path.abspath(script)
-        #print "scriptname: " + scriptpath
-        # spawn subprocess script & store process id/obj
-        # self.pid = subprocess.Popen([scriptpath])
         self.pid = tornado.process.Subprocess([scriptpath])
         self.pid.set_exit_callback(self.callback)
 
@@ -219,3 +232,94 @@ class LocalTask(Task):
                  Result: {result}
                  Status: {status}""".format(name=self.getName(), result = self.result, status=self.status)
         return str
+
+
+class LSFTask(Task):
+    """ Tasks run on LSF queue """
+
+    def __init__(self, jsondata, taskList, fifo):
+        super(LSFTask, self).__init__(jsondata, taskList, fifo)
+        self.taskType = Type.LSF
+
+    def run(self, callback):
+        super(LSFTask, self).run(callback)
+        # create subprocess script
+        cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
+        sub = """#!/bin/sh
+#BSUB {CLUSTER_QUEUE}
+eval export DK_ROOT="/broad/software/dotkit";
+. /broad/software/dotkit/ksh/.dk_init
+use LSF
+source /aux/deploy2/bin/activate
+date 
+{CLUSTER_JOB} {taskname} {picklescript}
+cmd_exit=`echo $?`
+exit $cmd_exit
+
+            """.format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
+                       CLUSTER_JOB=globals.config['CLUSTER_JOB'],
+                       picklescript=self.getCommand(), 
+                       taskname=self.getTaskId())
+        with open(cluster_script, 'w+') as f:
+          f.write(sub)
+        os.chmod(cluster_script, 0755)
+
+        monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
+        import pdb;pdb.set_trace()
+        sub = """#!/bin/sh
+# kickoff and monitor LSF cluster job
+jobid_str=`eval "{cluster_script}"`
+job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed 's/^<//' | sed 's/>$//'`
+
+echo "job_id: +${{job_id}}+"
+done="no"
+while [ "${{done}}" != "yes" ]; do
+
+  raw_output=`{CLUSTER_QUERY} ${{job_id}}`
+  echo "raw_output: ${{raw_output}}\n"
+  regex="${{job_id}}[\t ]"
+  output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
+  echo "output: ${{output}}\n"
+
+  case ${{output}} in
+
+    PEND)      ;;
+    RUN)       ;;
+    DONE)      STATUS="OK" && done="yes";;
+    COMPLETED) STATUS="OK" && done="yes";;
+    EXIT)      STATUS="FAILED" && done="yes";;
+    FAILED)    STATUS="FAILED" && done="yes";;
+    CANCELLED|CANCELLED+) STATUS="CANCEL" && done="yes";;
+    TIMEOUT)   export STATUS="TIMEOUT" && done="yes";;
+    NODE_FAIL) export STATUS="RETRY" && done="yes";;
+    *)         ;;
+
+  esac
+
+  sleep 60
+done
+if [ "$STATUS" != "OK" ]; then
+    exit(-1)
+else 
+    exit(0)
+fi
+
+        """.format(cluster_script=cluster_script,
+                   CLUSTER_JOBID_POS=globals.config["CLUSTER_JOBID_POS"],
+                   CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
+                   CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"])
+        with open(monitor_script, 'w+') as f:
+          f.write(sub)
+
+        os.chmod(monitor_script, 0755)
+        scriptpath = os.path.abspath(script)
+        import pdb; pdb.set_trace()
+        self.pid = tornado.process.Subprocess([scriptpath])
+        self.pid.set_exit_callback(self.callback)
+
+    def __str__(self):
+        str = """Task: {name}
+                 Result: {result}
+                 Status: {status}""".format(name=self.getName(), result = self.result, status=self.status)
+        return str
+
