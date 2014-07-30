@@ -209,7 +209,7 @@ class LocalTask(Task):
         #script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
         script = self.getFilename()
         sub = """#!/bin/sh
-source /aux/deploy2/bin/activate
+source {SOURCE_PATH}
 echo "<PRE>" > {name}.log
 date >> {name}.log
 echo {scriptname} >> {name}.log
@@ -218,12 +218,15 @@ cat {name} >> {name}.log
 echo >> {name}.log
 echo "-- end script --" >> {name}.log
 echo "-- task cmd output --" >> {name}.log
-time -p -a -o {name}.log {script} >> {name}.log 2>&1
+/usr/bin/env time -p -a -o {name}.log {script} >> {name}.log 2>&1
 cmd_exit=`echo $?`
 echo "-- end task cmd output --" >> {name}.log
 date >> {name}.log
 exit $cmd_exit
-            """.format(scriptname=self.getName(), script=self.getCommand(), name=script)
+"""     .format(scriptname=self.getName(), 
+                       script=self.getCommand(), 
+                       name=script,
+                       SOURCE_PATH=globals.config['SOURCE_PATH'])
         with open(script, 'w+') as f:
           f.write(sub)
 
@@ -250,41 +253,61 @@ class LSFTask(Task):
         super(LSFTask, self).run(callback)
         # create subprocess script
         cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
+        monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
         sub = """#!/bin/sh
 #BSUB {CLUSTER_QUEUE}
-eval export DK_ROOT="/broad/software/dotkit";
-. /broad/software/dotkit/ksh/.dk_init
-use LSF
-source /aux/deploy2/bin/activate
-date 
-{CLUSTER_JOB} {taskname} {picklescript}
-cmd_exit=`echo $?`
-exit $cmd_exit
+#BSUB -o {OUTPUT}
+#source /broad/software/scripts/useuse
+#reuse LSF
+#eval export DK_ROOT="/broad/software/dotkit";
+#. /broad/software/dotkit/ksh/.dk_init
+#use LSF > /dev/null 2>&1
+source {SOURCE_PATH}
+{picklescript}
 
 """     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
-                       CLUSTER_JOB=globals.config['CLUSTER_JOB'],
-                       picklescript=self.getCommand(), 
-                       taskname=self.getTaskId())
+                picklescript=self.getCommand(), 
+                SOURCE_PATH=globals.config['SOURCE_PATH'],
+                OUTPUT=monitor_script+".log")
+                 
         with open(cluster_script, 'w+') as f:
           f.write(sub)
         os.chmod(cluster_script, 0755)
 
-        monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
         #import pdb;pdb.set_trace()
         sub = """#!/bin/sh
 # kickoff and monitor LSF cluster job
-jobid_str=`eval "{cluster_script}"`
+
+# setup LSF environment
+eval export DK_ROOT="/broad/software/dotkit";
+. /broad/software/dotkit/ksh/.dk_init
+use LSF >> {log}
+
+which bsub >> {log}
+if [ $? != 0 ];then
+  echo "can't find use" >> {log}
+  unuse LSF >> {log}
+  use LSF >> {log}
+fi
+
+# launch job
+
+echo "eval {CLUSTER_JOB} {taskname} < {cluster_script}" >> {log}
+jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
+echo "jobid_str: +${{jobid_str}}+" >> {log}
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed 's/^<//' | sed 's/>$//'`
 
-echo "job_id: +${{job_id}}+"
+echo "job_id: +${{job_id}}+" >> {log}
+
+# monitor job
 done="no"
 while [ "${{done}}" != "yes" ]; do
 
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
-  echo "raw_output: ${{raw_output}}\n"
+  echo "raw_output: ${{raw_output}}" >> {log}
   regex="${{job_id}}[\t ]"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "output: ${{output}}\n"
+  echo "output: ${{output}}" >> {log}
 
   case ${{output}} in
 
@@ -304,15 +327,18 @@ while [ "${{done}}" != "yes" ]; do
   sleep 60
 done
 if [ "$STATUS" != "OK" ]; then
-    exit(-1)
+    exit -1
 else 
-    exit(0)
+    exit 0
 fi
 
 """     .format(cluster_script=cluster_script,
+                   CLUSTER_JOB=globals.config['CLUSTER_JOB'],
+                   taskname=self.getTaskId(),
                    CLUSTER_JOBID_POS=globals.config["CLUSTER_JOBID_POS"],
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
-                   CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"])
+                   CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
+                   log=monitor_script+".log")
         with open(monitor_script, 'w+') as f:
           f.write(sub)
 
