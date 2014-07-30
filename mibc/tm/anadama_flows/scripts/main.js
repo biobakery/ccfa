@@ -1,4 +1,5 @@
 /*global jQuery, d3, dagreD3, DAG */
+var ws;
 
 (function () {
     'use strict';
@@ -255,7 +256,7 @@ $(document).ready(function() {
   taskMap = new Object();
   taskBar = new Object();
   var bars = [];
-  var ws = new WebSocket("ws://localhost:8888/websocket/");
+  ws = new WebSocket("ws://localhost:8888/websocket/");
   ws.onopen = function() {
       var obj = {'dag': 'dag'};
       var json = JSON.stringify(obj);
@@ -290,4 +291,9 @@ $(document).ready(function() {
   };
 });
 
-
+function handleRadio(radio) {
+  console.info("radio: " + radio.value)
+  var obj = {'queue': radio.value};
+  var json = JSON.stringify(obj);
+  ws.send(json);
+}

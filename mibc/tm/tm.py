@@ -5,6 +5,8 @@ import tasks
 import time
 import sys
 
+QueueStatus = tasks.Enum(['RUNNING', 'PAUSED', 'STOPPED'])
+
 def nextNum(localDir):
     ''' Returns the next sequencial whole number.  Used for unique task ids. '''
     if True:
@@ -29,7 +31,9 @@ class TaskManager(object):
         self.waitingTasks = []
         self.queuedTasks = []
         self.governor = governor
+        self.saved_governor = governor
         self.wslisteners = wslisteners
+        self.queueStatus = QueueStatus.RUNNING
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -44,7 +48,7 @@ class TaskManager(object):
         for key,task in self.taskList.iteritems():
             if task.getName() == 'root':
                 self.completedTasks.append(task)
-                task.setCompleted()
+                task.setCompleted(True)
                 self.notify(task)
             elif task.isComplete():
                 self.completedTasks.append(task)
@@ -73,32 +77,42 @@ class TaskManager(object):
 
             updates_made = False
             # loop thru waiting tasks
-            for task in self.waitingTasks[:]:
-                if task.canRun():
-                    task.setStatus(tasks.Status.QUEUED)
-                    self.queuedTasks.append(task)
-                    self.waitingTasks.remove(task)
-                    self.notify(task)
-                    updates_made = True
-                if task.hasFailed():
-                    self.completedTasks.append(task)
-                    self.waitingTasks.remove(task)
-                    self.notify(task)
-                    updates_made = True
+            if self.queueStatus != QueueStatus.STOPPED:
+                for task in self.waitingTasks[:]:
+                    if task.canRun():
+                        task.setStatus(tasks.Status.QUEUED)
+                        self.queuedTasks.append(task)
+                        self.waitingTasks.remove(task)
+                        self.notify(task)
+                        updates_made = True
+                    if task.hasFailed():
+                        self.completedTasks.append(task)
+                        self.waitingTasks.remove(task)
+                        self.notify(task)
+                        updates_made = True
 
             # loop thru queued tasks
-            for task in self.queuedTasks[:]:
-                if task.getStatus() == tasks.Status.QUEUED:
-                    if self.governor > 0:
-                        self.governor -= 1
-                        task.run(self)
+            if self.queueStatus != QueueStatus.STOPPED:
+                for task in self.queuedTasks[:]:
+                    if task.getStatus() == tasks.Status.QUEUED:
+                        if self.governor > 0:
+                            self.governor -= 1
+                            task.run(self)
+                            self.notify(task)
+                    elif task.getStatus() == tasks.Status.FINISHED:
+                        self.governor += 1
+                        self.completedTasks.append(task)
+                        self.queuedTasks.remove(task)
                         self.notify(task)
-                elif task.getStatus() == tasks.Status.FINISHED:
-                    self.governor += 1
-                    self.completedTasks.append(task)
-                    self.queuedTasks.remove(task)
-                    self.notify(task)
-                    updates_made = True
+                        updates_made = True
+            elif self.queueStatus == QueueStatus.STOPPED:
+                for task in self.queuedTasks[:]:
+                    if task.getStatus() == tasks.Status.FINISHED:
+                        task.setReturnCode(None)
+                        task.setResult(tasks.Result.NA)
+                        task.setStatus(tasks.Status.QUEUED)
+                        task.setCompleted(False)
+                        self.notify(task)
 
             # check for unrunable waiting tasks
             #for task in self.waitingTasks[:]:
@@ -167,3 +181,27 @@ class TaskManager(object):
             task.setTaskNum(nextNum(rundirectory))
             task.setFilename(rundirectory)
 
+    def getStatus(self):
+        return self.status
+
+    def pauseQueue(self):
+        print "pauseQueue"
+        self.queueStatus = QueueStatus.PAUSED
+        self.governor = -99
+
+    def stopQueue(self):
+        print "stopQueue"
+        self.queueStatus = QueueStatus.STOPPED
+        self.governor = -99
+        for task in self.queuedTasks[:]:
+            if task.getStatus() == tasks.Status.RUNNING:
+                task.cleanup()
+
+    def startQueue(self):
+        print "startQueue"
+        self.queueStatus = QueueStatus.RUNNING
+        self.governor = self.saved_governor
+        self.runQueue()
+
+    def getQueueStatus(self):
+        return self.queueStatus

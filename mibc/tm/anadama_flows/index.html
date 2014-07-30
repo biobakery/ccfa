@@ -17,7 +17,9 @@
         <!--[if lt IE 10]>
 <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
 <![endif]-->
-
+        <Input type = radio Name = r1 Value = "RUNNING" onclick="handleRadio(this);">Run
+        <Input type = radio Name = r1 Value = "PAUSED" onclick="handleRadio(this);">Pause
+        <Input type = radio Name = r1 Value = "STOPPED" onclick="handleRadio(this);">Stop
         <p>DAG: <span id="dag-name"></span></p>
         <div id="dag">
             <svg height="80">
