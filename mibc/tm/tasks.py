@@ -41,7 +41,7 @@ class Task(object):
         self.tm = None
         # before any tasks are run, find out if this task already ran
         if self.doAllProductsExist():
-            self.setCompleted()
+            self.setCompleted(True)
             self.setStatus(Status.FINISHED)
             self.result = Result.RUN_PREVIOUSLY
 
@@ -64,8 +64,8 @@ class Task(object):
     def getFilename(self):
         return self.filename
 
-    def setCompleted(self):
-        self.completed = True
+    def setCompleted(self, flag):
+        self.completed = flag
 
     def isComplete(self):
         return self.completed
@@ -109,7 +109,7 @@ class Task(object):
             if self.taskList[parentId].hasFailed():
                 self.setStatus(Status.FINISHED)
                 self.setResult(Result.FAILURE)
-                self.setCompleted()
+                self.setCompleted(True)
                 return True
         return False
 
@@ -122,6 +122,7 @@ class Task(object):
     def getStatus(self):
         if not self.isComplete() and self.return_code is not None:
             if self.return_code == 0:
+                #import pdb;pdb.set_trace()
                 print >> sys.stderr, "FINISHED TASK: " + self.getName()
                 self.setStatus(Status.FINISHED)
                 self.result = Result.SUCCESS
@@ -129,7 +130,7 @@ class Task(object):
                 print >> sys.stderr, "FINISHED (FAILED) TASK: " + self.getName() + " " + str(self.getReturnCode())
                 self.setStatus(Status.FINISHED)
                 self.result = Result.FAILURE
-            self.setCompleted()
+            self.setCompleted(True)
         if self.status == Status.FINISHED and self.result == Result.NA:
             print "Warning: task " + self.getName() + " status is " + self.status + " but result is " + self.result +" and completed is " + str(self.isComplete())
         return self.status
@@ -176,17 +177,21 @@ class Task(object):
         self.directory = givenDir
 
     def callback(self, exit_code):
-        print "callback task: " + self.getSimpleName() + " " + str(exit_code)
+        print "callback task: " + self.getName() + " " + str(exit_code)
         self.setReturnCode(exit_code)
         self.tm.runQueue()
 
     def cleanup(self):
         print "cleaning up " + self.getName()
-        os.kill(self.pid.pid, signal.SIGTERM)
-        for product in self.getProducts():
-            if os.path.exists(product):
-                print " removed " + product
-                os.unlink(product)
+        #if self is not None and self.pid is not None and self.pid.pid is not None:
+        try:
+            os.kill({self.pid.pid}, signal.SIGTERM)
+            for product in self.getProducts():
+                if os.path.exists(product):
+                    os.unlink(product)
+                    print " removed " + product
+        except (AttributeError, TypeError):
+            print self.getName() + " job removed."
 
     def __str__(self):
         return "Task: " + self.json_node['name']
@@ -256,7 +261,7 @@ date
 cmd_exit=`echo $?`
 exit $cmd_exit
 
-            """.format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
+"""     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
                        CLUSTER_JOB=globals.config['CLUSTER_JOB'],
                        picklescript=self.getCommand(), 
                        taskname=self.getTaskId())
@@ -265,7 +270,7 @@ exit $cmd_exit
         os.chmod(cluster_script, 0755)
 
         monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         sub = """#!/bin/sh
 # kickoff and monitor LSF cluster job
 jobid_str=`eval "{cluster_script}"`
@@ -304,7 +309,7 @@ else
     exit(0)
 fi
 
-        """.format(cluster_script=cluster_script,
+"""     .format(cluster_script=cluster_script,
                    CLUSTER_JOBID_POS=globals.config["CLUSTER_JOBID_POS"],
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"])
@@ -312,8 +317,7 @@ fi
           f.write(sub)
 
         os.chmod(monitor_script, 0755)
-        scriptpath = os.path.abspath(script)
-        import pdb; pdb.set_trace()
+        scriptpath = os.path.abspath(monitor_script)
         self.pid = tornado.process.Subprocess([scriptpath])
         self.pid.set_exit_callback(self.callback)
 

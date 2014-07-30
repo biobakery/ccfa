@@ -171,8 +171,17 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             print "status message received."
             for k, task in p.getTasks().iteritems():
                 self.taskUpdate(task)
+        if 'queue' in data:
+            print "queue message received."
+            if data['queue'] == TM.QueueStatus.RUNNING:
+                tm.startQueue()
+            elif data['queue'] == TM.QueueStatus.PAUSED:
+                tm.pauseQueue()
+            elif data['queue'] == TM.QueueStatus.STOPPED:
+                tm.stopQueue()
+            else:
+                print "Error: " + data['queue'] + " not in TM.QueueStatus."
 
-        #print 'message received %s' % message
 
     def on_close(self):
         print 'connection closed'
