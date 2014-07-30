@@ -9,6 +9,8 @@ import operator
 import itertools
 from collections import namedtuple
 
+from anadama.util import deserialize_map_file
+
 class SparseMetadataException(TypeError):
     pass
 
@@ -38,7 +40,7 @@ class MappingFile(list):
         if not self._autopopulated:
             with open(self.path, 'r') as f:
                 del self[:]
-                self.extend(_deserialize(f))
+                self.extend(deserialize_map_file(f))
             self._autopopulated = True
 
 
@@ -70,36 +72,6 @@ def load(name, basepath=None):
     raise IOError("Unable to load mapping file from disk. "
                   "Name %s, basepath %s" %(name, basepath))
             
-    
-def _deserialize(file_pointer):
-    """Returns a list of namedtuples according to the contents of the
-    file_pointer
-    """
-    mangle = lambda field: re.sub(r'\s+', '_', field.strip().replace('#', ''))
-
-    header = [ mangle(s)
-               for s in file_pointer.readline().split('\t') ]
-
-    cls = namedtuple('Sample', header, rename=True)
-
-    def reader():
-        i = 1
-        for row in file_pointer.read().strip('\r\n').split('\n'):
-            i+=1
-            if row.startswith('#'):
-                continue
-            try:
-                yield cls._make([ r.strip() for r in row.split('\t') ])
-            except TypeError as e:
-                raise SparseMetadataException(
-                    "Unable to deserialize sample-specific metadata:"+\
-                    " The file %s has missing values at row %i" %(
-                        file_pointer.name, i)
-                )
-
-    return [ row for row in reader() ]
-
-
 def dump(keys, data, file_pointer):
     keys[0] = '#'+keys[0]
     print >> file_pointer, '\t'.join(keys)
