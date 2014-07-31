@@ -113,20 +113,30 @@ var ws;
          .attr("transform", function(d, i) {return "translate(220, " + i * barHeight + ")"; });
 
       existingBars.append("rect")
-         .attr("width", 1)
+         .attr("width", function(d) {
+           if (!(isNaN(taskMap[d.id]))) {
+              sec = Math.round(Math.max(now - taskMap[d.id], 0));
+              str = convertDate(sec);
+              return sec;
+           }
+           else {
+             return 1;
+           }
+         })
          .attr("height", barHeight - 1);
+       existingBars.append("text")
+               .attr("x", 10)
+               .attr("y", 10)
+               .attr("dy", ".35em");
 
-      //bar.append("text")
-         //.attr("x", function(d) { return x(d) - 3; })
-         //.attr("y", barHeight / 2)
-      //   .attr("x", 10)
-      //   .attr("y", 10)
-      //   .attr("dy", ".35em")
-      //   .text(function(d) { return d.value.label; });
-      return bars;
+       //existingBars.each(function(d, i) {
+       //        taskMap[d] == d;
+       //});
+
     },
 
-    updateChart: function(bars, graph, taskid, status) {
+    updateChart: function(graph, taskid, status) {
+            console.info("Status: " + status);
           var chart = d3.select(".chart");
           var selection = chart.selectAll("g");
           selection.each(function(d, i) {
@@ -137,36 +147,30 @@ var ws;
           });
           if (status == "RUNNING") {
             var now = new Date().getTime() / 1000;
-            console.info("task.id: " + taskid);
+            console.info("RUNNING task.id: " + taskid);
             taskMap[taskid] = now;
-            console.info("taskMap set: ");
-
-            bars.select("text")
-                    .text(function(d) {
-                            return "0:0:1";
-            });
             /*
             var chart2 = d3.select(".chart2");
-            bar = chart2.selectAll("g");
-            bar.each(function(d, i) {
-              bar.append("text") 
-               .attr("x", 10)
-               .attr("y", 10)
-               .attr("dy", ".35em")
+            var existingBars = chart2.selectAll("g");
+            existingBars.each(function(d, i) {
+               bar = d3.select(this);
+               bar
+               .select("text") 
                .text(function(d) { 
                  if (!(isNaN(taskMap[d.id]))) {
-                   taskBar[d.id] = this;
-                   var str = convertDate(Math.round(Math.max(now - taskMap[d.id], 0)));
+                   //taskMap[d.id] = this;
+                   d = Math.round(Math.max(now - taskMap[d.id], 0));
+                   var str = convertDate(d);
                    return str;
                  }
-                 return "";
+                 return "0";
                });
             });
             */
           }
-          if (status == "FAILURE" || status == "SUCCESS" ) {
+          if (status != "RUNNING") {
+            // store final number
             delete taskMap[taskid];
-            delete taskBar[taskid];
             console.info("taskMap delete: ");
           }
     },
@@ -206,14 +210,44 @@ function getFill(status) {
 
 function taskTick() {
   now = new Date().getTime() / 1000;
-  //console.info(now)
-  //console.info("taskMap: " + taskMap);
- 
-  console.info("select .chart2"); 
   chart2 = d3.select(".chart2");
-  bar = chart2.selectAll("g");
-  /* for (var theBar in taskMap) {
-    console.info("select theBar"); 
+  existingBars = chart2.selectAll("g");
+
+  existingBars.each(function(d, i) {
+    if (!(isNaN(taskMap[d.id]))) {
+      bar = d3.select(this);
+      bar.select("rect")
+        .attr("width", function(d) {
+           times = []
+           for (prop in taskTime) {
+             times.push(taskTime[prop]);
+           }
+           x = d3.scale.linear()
+                 .domain([0, d3.max(times)])
+                 .range([220, 420]);
+           return x(taskMap[d.id]);
+           //sec = Math.round(Math.max(now - taskMap[d.id], 0));
+           //str = convertDate(sec);
+           //return sec;
+        });
+
+      bar.select("text")
+        .text(function(d) { 
+        //if (!(isNaN(taskMap[d.id]))) {
+          console.info("task time: " + taskMap[d.id]);
+          sec = Math.round(Math.max(now - taskMap[d.id], 0));
+          // update stored time values
+          taskTime[d.id] = sec;
+          console.info("sec: " + sec);
+          str = convertDate(sec);
+          return str;
+        //}
+      });
+    }
+  });
+
+
+  /* 
   d3.select(bar)
            .text(function(d) { 
            if (!(isNaN(taskMap[d.id]))) {
@@ -221,11 +255,11 @@ function taskTick() {
              str = convertDate(sec);
              return str;
            }
-    });
-  };
+  });
   */
   //bar.each(function(d, i) {
-    bar.select("text")
+  /*
+    existingBars.selectAll("text")
          .text(function(d) { 
            if (!(isNaN(taskMap[d.id]))) {
              sec = Math.round(Math.max(now - taskMap[d.id], 0));
@@ -233,9 +267,10 @@ function taskTick() {
              return str;
            }
            else {
-             return null;        
+             return "na";        
            }
          });
+         */
   //});
 };
 
@@ -243,8 +278,8 @@ function convertDate(totalSeconds) {
   hours = Math.floor(totalSeconds / 3600);
   totalSeconds %= 3600;
   minutes = Math.floor(totalSeconds / 60);
-  totalSeconds % 60;
-  return hours + ":" + minutes + ":" + totalSeconds;
+  seconds = totalSeconds % 60;
+  return hours + ":" + minutes + ":" + seconds;
 }
 
 /*
@@ -254,7 +289,8 @@ function convertDate(totalSeconds) {
 $(document).ready(function() {
   console.log( "JQuery welcome" );
   taskMap = new Object();
-  taskBar = new Object();
+  taskTime = new Object();
+  //taskBar = new Object();
   var bars = [];
   ws = new WebSocket("ws://localhost:8888/websocket/");
   ws.onopen = function() {
@@ -281,7 +317,7 @@ $(document).ready(function() {
           //alert(update.task);
           //console.info(update.task + " " + update.status);
           DAG.updateGraph(json_dag, update.task, update.status);
-          BAR.updateChart(bars, json_dag, update.task, update.status);
+          BAR.updateChart(json_dag, update.task, update.status);
         }
       }
   };
