@@ -72,13 +72,10 @@ class TaskManager(object):
             For now, this method will run until all jobs
             are finished...
         """
-        print >> sys.stderr, "runQueue start"
-        self.status()
 
         updates_made = True
         while updates_made:
 
-            #self.status()
             updates_made = False
             still_waitingTasks = [];
 
@@ -131,9 +128,6 @@ class TaskManager(object):
                         task.setStatus(tasks.Status.QUEUED)
                         task.setCompleted(False)
                         self.notify(task)
-
-        print >> sys.stderr, "runQueue stop"
-        self.status()
 
             # check for unrunable waiting tasks
             #for task in self.waitingTasks[:]:
