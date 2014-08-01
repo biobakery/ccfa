@@ -4,6 +4,7 @@ import logging
 import subprocess, tempfile
 import tornado
 import signal
+import hashlib
 from time import sleep
 import globals
 
@@ -122,7 +123,6 @@ class Task(object):
     def getStatus(self):
         if not self.isComplete() and self.return_code is not None:
             if self.return_code == 0:
-                #import pdb;pdb.set_trace()
                 print >> sys.stderr, "FINISHED TASK: " + self.getName()
                 self.setStatus(Status.FINISHED)
                 self.result = Result.SUCCESS
@@ -257,14 +257,8 @@ class LSFTask(Task):
         sub = """#!/bin/sh
 #BSUB {CLUSTER_QUEUE}
 #BSUB -o {OUTPUT}
-#source /broad/software/scripts/useuse
-#reuse LSF
-#eval export DK_ROOT="/broad/software/dotkit";
-#. /broad/software/dotkit/ksh/.dk_init
-#use LSF > /dev/null 2>&1
 source {SOURCE_PATH}
-{picklescript}
-
+{picklescript} -r
 """     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
                 picklescript=self.getCommand(), 
                 SOURCE_PATH=globals.config['SOURCE_PATH'],
@@ -286,8 +280,7 @@ use LSF >> {log}
 which bsub >> {log}
 if [ $? != 0 ];then
   echo "can't find use" >> {log}
-  unuse LSF >> {log}
-  use LSF >> {log}
+  reuse LSF >> {log}
 fi
 
 # launch job

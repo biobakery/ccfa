@@ -72,41 +72,56 @@ class TaskManager(object):
             For now, this method will run until all jobs
             are finished...
         """
+
         updates_made = True
         while updates_made:
 
             updates_made = False
+            still_waitingTasks = [];
+
             # loop thru waiting tasks
             if self.queueStatus != QueueStatus.STOPPED:
-                for task in self.waitingTasks[:]:
-                    if task.canRun():
-                        task.setStatus(tasks.Status.QUEUED)
-                        self.queuedTasks.append(task)
-                        self.waitingTasks.remove(task)
-                        self.notify(task)
-                        updates_made = True
+                for task in self.waitingTasks:
                     if task.hasFailed():
                         self.completedTasks.append(task)
-                        self.waitingTasks.remove(task)
                         self.notify(task)
                         updates_made = True
+                    elif task.canRun():
+                        task.setStatus(tasks.Status.QUEUED)
+                        self.queuedTasks.append(task)
+                        self.notify(task)
+                        updates_made = True
+                    else:
+                        still_waitingTasks.append(task)
+
+                    self.waitingTasks = still_waitingTasks
 
             # loop thru queued tasks
+            still_queuedTasks = []
+
             if self.queueStatus != QueueStatus.STOPPED:
-                for task in self.queuedTasks[:]:
+                for task in self.queuedTasks:
                     if task.getStatus() == tasks.Status.QUEUED:
                         if self.governor > 0:
                             self.governor -= 1
                             task.run(self)
                             self.notify(task)
+                        still_queuedTasks.append(task)
+
                     elif task.getStatus() == tasks.Status.FINISHED:
+                        print >> sys.stderr, "we are finshed binning " + task.getName() + " " + task.getStatus()
                         self.governor += 1
                         self.completedTasks.append(task)
-                        self.queuedTasks.remove(task)
                         self.notify(task)
                         updates_made = True
+                    elif task.getStatus() == tasks.Status.RUNNING:
+                        print >> sys.stderr, "we are running " + task.getName() + " " + task.getStatus()
+                        still_queuedTasks.append(task)
+
+                self.queuedTasks = still_queuedTasks
+
             elif self.queueStatus == QueueStatus.STOPPED:
-                for task in self.queuedTasks[:]:
+                for task in self.queuedTasks:
                     if task.getStatus() == tasks.Status.FINISHED:
                         task.setReturnCode(None)
                         task.setResult(tasks.Result.NA)
@@ -136,7 +151,8 @@ class TaskManager(object):
             #self.status()
 
     def cleanup(self):
-        for task in self.queuedTasks[:]:
+        #for task in self.queuedTasks[:]:
+        for task in self.queuedTasks:
             if task.getStatus() == tasks.Status.RUNNING:
                 task.cleanup()
 
@@ -147,17 +163,22 @@ class TaskManager(object):
 
     def status(self):
         print >> sys.stderr, "=========================="
-        failed = [x for x in self.completedTasks if x.hasFailed()]
+        #failed = [x for x in self.completedTasks if x.hasFailed()]
         #for task in self.completedTasks:
         #    print "  " + task.getName()
-        print >> sys.stderr, "completed tasks: (" + str(len(self.completedTasks)) + " " + str(len(failed)) + " failed.)"
-        for task in self.completedTasks:
-            print "  " + task.getName()
+        #print >> sys.stderr, "completed tasks: (" + str(len(self.completedTasks)) + " " + str(len(failed)) + " failed.)"
+        #for task in self.completedTasks:
+        #    print "  " + task.getName()
+        #print >> sys.stderr, "waiting tasks: " + str(len(self.waitingTasks))
+        #for task in self.waitingTasks:
+        #    print "  " + task.getName()
+        #running = [task for task in self.queuedTasks if task.getStatus() == tasks.Status.RUNNING]
+        #print >> sys.stderr, "queued tasks: " + str(len(self.queuedTasks)) + " (" + str(len(running)) + " running.)"
+
         print >> sys.stderr, "waiting tasks: " + str(len(self.waitingTasks))
-        for task in self.waitingTasks:
-            print "  " + task.getName()
-        running = [task for task in self.queuedTasks if task.getStatus() == tasks.Status.RUNNING]
-        print >> sys.stderr, "queued tasks: " + str(len(self.queuedTasks)) + " (" + str(len(running)) + " running.)"
+        print >> sys.stderr, "queued tasks: " + str(len(self.queuedTasks))
+        print >> sys.stderr, "finished tasks: " + str(len(self.completedTasks))
+        print >> sys.stderr, "governor: " + str(self.governor)
 
         print >> sys.stderr, "=========================="
 
@@ -193,7 +214,8 @@ class TaskManager(object):
         print "stopQueue"
         self.queueStatus = QueueStatus.STOPPED
         self.governor = -99
-        for task in self.queuedTasks[:]:
+        #for task in self.queuedTasks[:]:
+        for task in self.queuedTasks:
             if task.getStatus() == tasks.Status.RUNNING:
                 task.cleanup()
 
