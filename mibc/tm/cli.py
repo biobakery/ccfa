@@ -296,16 +296,21 @@ def main():
     tm.setupQueue()
     tm.runQueue()
 
+    # get our installed location
+    currentFile = os.path.realpath(__file__)
+    path = os.path.dirname(currentFile)
+    web_install_path = os.path.join(path, "anadama_flows")
+
     # setup Tornado async webservice
     routes = (
         ( r'/',           WebHandler),
         ( r'/websocket/', WSHandler),
         ( r'/task(.*)',   TaskHandler), 
         ( r'/(scripts.*)',       tornado.web.StaticFileHandler, 
-                           {"path": opts.directory}
+                           {"path": web_install_path}
         ),
         ( r'/(styles.*)',       tornado.web.StaticFileHandler, 
-                           {"path": opts.directory}
+                           {"path": web_install_path}
         ),
     )
 
