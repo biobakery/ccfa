@@ -186,12 +186,12 @@ class Task(object):
         #if self is not None and self.pid is not None and self.pid.pid is not None:
         try:
             os.kill({self.pid.pid}, signal.SIGTERM)
-            for product in self.getProducts():
-                if os.path.exists(product):
-                    os.unlink(product)
-                    print " removed " + product
         except (AttributeError, TypeError):
             print self.getName() + " job removed."
+        for product in self.getProducts():
+            if os.path.exists(product):
+                print "removing " + product
+                os.unlink(product)
 
     def __str__(self):
         return "Task: " + self.json_node['name']
