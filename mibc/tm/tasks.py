@@ -46,15 +46,6 @@ class Task(object):
             self.setStatus(Status.FINISHED)
             self.result = Result.RUN_PREVIOUSLY
 
-    def __hash__(self):
-        return hash(self.getId())
-
-    def __eq__(self, other):
-        return self.getId() == other.getId()
-
-    def __ne__(self, other):
-        return self.getId() != other.getId()
-
     def getTaskNum(self):
         return self.num
 
@@ -261,15 +252,9 @@ class LSFTask(Task):
         cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
         sub = """#!/bin/sh
 #BSUB {CLUSTER_QUEUE}
-eval export DK_ROOT="/broad/software/dotkit";
-. /broad/software/dotkit/ksh/.dk_init
-use LSF
-source /aux/deploy2/bin/activate
-date 
-{CLUSTER_JOB} {taskname} {picklescript} -r
-cmd_exit=`echo $?`
-exit $cmd_exit
-
+#BSUB -o {OUTPUT}
+source {SOURCE_PATH}
+{picklescript} -r
 """     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
                        CLUSTER_JOB=globals.config['CLUSTER_JOB'],
                        picklescript=self.getCommand(), 
@@ -282,8 +267,22 @@ exit $cmd_exit
         #import pdb;pdb.set_trace()
         sub = """#!/bin/sh
 # kickoff and monitor LSF cluster job
-jobid_str=`eval "{cluster_script}"`
-job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed 's/^<//' | sed 's/>$//'`
+
+# setup LSF environment
+eval export DK_ROOT="/broad/software/dotkit";
+. /broad/software/dotkit/ksh/.dk_init
+use LSF >> {log}
+
+which bsub >> {log}
+if [ $? != 0 ];then
+  echo "can't find use" >> {log}
+  reuse LSF >> {log}
+fi
+
+# launch job
+
+echo "eval {CLUSTER_JOB} {taskname} < {cluster_script}" >> {log}
+jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
 
 echo "job_id: +${{job_id}}+"
 done="no"
