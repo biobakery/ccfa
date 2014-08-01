@@ -109,13 +109,11 @@ class TaskManager(object):
                         still_queuedTasks.append(task)
 
                     elif task.getStatus() == tasks.Status.FINISHED:
-                        print >> sys.stderr, "we are finshed binning " + task.getName() + " " + task.getStatus()
                         self.governor += 1
                         self.completedTasks.append(task)
                         self.notify(task)
                         updates_made = True
                     elif task.getStatus() == tasks.Status.RUNNING:
-                        print >> sys.stderr, "we are running " + task.getName() + " " + task.getStatus()
                         still_queuedTasks.append(task)
 
                 self.queuedTasks = still_queuedTasks
