@@ -198,7 +198,11 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 class WebHandler(RequestHandler):
     def get(self):
         print "new web connection"
-        self.render(os.path.join(opts.directory, "index.html"))
+        # get our installed location
+        currentFile = os.path.realpath(__file__)
+        path = os.path.dirname(currentFile)
+        web_install_path = os.path.join(path, "anadama_flows")
+        self.render(os.path.join(web_install_path, "index.html"))
         #with open(hashdirectory + "/index.htmln", 'r') as f:
         #    json_data = f.read()
         #self.write(json_data)
@@ -216,10 +220,10 @@ class TaskHandler(RequestHandler):
             if task.getName() == targetTask:
                 if os.path.exists(task.getFilename() + ".log"):
                     self.render(task.getFilename() + ".log")
-                #elif getLastAvailableTaskRun(task) is not None:
-                #    self.write('<html><head><meta http-equiv="refresh" content="3,url={url}"/></head>'
-                #        .format(url=getLastAvailableTaskRun(task)))
-                #    self.write('<body> Redirecting to the last avaiable log for this task... </body></html>')
+                elif getLastAvailableTaskRun(task) is not None:
+                    self.write('<html><head><meta http-equiv="refresh" content="3,url={url}"/></head>'
+                        .format(url=getLastAvailableTaskRun(task)))
+                    self.write('<body> Redirecting to the last avaiable log for this task... </body></html>')
                 else:
                     self.write('''<html><body>task has no output log for the current run.  <P>Either it hasn't
                             run yet, or it was successfully executed during a previous run.</body></html>''')
