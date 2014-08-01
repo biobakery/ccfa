@@ -234,11 +234,11 @@ function taskTick() {
       bar.select("text")
         .text(function(d) { 
         //if (!(isNaN(taskMap[d.id]))) {
-          console.info("task time: " + taskMap[d.id]);
+          //console.info("task time: " + taskMap[d.id]);
           sec = Math.round(Math.max(now - taskMap[d.id], 0));
           // update stored time values
           taskTime[d.id] = sec;
-          console.info("sec: " + sec);
+          //console.info("sec: " + sec);
           str = convertDate(sec);
           return str;
         //}

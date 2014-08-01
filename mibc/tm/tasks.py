@@ -4,6 +4,7 @@ import logging
 import subprocess, tempfile
 import tornado
 import signal
+import hashlib
 from time import sleep
 import globals
 
@@ -44,6 +45,15 @@ class Task(object):
             self.setCompleted(True)
             self.setStatus(Status.FINISHED)
             self.result = Result.RUN_PREVIOUSLY
+
+    def __hash__(self):
+        return hash(self.getId())
+
+    def __eq__(self, other):
+        return self.getId() == other.getId()
+
+    def __ne__(self, other):
+        return self.getId() != other.getId()
 
     def getTaskNum(self):
         return self.num
@@ -122,7 +132,6 @@ class Task(object):
     def getStatus(self):
         if not self.isComplete() and self.return_code is not None:
             if self.return_code == 0:
-                #import pdb;pdb.set_trace()
                 print >> sys.stderr, "FINISHED TASK: " + self.getName()
                 self.setStatus(Status.FINISHED)
                 self.result = Result.SUCCESS
@@ -218,7 +227,7 @@ cat {name} >> {name}.log
 echo >> {name}.log
 echo "-- end script --" >> {name}.log
 echo "-- task cmd output --" >> {name}.log
-time -p -a -o {name}.log {script} >> {name}.log 2>&1
+time -p -a -o {name}.log {script} -r >> {name}.log 2>&1
 cmd_exit=`echo $?`
 echo "-- end task cmd output --" >> {name}.log
 date >> {name}.log
@@ -257,7 +266,7 @@ eval export DK_ROOT="/broad/software/dotkit";
 use LSF
 source /aux/deploy2/bin/activate
 date 
-{CLUSTER_JOB} {taskname} {picklescript}
+{CLUSTER_JOB} {taskname} {picklescript} -r
 cmd_exit=`echo $?`
 exit $cmd_exit
 
