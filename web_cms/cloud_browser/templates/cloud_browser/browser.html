@@ -32,7 +32,7 @@ href="{% static "assets/plupload/js/jquery.plupload.queue/css/jquery.plupload.qu
 
       $("#upload_container").pluploadQueue({
 	  runtimes:   "html5",
-	  url:        "/api/utilities/upload_file/{{ path }}/",
+	  url:        "/api/utilities/upload_file/{{ path|urlencode }}/",
 	  chunk_size: "1mb",
 	  rename:     true,
 	  dragdrop:   true,
@@ -73,7 +73,7 @@ href="{% static "assets/plupload/js/jquery.plupload.queue/css/jquery.plupload.qu
   <li class="cb-selected">{{ cont.name|truncatechars:22 }}</li>
   {% else %}
   <li>
-    <a href="{% url 'cloud_browser_browser' cont.name|urlencode %}"
+    <a href="{% url 'cloud_browser_browser' cont.name %}"
        title="{{ cont.name }}">{{ cont.name|truncatechars:22 }}</a>
   </li>
   {% endif %}
@@ -105,10 +105,10 @@ href="{% static "assets/plupload/js/jquery.plupload.queue/css/jquery.plupload.qu
             <td><img src="{% cloud_browser_media_url 'img/tango/16x16/mimetypes/text-x-generic.png' %}" /></td>
         {% endif %}
         {% if obj.is_file %}
-        <td><a href="{% url 'cloud_browser_document' obj.path|urlencode %}"
+        <td><a href="{% url 'cloud_browser_document' obj.path %}"
             >{{ obj.basename }}</a></td>
         {% else %}
-        <td><a href="{% url 'cloud_browser_browser' obj.path|urlencode %}"
+        <td><a href="{% url 'cloud_browser_browser' obj.path %}"
                class="cloud-browser-document-link"
             >{{ obj.basename }}</a></td>
         {% endif %}
@@ -130,7 +130,7 @@ href="{% static "assets/plupload/js/jquery.plupload.queue/css/jquery.plupload.qu
       <td colspan="6">
         {% if marker_part %}
         <form id="cloud-browser-next" class="cloud-browser-form"
-          action="{% url 'cloud_browser_browser' path|urlencode %}" method="post">
+          action="{% url 'cloud_browser_browser' path %}" method="post">
           {% csrf_token %}
           Next
           <input name="limit" type="text" size="5"

@@ -95,6 +95,7 @@ MANAGERS = ADMINS
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = [ "ccfa.rc.fas.harvard.edu",
                   "ccfa02.rc.fas.harvard.edu",
+                  "140.247.151.7",
                   "localhost",
                   "127.0.0.1" ]
 
@@ -286,7 +287,7 @@ MIDDLEWARE_CLASSES = (
     "mezzanine.core.middleware.AdminLoginInterfaceSelectorMiddleware",
     "mezzanine.core.middleware.SitePermissionMiddleware",
     # Uncomment the following if using any of the SSL settings:
-    # "mezzanine.core.middleware.SSLRedirectMiddleware",
+    "mezzanine.core.middleware.SSLRedirectMiddleware",
     "mezzanine.pages.middleware.PageMiddleware",
     "mezzanine.core.middleware.FetchFromCacheMiddleware",
 )

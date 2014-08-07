@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from django.conf.urls import patterns, include, url
 from django.conf.urls.i18n import i18n_patterns
 from django.contrib import admin
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
 from mezzanine.core.views import direct_to_template
@@ -17,11 +18,11 @@ urlpatterns = i18n_patterns("",
 urlpatterns += patterns(
     '',
     url("^$", direct_to_template, {"template": "index.html"}, name="home"),
-    url("^metadata/?.*", login_required(direct_to_template), 
+    url("^metadata/?.*", staff_member_required(direct_to_template), 
         {"template": "mibc_api/metadata.html"}, name="metadata"),
-    url("^samplemeta/?.*", login_required(direct_to_template), 
+    url("^samplemeta/?.*", staff_member_required(direct_to_template), 
         {"template": "mibc_api/samplemeta.html"}, name="samplemeta"),
-    url("^validator/?.*", login_required(direct_to_template), 
+    url("^validator/?.*", staff_member_required(direct_to_template), 
         {"template": "mibc_api/validator.html"}, name="validator"),
 
     url("^tickets/", include("knowledge.urls")),
