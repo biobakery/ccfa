@@ -207,6 +207,8 @@ class Task(object):
             if os.path.exists(product):
                 print "removing " + product
                 os.unlink(product)
+        if os.path.exists(self.getCommand()):
+            os.unlink(self.getCommand())
 
     def __str__(self):
         return "Task: " + self.json_node['name']
@@ -227,13 +229,10 @@ class LocalTask(Task):
 source /aux/deploy2/bin/activate
 echo "<PRE>" > {name}.log
 date >> {name}.log
-echo {scriptname} >> {name}.log
-echo "-- script --" >> {name}.log
-cat {name} >> {name}.log
-echo >> {name}.log
-echo "-- end script --" >> {name}.log
+echo "scriptname: {scriptname}" >> {name}.log
+echo "picklescript: {script}" >> {name}.log
 echo "-- task cmd output --" >> {name}.log
-time -p -a -o {name}.log {script} -r >> {name}.log 2>&1
+time -p -a -o {name}.log {script} >> {name}.log 2>&1
 cmd_exit=`echo $?`
 echo "-- end task cmd output --" >> {name}.log
 date >> {name}.log

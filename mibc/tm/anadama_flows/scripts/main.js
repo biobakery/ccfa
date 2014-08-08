@@ -41,7 +41,9 @@ var ws;
 
         click: function(d) {
             console.log(d);
-            window.open("http://localhost:8888/task?task=" + d);
+            
+            host = document.location.host;
+            window.open("http://" + host + "/task?task=" + d);
         },
 
         updateGraph: function(graph, task, status) {
@@ -191,7 +193,8 @@ var ws;
 
     click: function(d) {
       //console.log(d);
-      window.open("http://localhost:8888/task?task=" + d.id);
+      host = document.location.host;
+      window.open("http://" + host + "/task?task=" + d.id);
     }
   }
 })();
@@ -318,7 +321,9 @@ $(document).ready(function() {
   taskTime = new Object();
   //taskBar = new Object();
   var bars = [];
-  ws = new WebSocket("ws://localhost:8888/websocket/");
+  host = document.location.host;
+  console.info("host: " + host);
+  ws = new WebSocket("ws://" + host + "/websocket/");
   ws.onopen = function() {
       var obj = {'dag': 'dag'};
       var json = JSON.stringify(obj);
