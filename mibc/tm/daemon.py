@@ -11,22 +11,25 @@ import tornado.ioloop
 import tornado.web 
 from tornado.web import RequestHandler
 import re
+import globals
 
 
-HELP="""%prog [options] [-i <json encoded inputfile>] [-l location] [-g governor]
+HELP="""%prog [-p port] [-c configuration ] 
 
-%prog - TM (Task Manager) parses the tasks contained in the given 
-json encoded directed acyclic graph (DAG) file.  This command
-is designed to read the json encoded DAG from stdin.  However, a filename 
-may be specified for input (-i filename.json) if that method is preferred.
-location currently can be one of three values: local, slurm, or lsf.
+%prog - TMD (Task Manager Daemon) runs the tornado web service on a 
+given port and listens for both HTTP connections and websocket
+connections from clients.  
 
-NOTE:
+Currently, the daemon only listens on localhost to prevent being
+exposed too much.
 
-This command requires pysam and samtools to be install.  Samfile
-checks for valid header and chromosome name defininitions are turned
-off which mandates processing only unmapped reads.
+It will serve static web content (the AnADAMA status page) to 
+webbrowsers.  It will also communicate over a websocket from
+javascript in the webbrowser or from the cli.py interface.
+Communication via the websocket is json encoded.
 
+-p gives the port that the daemon will listen on.
+-c 
 """
 
 opts_list = [
@@ -35,6 +38,8 @@ opts_list = [
                          help="Turn on verbose output (to stderr)"),
     optparse.make_option('-p', '--port', action="store", type="string",
                          dest="port", default=8888, help="Specify port daemon listens on"),
+    optparse.make_option('-c', '--configuration', action="store", type="string",
+                         dest="directory", default=os.getcwd(), help="Specify configuration file "),
 ]
 
 
@@ -44,56 +49,10 @@ tmgrs = []
 wslisteners = []
 
 def optionHandling():
-    global ports, data
+    global port, data
 
-    if opts.ports is None:
-        opts.ports = 8888
-
-def fileHandling():
-
-    '''create directory structure to store metadata from tasks'''
-
-    global hashdirectory, rundirectory
-
-    hash, product = p.getHashTuple()
-    #print "hash: " + hash + " product: " + product
-
-    hashdirectory = opts.directory + "/" + hash
-    #print "final directory: " + hashdirectory
-
-    # create task directory if it doesn't exist
-    run = "/run1"
-    if not os.path.exists(hashdirectory):
-        os.makedirs(hashdirectory)
-        rundirectory = hashdirectory + run
-    else:
-        # get the last run and increment it by one
-        runnum = 1
-        for run in os.walk(hashdirectory).next()[1]:
-            #print "run: " + run
-            curnum = int(run[3:])
-            if runnum < curnum:
-                runnum = curnum
-        runnum += 1;
-        #print "runnum: " + str(runnum)
-        rundirectory = hashdirectory + "/run" + str(runnum)
-
-    os.makedirs(rundirectory)
-
-    # create link to directory if it doesn't exist
-    symlinkdir = opts.directory + "/by_task_name"
-    if not os.path.exists(symlinkdir):
-        os.makedirs(symlinkdir)
-
-    symlink = symlinkdir + "/" + product
-    #print "symlink: " + symlink
-    if not os.path.exists(symlink):
-        print "symlink: " + hashdirectory + "  " + symlink
-        os.symlink(hashdirectory, symlink)
-
-    graph = p.getJsonGraph()
-    with open(rundirectory + "/graph.json", 'w') as graphFile:
-        graphFile.write(graph)
+    if opts.port is None:
+        opts.port = 8888
 
 
 class WSHandler(tornado.websocket.WebSocketHandler):
@@ -119,6 +78,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             print "status message received."
             for k, task in p.getTasks().iteritems():
                 self.taskUpdate(task)
+        if 'tm' in data:
+            setupTm(data['tm'])
 
         #print 'message received %s' % message
 
@@ -185,9 +146,35 @@ def getLastAvailableTaskRun(task):
             return tryFilename
     return None
 
+def setupTm(tm_data):
+    ''' each call sets up a new task manager controlling the tasks
+        within each dag.'''
+    #import pdb;pdb.set_trace()
+    # parse the dag from mibc_build
+    p = parser.Parser(tm_data['dag'], tm_data['location'].upper(), sys.stdout)
+    rundirectory = tm_data['rundirectory']
+    hashdirectory = tm_data['hashdirectory']
+    governor = tm_data['governor']
+    directory = tm_data['directory']
+    graph = p.getJsonGraph()
+    if not os.path.exists(rundirectory + "/graph.json"):
+        with open(rundirectory + "/graph.json", 'w') as graphFile:
+            graphFile.write(graph)
+
+    # create the tm
+    #p.setTaskOutputs(rundirectory)
+   
+    # create TaskManager and give it the tasks to run
+    tm = TM.TaskManager(p.getTasks(), wslisteners, governor)
+    tm.setTaskOutputs(rundirectory)
+    tm.setupQueue()
+    tm.runQueue()
+    tmgrs.append(tm)
+
 
 def main():
     global opts, p, argParser, tmgrs
+
 
     def sigtermSetup():
         signal.signal(signal.SIGTERM, sigtermHandler)
@@ -196,7 +183,7 @@ def main():
     def sigtermHandler(signum, frame):
         print "caught signal " + str(signum)
         print "cleaning up..."
-        if tm is not None:
+        for tm in tmgrs:
             tm.cleanup()
         print "shutting down webserver..."
         sys.exit(0)
@@ -206,20 +193,31 @@ def main():
     (opts, args) = argParser.parse_args()
     optionHandling()
 
+    # load configuration parameters (if they exist)
+    print "loading globals"
+    globals.init(os.path.dirname(opts.directory))
+
     # signals
     sigtermSetup()
 
-    p = parser.Parser(data, opts.location.upper(), sys.stdout)
+    # parse the dag from mibc_build
+    #p = parser.Parser(data, opts.location.upper(), sys.stdout)
 
-    fileHandling()
-    p.setTaskOutputs(rundirectory)
-    
-    tm = TM.TaskManager(p.getTasks(), wslisteners, opts.governor)
-    tm.setupQueue()
-    tm.runQueue()
 
-    print "opts.directory: " + opts.directory
+    #fileHandling()
+    #p.setTaskOutputs(rundirectory)
+   
+    # create TaskManager and give it the tasks to run
+    #tm = TM.TaskManager(p.getTasks(), wslisteners, opts.governor)
+    #tm.setupQueue()
+    #tm.runQueue()
 
+    # get our installed location
+    currentFile = os.path.realpath(__file__)
+    path = os.path.dirname(currentFile)
+    web_install_path = os.path.join(path, "anadama_flows")
+
+    # setup Tornado async webservice
     routes = (
         ( r'/',           WebHandler),
         ( r'/websocket/', WSHandler),
@@ -238,11 +236,13 @@ def main():
         )
 
     app = tornado.web.Application( routes, **app_settings )
-    app.listen(8888)
-    print "webserver listening on localhost:8888..."
+    app.listen(opts.port)
+    print "webserver listening on localhost:" + str(opts.port) + "..."
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
 
 
 if __name__ == '__main__':
+    main()
+else:
     main()
