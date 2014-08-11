@@ -45,7 +45,7 @@ opts_list = [
 
 global opts, p, data, wslisteners
 locations = ('local', 'slurm', 'lsf')
-tmgrs = []
+tmgrs = {}
 wslisteners = []
 
 def optionHandling():
@@ -161,15 +161,21 @@ def setupTm(tm_data):
         with open(rundirectory + "/graph.json", 'w') as graphFile:
             graphFile.write(graph)
 
-    # create the tm
-    #p.setTaskOutputs(rundirectory)
+    # store the tm parameters to disk
+    tm_datapath = os.path.join(hashdirectory, "tm_data.json")
+    if not os.path.exists(tm_datapath):
+        with open(tm_datapath, 'w') as f:
+            f.write(json.dumps(tm_data)
    
     # create TaskManager and give it the tasks to run
     tm = TM.TaskManager(p.getTasks(), wslisteners, governor)
     tm.setTaskOutputs(rundirectory)
     tm.setupQueue()
     tm.runQueue()
-    tmgrs.append(tm)
+    d = {}
+    d['tm'] = tm
+    d['tm_data'] = tm_data
+    tmgrs[hash] = d
 
 
 def main():
