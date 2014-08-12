@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-import tasks, optparse, sys, json, pprint, parser
-import os
+import optparse, sys, json, pprint
+import tasks, parser
 import tm as TM
+import tm_daemon
+import os
 import signal
 import tempfile
 from pprint import pprint
@@ -11,20 +13,19 @@ import hashlib
 import globals
 
 
-HELP="""%prog [options] [-i <json encoded inputfile>] [-l location] [-g governor] [-p port]
+HELP="""%prog [options] [-i <json encoded inputfile>] [-t type] [-d] [-g governor] [-p port]
 
 %prog - TM (Task Manager) parses the tasks contained in the given 
 json encoded directed acyclic graph (DAG) file.  This command
 is designed to read the json encoded DAG from stdin.  However, a filename 
 may be specified for input (-i filename.json) if that method is preferred.
-location currently can be one of three values: local, slurm, or lsf.
+type currently can be one of three values: local, slurm, or lsf.
 
 NOTE:
-
-This command requires pysam and samtools to be install.  Samfile
-checks for valid header and chromosome name defininitions are turned
-off which mandates processing only unmapped reads.
-
+-D indicates that the task_manager daemon should be started and will 
+process all DAGs sent via a websocket interface to the daemon listening 
+on the given '-p' port.  If no daemon is listening on that port, a new
+daemon will be started.
 """
 
 opts_list = [
@@ -33,13 +34,15 @@ opts_list = [
                          help="Turn on verbose output (to stderr)"),
     optparse.make_option('-i', '--input', action="store", type="string",
                          dest="dagfile", help="Specify json encrypted dag file"),
-    optparse.make_option('-d', '--directory', action="store", type="string", default="",
-                         dest="directory", help="Specify directory where all tasks and logfiles are stored.  Default is the current working directory."),
-    optparse.make_option('-l', '--l', action="store",
-                         dest="location", type="string", 
-                         help="The location for running tasks (local, slurm, or lsf)"),
+    optparse.make_option('-l', '--location', action="store", type="string", default="",
+                         dest="location", help="Specify directory where all tasks and logfiles are stored.  Default is the current working directory."),
+    optparse.make_option('-t', '--type', action="store",
+                         dest="type", type="string", 
+                         help="The type of task to be run (local, slurm, or lsf)"),
     optparse.make_option('-g', '--governor', action="store", type="int", default="999",
                          dest="governor", help="Rate limit the number of concurrent tasks.  Useful for limited resource on local desktops / laptops."),
+    optparse.make_option('-D', '--daemon', action="store_true", 
+                         dest="daemon", help="Specify task manager to run as a daemon.  Will process multiple dags."),
     optparse.make_option('-p', '--port', action="store", type="int", default="8888",
                          dest="port", help="Specify the port of the webserver - defaults to 8888.")
     #optparse.make_option('-o', '--o', action="store", type="string",
@@ -49,7 +52,7 @@ opts_list = [
 
 
 global opts, p, data, wslisteners
-locations = ('local', 'slurm', 'lsf')
+types = ('local', 'slurm', 'lsf')
 wslisteners = []
 
 def fileHandling():
@@ -60,7 +63,7 @@ def fileHandling():
 
     hash, product = peekForHash(data)
 
-    hashdirectory = opts.directory + "/" + hash
+    hashdirectory = opts.location + "/" + hash
 
     # create task directory if it doesn't exist
     run = "/run1"
@@ -82,7 +85,7 @@ def fileHandling():
     os.makedirs(rundirectory)
 
     # create link to directory if it doesn't exist
-    symlinkdir = opts.directory + "/by_task_name"
+    symlinkdir = opts.location + "/by_task_name"
     if not os.path.exists(symlinkdir):
         os.makedirs(symlinkdir)
         
@@ -114,19 +117,19 @@ def optionHandling():
         argParser.print_usage()
         sys.exit(1)
 
-    elif opts.location not in locations:
-        print >> sys.stderr, "location not of type 'local', 'slurm', or 'lsf'."
+    elif opts.type not in types:
+        print >> sys.stderr, "type not one of 'local', 'slurm', or 'lsf'."
         argParser.print_usage()
         sys.exit(1)
 
-    if opts.directory is not None:
-        if opts.directory is "":
-            opts.directory = os.getcwd() + "/anadama_flows"
+    if opts.location is not None:
+        if opts.location is "":
+            opts.location = os.getcwd() + "/anadama_flows"
     else:
-        opts.directory = os.getcwd() + "/anadama_flows"
+        opts.location = os.getcwd() + "/anadama_flows"
 
-    if not os.access(os.path.dirname(opts.directory), os.W_OK):
-        print >> sys.stderr, "directory " + opts.directory + " is not writable."
+    if not os.access(os.path.dirname(opts.location), os.W_OK):
+        print >> sys.stderr, "directory " + opts.location + " is not writable."
         argParser.print_usage()
         sys.exit(1)
 
@@ -163,7 +166,7 @@ def main():
 
     # load configuration parameters (if they exist)
     print "loading globals"
-    globals.init(os.path.dirname(opts.directory))
+    globals.init(os.path.dirname(opts.location))
 
     # if os.path.exists(os.path.join(opts.directory, "/configuration_parameters.txt")):
     #    with open("./configuration_parameters") as config_file:
@@ -178,20 +181,34 @@ def main():
     web_install_path = os.path.join(path, "anadama_flows")
 
     # create json to send to server
-    sys.stdin
-
+    import pdb;pdb.set_trace()
     d = {'tm': 
             {'dag': data, 
-                'location': opts.location, 
-                'directory': opts.directory,
+                'type': opts.type, 
+                'location': opts.location,
                 'rundirectory': rundirectory,
                 'hashdirectory': hashdirectory,
                 'governor': opts.governor}}
     msg = json.dumps(d)
     print >> sys.stderr, msg
+
+    # if opts.daemon is false; call daemon directly to process single dag in foreground.
+    if not opts.daemon:
+        daemon = tm_daemon.Tm_daemon()
+        daemon.setupTm(d['tm'])
+        daemon.run(opts.port)
+        # daemon doesn't return
+
     # connect to daemon (or start it)
-    ws = websocket.create_connection("ws://localhost:" + str(opts.port) + "/websocket/")
-    #import pdb;pdb.set_trace()
+    else:
+        try:
+            ws = websocket.create_connection("ws://localhost:" + str(opts.port) + "/websocket/")
+        except:
+            print >> sys.stderr, "starting daemon..."
+            subprocess.popen('supervisord', '-c', 'configuration_supervisord.conf')
+            sleep(2)
+        ws = websocket.create_connection("ws://localhost:" + str(opts.port) + "/websocket/")
+
     ws.send(msg)
     ws.close()
 
