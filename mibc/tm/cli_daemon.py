@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import tasks, optparse, sys, json, pprint, parser
 import os
-import tm as TM
+import tm as TaskManager
+import tm_daemon
 import signal
 import tempfile
 from pprint import pprint
@@ -165,10 +166,10 @@ def setupTm(tm_data):
     tm_datapath = os.path.join(hashdirectory, "tm_data.json")
     if not os.path.exists(tm_datapath):
         with open(tm_datapath, 'w') as f:
-            f.write(json.dumps(tm_data)
+            f.write(json.dumps(tm_data))
    
     # create TaskManager and give it the tasks to run
-    tm = TM.TaskManager(p.getTasks(), wslisteners, governor)
+    tm = TaskManager.TaskManager(p.getTasks(), wslisteners, governor)
     tm.setTaskOutputs(rundirectory)
     tm.setupQueue()
     tm.runQueue()
@@ -223,30 +224,8 @@ def main():
     path = os.path.dirname(currentFile)
     web_install_path = os.path.join(path, "anadama_flows")
 
-    # setup Tornado async webservice
-    routes = (
-        ( r'/',           WebHandler),
-        ( r'/websocket/', WSHandler),
-        ( r'/task(.*)',   TaskHandler), 
-        ( r'/(scripts.*)',       tornado.web.StaticFileHandler, 
-                           {"path": opts.directory}
-        ),
-        ( r'/(styles.*)',       tornado.web.StaticFileHandler, 
-                           {"path": opts.directory}
-        ),
-    )
-
-    app_settings = dict( 
-        static_path=opts.directory,
-        debug=True
-        )
-
-    app = tornado.web.Application( routes, **app_settings )
-    app.listen(opts.port)
-    print "webserver listening on localhost:" + str(opts.port) + "..."
-    ioloop = tornado.ioloop.IOLoop.instance()
-    ioloop.start()
-
+    tm_daemon = Tm_daemon()
+    tm_daemon.run(opts.port)
 
 if __name__ == '__main__':
     main()
