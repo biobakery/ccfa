@@ -181,7 +181,6 @@ def main():
     web_install_path = os.path.join(path, "anadama_flows")
 
     # create json to send to server
-    import pdb;pdb.set_trace()
     d = {'tm': 
             {'dag': data, 
                 'type': opts.type, 

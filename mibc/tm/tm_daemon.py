@@ -13,7 +13,7 @@ from tornado.web import RequestHandler
 import re
 import globals
 
-global opts, p, data, wslisteners
+global opts, p, data, wslisteners, default_hash
 
 # Datastructure is as follows
 # tmgrs: dictionary containing collection of task managers keyed by their hash
@@ -32,6 +32,8 @@ tmEntry = {}
 wslisteners = []
 
 class Tm_daemon(object):
+
+    default_hash = None
 
     def setupTm(self, tm_data):
         ''' each call sets up a new task manager controlling the tasks
@@ -60,6 +62,7 @@ class Tm_daemon(object):
         tmEntry['tm'].runQueue()
         hash = tmEntry['parser'].getHashTuple()[0]
         tmgrs[hash] = tmEntry
+        Tm_daemon.default_hash = hash
 
     def run(self, port):
         ''' method runs the tornado webservice - it does not return. '''
@@ -100,9 +103,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     def on_message(self, message):
         data = json.loads(message)
         print "data: " + str(data)
+        tmEntry = tmgrs[Tm_daemon.default_hash]
         if 'dag' in data:
-            print "opening file: " + rundirectory + "/graph.json"
-            with open(rundirectory + "/graph.json", 'r') as f:
+            print "opening file: " + tmEntry['rundirectory'] + "/graph.json"
+            with open(tmEntry['rundirectory'] + "/graph.json", 'r') as f:
                 dag = f.read()
             jsondict = json.loads(dag)
             d = {'dag': jsondict}
@@ -110,7 +114,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.write_message(return_msg)
         if 'status' in data:
             print "status message received."
-            for k, task in p.getTasks().iteritems():
+            for k, task in tmEntry['parser'].getTasks().iteritems():
                 self.taskUpdate(task)
         if 'tm' in data:
             setupTm(data['tm'])
@@ -132,7 +136,12 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 class WebHandler(RequestHandler):
     def get(self):
         print "new web connection"
-        self.render(os.path.join(location, "index.html"))
+        print "defauolt_hash: " + Tm_daemon.default_hash
+        print tmgrs.keys()
+        print tmgrs.values()
+        print "defauolt_hash: " + Tm_daemon.default_hash
+        tmEntry = tmgrs[Tm_daemon.default_hash]
+        self.render(os.path.join(tmEntry['location'], "index.html"))
         #with open(hashdirectory + "/index.htmln", 'r') as f:
         #    json_data = f.read()
         #self.write(json_data)
@@ -146,7 +155,9 @@ class TaskHandler(RequestHandler):
             self.write("<html><body> Root task has no log file to display.</body></html>")
             return
 
-        for k, task in tm.getTasks().iteritems():
+        tmEntry = tmgrs[Tm_daemon.default_hash]
+
+        for k, task in tmEntry['tm'].getTasks().iteritems():
             if task.getName() == targetTask:
                 if os.path.exists(task.getFilename() + ".log"):
                     self.render(task.getFilename() + ".log")
@@ -169,11 +180,12 @@ def natural_keys(text):
 def getLastAvailableTaskRun(task):
     ''' search all available runs for the given task and return the latest
         logfile available'''
+    tmEntry = tmgrs[Tm_daemon.default_hash]
     filename = os.path.basename(task.getFilename()) + ".log"
-    runs = [ runs for runs in os.walk(hashdirectory).next()[1] ]
+    runs = [ runs for runs in os.walk(tmEntry['hashdirectory']).next()[1] ]
     runs.sort(key=natural_keys, reverse=True)
     for run in runs:
-        tryFilename = hashdirectory + "/" + run + "/" + filename
+        tryFilename = tmEntry['hashdirectory'] + "/" + run + "/" + filename
         print "tryFilename: " + tryFilename
         if os.path.exists(tryFilename):
             print "success: " + tryFilename
