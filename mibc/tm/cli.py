@@ -158,6 +158,19 @@ def peekForHash(data):
 def main():
     global opts, p, argParser, tm, config
 
+    def sigtermSetup():
+        signal.signal(signal.SIGTERM, sigtermHandler)
+        signal.signal(signal.SIGINT, sigtermHandler)
+
+    def sigtermHandler(signum, frame):
+        print "caught signal " + str(signum)
+        print "cleaning up..."
+        for tm in tmgrs:
+            tm.cleanup()
+        print "shutting down webserver..."
+        sys.exit(0)
+
+
     # read in options
     argParser = optparse.OptionParser(option_list=opts_list,
                                    usage=HELP)
@@ -189,10 +202,14 @@ def main():
                 'hashdirectory': hashdirectory,
                 'governor': opts.governor}}
     msg = json.dumps(d)
-    print >> sys.stderr, msg
+    #print >> sys.stderr, msg
 
     # if opts.daemon is false; call daemon directly to process single dag in foreground.
     if not opts.daemon:
+
+        # first setup up signals
+        sigtermSetup()
+
         daemon = tm_daemon.Tm_daemon()
         daemon.setupTm(d['tm'])
         daemon.run(opts.port)
@@ -200,16 +217,18 @@ def main():
 
     # connect to daemon (or start it)
     else:
-        try:
-            ws = websocket.create_connection("ws://localhost:" + str(opts.port) + "/websocket/")
-        except:
-            print >> sys.stderr, "starting daemon..."
-            subprocess.popen('supervisord', '-c', 'configuration_supervisord.conf')
-            sleep(2)
-        ws = websocket.create_connection("ws://localhost:" + str(opts.port) + "/websocket/")
+        done = False
+        while not done:
+            try:
+                ws = websocket.create_connection("ws://localhost:" + str(opts.port) + "/websocket/")
+                down = True
+            except:
+                print >> sys.stderr, "starting daemon..."
+                subprocess.popen('supervisord', '-c', 'configuration_supervisord.conf')
+                sleep(2)
 
-    ws.send(msg)
-    ws.close()
+        ws.send(msg)
+        ws.close()
 
 if __name__ == '__main__':
     main()
