@@ -165,8 +165,7 @@ def main():
     def sigtermHandler(signum, frame):
         print "caught signal " + str(signum)
         print "cleaning up..."
-        for tm in tmgrs:
-            tm.cleanup()
+        tm_daemon.Tm_daemon.cleanup()
         print "shutting down webserver..."
         sys.exit(0)
 

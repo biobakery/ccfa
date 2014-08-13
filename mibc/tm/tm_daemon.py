@@ -100,6 +100,12 @@ class Tm_daemon(object):
         ioloop = tornado.ioloop.IOLoop.instance()
         ioloop.start()
 
+    @staticmethod
+    def cleanup():
+        for k,entry in tmgrs.iteritems():
+            tmEntry = entry
+            tmEntry['tm'].cleanup()
+
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     @tornado.web.asynchronous
