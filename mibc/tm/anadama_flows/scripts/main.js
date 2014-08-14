@@ -41,7 +41,9 @@ var ws;
 
         click: function(d) {
             console.log(d);
-            window.open("http://localhost:8888/task?task=" + d);
+            
+            host = document.location.host;
+            window.open("http://" + host + "/task?task=" + d);
         },
 
         updateGraph: function(graph, task, status) {
@@ -102,7 +104,7 @@ var ws;
       header.on("click", BAR.click)
 
       var chart2 = d3.select(".chart2")
-              .attr("width", width)
+              .attr("width", 600)
               .attr("height", barHeight * data.nodes.length);
       
       var bars = chart2.selectAll("g")
@@ -129,6 +131,11 @@ var ws;
                .attr("y", 10)
                .attr("dy", ".35em");
 
+
+       var xAxis = d3.svg.axis();
+       chart2.append("g")
+               .call(xAxis);
+
        //existingBars.each(function(d, i) {
        //        taskMap[d] == d;
        //});
@@ -145,6 +152,15 @@ var ws;
               //d3.select(this).style("stroke", getFill(status));
             }
           });
+          
+          var chart2 = d3.select(".chart2");
+          var rect = chart2.selectAll("rect");
+          rect.each(function(d, i) {
+            if (d.id == taskid) {
+               d3.select(this).style("fill", getFill(status));
+            }
+          });
+         
           if (status == "RUNNING") {
             var now = new Date().getTime() / 1000;
             console.info("RUNNING task.id: " + taskid);
@@ -177,7 +193,8 @@ var ws;
 
     click: function(d) {
       //console.log(d);
-      window.open("http://localhost:8888/task?task=" + d.id);
+      host = document.location.host;
+      window.open("http://" + host + "/task?task=" + d.id);
     }
   }
 })();
@@ -212,40 +229,52 @@ function taskTick() {
   now = new Date().getTime() / 1000;
   chart2 = d3.select(".chart2");
   existingBars = chart2.selectAll("g");
+  var xScale;
 
   existingBars.each(function(d, i) {
+    //if (!(isNaN(d)))
+    //{
     if (!(isNaN(taskMap[d.id]))) {
       bar = d3.select(this);
       bar.select("rect")
         .attr("width", function(d) {
-           times = []
-           for (prop in taskTime) {
-             times.push(taskTime[prop]);
-           }
-           x = d3.scale.linear()
-                 .domain([0, d3.max(times)])
-                 .range([220, 420]);
-           return x(taskMap[d.id]);
-           //sec = Math.round(Math.max(now - taskMap[d.id], 0));
-           //str = convertDate(sec);
-           //return sec;
+          times = []
+          for (prop in taskTime) {
+            times.push(taskTime[prop]);
+          }
+          console.info(times);
+          xScale = d3.scale.linear()
+                 .domain([0, d3.max(times) + 50])
+                 .range([0, 620]);
+          //console.info("d.id: " + taskMap[d.id]);
+          time = now - taskMap[d.id];
+          console.info("time: " + time);
+          wi = xScale(time);
+          console.info("wi: " + wi);
+          return wi;
         });
 
       bar.select("text")
         .text(function(d) { 
-        //if (!(isNaN(taskMap[d.id]))) {
-          //console.info("task time: " + taskMap[d.id]);
           sec = Math.round(Math.max(now - taskMap[d.id], 0));
           // update stored time values
           taskTime[d.id] = sec;
           //console.info("sec: " + sec);
           str = convertDate(sec);
           return str;
-        //}
       });
     }
+    //}
   });
 
+  /*
+  var xAxis = d3.svg.axis()
+    .scale(xScale)
+    .orient("top");
+
+  chart2.append("g")
+         .call(xAxis);
+  */
 
   /* 
   d3.select(bar)
@@ -292,7 +321,9 @@ $(document).ready(function() {
   taskTime = new Object();
   //taskBar = new Object();
   var bars = [];
-  ws = new WebSocket("ws://localhost:8888/websocket/");
+  host = document.location.host;
+  console.info("host: " + host);
+  ws = new WebSocket("ws://" + host + "/websocket/");
   ws.onopen = function() {
       var obj = {'dag': 'dag'};
       var json = JSON.stringify(obj);

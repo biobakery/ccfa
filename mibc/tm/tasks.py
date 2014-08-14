@@ -5,7 +5,7 @@ import subprocess, tempfile
 import tornado
 import signal
 import hashlib
-from time import sleep
+import time
 import globals
 
 class Enum(set):
@@ -40,6 +40,7 @@ class Task(object):
         self.pid = None
         self.parents = []
         self.tm = None
+        self.runTime = 0
         # before any tasks are run, find out if this task already ran
         if self.doAllProductsExist():
             self.setCompleted(True)
@@ -77,10 +78,18 @@ class Task(object):
     def getReturnCode(self):
         return self.return_code
 
+    def getRuntime(self):
+        if self.runTime == 0:
+            return 0
+        else:
+            rtime = int(time.time()) - self.runTime
+            return rtime
+
     def run(self, callback):
         #print "in parent Task class setting status to RUNNING"
         self.setStatus(Status.RUNNING)
         self.tm = callback
+        self.runtime = int(time.time())
 
     def canRun(self):
         for parentId in self.getParentIds():
@@ -152,6 +161,12 @@ class Task(object):
     def getResult(self):
         return self.result
 
+    def getClientStatus(self):
+        if self.getStatus() == Status.FINISHED:
+            return self.getResult()
+        else: 
+            return self.getStatus()
+
     def getProducts(self):
         return self.json_node['produces']
 
@@ -192,6 +207,8 @@ class Task(object):
             if os.path.exists(product):
                 print "removing " + product
                 os.unlink(product)
+        if os.path.exists(self.getCommand()):
+            os.unlink(self.getCommand())
 
     def __str__(self):
         return "Task: " + self.json_node['name']
@@ -212,11 +229,8 @@ class LocalTask(Task):
 source {SOURCE_PATH}
 echo "<PRE>" > {name}.log
 date >> {name}.log
-echo {scriptname} >> {name}.log
-echo "-- script --" >> {name}.log
-cat {name} >> {name}.log
-echo >> {name}.log
-echo "-- end script --" >> {name}.log
+echo "scriptname: {scriptname}" >> {name}.log
+echo "picklescript: {script}" >> {name}.log
 echo "-- task cmd output --" >> {name}.log
 /usr/bin/env time -p -a -o {name}.log {script} >> {name}.log 2>&1
 cmd_exit=`echo $?`
@@ -260,10 +274,10 @@ class LSFTask(Task):
 source {SOURCE_PATH}
 {picklescript} -r
 """     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
-                picklescript=self.getCommand(), 
-                SOURCE_PATH=globals.config['SOURCE_PATH'],
-                OUTPUT=monitor_script+".log")
-                 
+                       CLUSTER_JOB=globals.config['CLUSTER_JOB'],
+                       SOURCE_PATH=globals.config['SOURCE_PATH'],
+                       OUTPUT=self.getFilename(),
+                       picklescript=self.getCommand())
         with open(cluster_script, 'w+') as f:
           f.write(sub)
         os.chmod(cluster_script, 0755)
@@ -331,7 +345,7 @@ fi
                    CLUSTER_JOBID_POS=globals.config["CLUSTER_JOBID_POS"],
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
-                   log=monitor_script+".log")
+                   log=self.getFilename())
         with open(monitor_script, 'w+') as f:
           f.write(sub)
 
@@ -339,6 +353,14 @@ fi
         scriptpath = os.path.abspath(monitor_script)
         self.pid = tornado.process.Subprocess([scriptpath])
         self.pid.set_exit_callback(self.callback)
+
+    def cleanup(self):
+        super(LocalTask, self).cleanup()
+        # attempt to get our jobid from the custer
+        with open(self.getFilename()) as f:
+            jobid = re.search(r'job_id: \+(\d+)\+', f.read())
+        if jobid is not None:
+            tornado.process.Subprocess("bkill " + jobid.group(1))
 
     def __str__(self):
         str = """Task: {name}

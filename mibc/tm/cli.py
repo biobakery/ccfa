@@ -42,7 +42,9 @@ opts_list = [
                          dest="location", type="string", 
                          help="The location for running tasks (local, slurm, or lsf)"),
     optparse.make_option('-g', '--governor', action="store", type="int", default="999",
-                         dest="governor", help="Rate limit the number of concurrent tasks.  Useful for limited resource on local desktops / laptops.")
+                         dest="governor", help="Rate limit the number of concurrent tasks.  Useful for limited resource on local desktops / laptops."),
+    optparse.make_option('-p', '--port', action="store", type="int", default="8888",
+                         dest="port", help="Specify the port of the webserver - defaults to 8888.")
     #optparse.make_option('-o', '--o', action="store", type="string",
     #                     dest="output_file", 
     #                     help="The FASTA output file."),
@@ -188,10 +190,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         wslisteners.remove(self)
 
     def taskUpdate(self, task):
-        if task.getStatus() == tasks.Status.FINISHED:
-            d = {'taskUpdate': {'task': task.getName(), 'status': task.getResult()}}
-        else:
-            d = {'taskUpdate': {'task': task.getName(), 'status': task.getStatus() }}
+        d = {'taskUpdate': {'task': task.getName(), 'status': task.getClientStatus(), 'runTime': task.getRuntime()}}
         return_msg = json.dumps(d)
         self.write_message(return_msg)
 
@@ -221,9 +220,10 @@ class TaskHandler(RequestHandler):
                 if os.path.exists(task.getFilename() + ".log"):
                     self.render(task.getFilename() + ".log")
                 elif getLastAvailableTaskRun(task) is not None:
-                    self.write('<html><head><meta http-equiv="refresh" content="3,url={url}"/></head>'
-                        .format(url=getLastAvailableTaskRun(task)))
-                    self.write('<body> Redirecting to the last avaiable log for this task... </body></html>')
+                    #self.write('<html><head><meta http-equiv="refresh" content="3,url={url}"/></head>'
+                    #    .format(url=getLastAvailableTaskRun(task)))
+                    #self.write('<body> Redirecting to the last avaiable log for this task... </body></html>')
+                    self.render(getLastAvailableTaskRun(task))
                 else:
                     self.write('''<html><body>task has no output log for the current run.  <P>Either it hasn't
                             run yet, or it was successfully executed during a previous run.</body></html>''')
@@ -320,8 +320,8 @@ def main():
         )
 
     app = tornado.web.Application( routes, **app_settings )
-    app.listen(8888)
-    print "webserver listening on localhost:8888..."
+    app.listen(opts.port)
+    print "webserver listening on localhost:" + str(opts.port) + " ..."
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
 
