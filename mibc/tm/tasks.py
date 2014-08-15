@@ -59,13 +59,17 @@ class Task(object):
 
     def getTaskList(self):
         return self.taskList
-  
-    def setFilename(self, path):
+ 
+    def setScriptfile(self, path):
         self.setOutputDirectory(path)
-        self.filename = os.path.join(path, str(self.getTaskNum()) + "-" + self.getSimpleName())
+        self.scriptfile = os.path.join(path, str(self.getTaskNum()) + "-" + self.getSimpleName() + ".sh")
 
-    def getFilename(self):
-        return self.filename
+    def getScriptfile(self):
+        return self.scriptfile
+
+    def getLogfile(self):
+        filename, ext = os.path.splitext(self.getScriptfile())
+        return filename + ".log"
 
     def setCompleted(self, flag):
         self.completed = flag
@@ -177,7 +181,7 @@ class Task(object):
     def getId(self):
         return self.json_node['id']
 
-    def getCommand(self):
+    def getPickleScript(self):
         return self.json_node['command']
 
     def getName(self):
@@ -196,8 +200,21 @@ class Task(object):
         print "callback task: " + self.getName() + " " + str(exit_code)
         self.setReturnCode(exit_code)
         self.tm.runQueue()
+        if self.logfileno is not None:
+            print >> sys.stderr, "closing logfileno"
+            self.logfileno.flush()
+            self.logfileno.close()
+        if exit_code == 0:
+            self.cleanup_files()
 
-    def cleanup(self):
+    def cleanup_files(self):
+            # remove scripts
+            if os.path.exists(self.getPickleScript()):
+                os.unlink(self.getPickleScript())
+            if os.path.exists(self.getScriptfile()):
+                os.unlink(self.getScriptfile())
+
+    def cleanup_failure(self):
         ''' Cleanup method is called if the task has failed or the
             task manager is killed for some reason.  This removes
             the potentially unfinished products from the file system
@@ -205,6 +222,7 @@ class Task(object):
             the next run.  It also removes the pickle script'''
 
         print "cleaning up " + self.getName()
+        #import pdb;pdb.set_trace()
         #if self is not None and self.pid is not None and self.pid.pid is not None:
         try:
             os.kill({self.pid.pid}, signal.SIGTERM)
@@ -214,8 +232,7 @@ class Task(object):
             if os.path.exists(product):
                 print "removing " + product
                 os.unlink(product)
-        if os.path.exists(self.getCommand()):
-            os.unlink(self.getCommand())
+        self.cleanup_files()
 
     def __str__(self):
         return "Task: " + self.json_node['name']
@@ -231,26 +248,31 @@ class LocalTask(Task):
         super(LocalTask, self).run(callback)
         # create subprocess script
         #script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
-        script = self.getFilename()
+        #import pdb;pdb.set_trace()
+        script = self.getScriptfile()
         sub = """#!/bin/sh
 source /aux/deploy2/bin/activate
-echo "<PRE>" > {name}.log
-date >> {name}.log
-echo "scriptname: {scriptname}" >> {name}.log
-echo "picklescript: {script}" >> {name}.log
-echo "-- task cmd output --" >> {name}.log
-time -p -a -o {name}.log {script} >> {name}.log 2>&1
+echo "<PRE>" 
+date 
+echo "taskname: {taskname}" 
+echo "-- picklescript: {pickle} script --"
+cat {pickle}
+echo "-- end picklescript script--" 
+echo ""
+echo "-- task cmd output --" 
+/usr/bin/env time -p {pickle} 
 cmd_exit=`echo $?`
-echo "-- end task cmd output --" >> {name}.log
-date >> {name}.log
+echo "-- end task cmd output --" 
+date 
 exit $cmd_exit
-            """.format(scriptname=self.getName(), script=self.getCommand(), name=script)
+            """.format(taskname=self.getName(), pickle=self.getPickleScript())
         with open(script, 'w+') as f:
           f.write(sub)
 
         os.chmod(script, 0755)
         scriptpath = os.path.abspath(script)
-        self.pid = tornado.process.Subprocess([scriptpath])
+        self.logfileno = open(self.getLogfile(), "w")
+        self.pid = tornado.process.Subprocess([scriptpath], stdout=self.logfileno, stderr=self.logfileno)
         self.pid.set_exit_callback(self.callback)
 
     def __str__(self):
@@ -280,8 +302,8 @@ source {SOURCE_PATH}
 """     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
                        CLUSTER_JOB=globals.config['CLUSTER_JOB'],
                        SOURCE_PATH=globals.config['SOURCE_PATH'],
-                       OUTPUT=self.getFilename(),
-                       picklescript=self.getCommand())
+                       OUTPUT=self.getLogfile(),
+                       picklescript=self.getPickleScript())
         with open(cluster_script, 'w+') as f:
           f.write(sub)
         os.chmod(cluster_script, 0755)
@@ -293,27 +315,27 @@ source {SOURCE_PATH}
 # setup LSF environment
 eval export DK_ROOT="/broad/software/dotkit";
 . /broad/software/dotkit/ksh/.dk_init
-use LSF >> {log}
+use LSF 
 
-which bsub >> {log}
+which bsub 
 if [ $? != 0 ];then
-  echo "can't find use" >> {log}
-  reuse LSF >> {log}
+  echo "can't find use" 
+  reuse LSF 
 fi
 
 # launch job
 
-echo "eval {CLUSTER_JOB} {taskname} < {cluster_script}" >> {log}
+echo "eval {CLUSTER_JOB} {taskname} < {cluster_script}" 
 jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
-echo "job_id: +${{job_id}}+" >> {log}
+echo "job_id: +${{job_id}}+" 
 done="no"
 while [ "${{done}}" != "yes" ]; do
 
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "output: ${{output}}" >> {log}
+  echo "output: ${{output}}" 
 
   case ${{output}} in
 
@@ -343,25 +365,26 @@ fi
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
                    CLUSTER_JOB=globals.config["CLUSTER_JOB"],
-                   taskname=self.getTaskId(),
-                   log=self.getFilename())
+                   taskname=self.getTaskId())
 
         with open(monitor_script, 'w+') as f:
             f.write(sub)
 
         os.chmod(monitor_script, 0755)
         scriptpath = os.path.abspath(monitor_script)
-        self.pid = tornado.process.Subprocess([scriptpath])
+        self.logfileno = open(self.getLogfile(), "w")
+        self.pid = tornado.process.Subprocess([scriptpath], stdout=self.logfileno, stderr=self.logfileno)
         self.pid.set_exit_callback(self.callback)
 
     def cleanup(self):
         jobid = None
         super(LSFTask, self).cleanup()
         # attempt to get our jobid from the custer
-        if os.path.exists(self.getFilename()):
-            with open(self.getFilename()) as f:
+        if os.path.exists(self.getLogfile()):
+            with open(self.getLogfile()) as f:
                 jobid = re.search(r'job_id: \+(\d+)\+', f.read())
         if jobid is not None:
+            # kill the LSF job on the cluster
             sub='''#!/bin/sh
 eval export DK_ROOT="/broad/software/dotkit";                                                                        
 . /broad/software/dotkit/ksh/.dk_init 
@@ -369,14 +392,6 @@ use LSF
 bkill {jobid}
         '''.format(jobid=jobid.group(1))
             subprocess.call(sub, shell=True)
-        #with open(cleanup_script, 'w+') as f:
-        #    f.write(sub)
-
-        #os.chmod(cleanup_script, 0755)
-        #scriptpath = os.path.abspath(cleanup_script)
-            #tornado.process.Subprocess([sub])
-            #subprocess.Popen("use LSF && bkill" + jobid.group(1), shell=True)
-            #tornado.process.Subprocess("use LSF && bkill " + jobid.group(1))
 
 
     def __str__(self):
