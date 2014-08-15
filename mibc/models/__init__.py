@@ -175,7 +175,7 @@ class Project(util.SerializableMixin, projectmixins.validation):
     def autopopulate(self):
         self.__dict__.update( self._gather('metadata.txt') )
         self.map = mapping_file.load('map.txt', basepath=self.path)
-        self.map_headers = self.map[0]._fields
+        self.map_headers = self.map[0]._fields if self.map else list()
 
         self._autopopulated = True
 
