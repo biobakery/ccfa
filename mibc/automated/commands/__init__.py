@@ -7,7 +7,9 @@ from anadama.commands import ListDag as AnadamaListDag
 from anadama.commands import Help as AnadamaHelp
 from anadama.commands import opt_runner, opt_tmpfiles
 
-from .loader import ProjectLoader
+from ..loader import ProjectLoader
+
+from .initialize import InitializeProject
 
 opt_project = dict(
     name  = "project",
@@ -50,4 +52,4 @@ class Help(AnadamaHelp):
         print("  mibc_build help <task-name>  show task usage")
 
 
-all = (RunProject, ListDag, Help)
+all = (RunProject, ListDag, InitializeProject, Help)
