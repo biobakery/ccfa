@@ -75,6 +75,12 @@ class Tm_daemon(object):
 
     def run(self, port):
         ''' method runs the tornado webservice - it does not return. '''
+
+        currentFile = os.path.realpath(__file__)
+        path = os.path.dirname(currentFile)
+        web_install_path = os.path.join(path, "anadama_flows")
+
+
         # get location from first tm entry
         for k,entry in tmgrs.iteritems():
             tmEntry = entry
@@ -85,8 +91,8 @@ class Tm_daemon(object):
             ( r'/',           WebHandler),
             ( r'/websocket/', WSHandler),
             ( r'/task(.*)',   TaskHandler),
-            ( r'/(scripts.*)',       tornado.web.StaticFileHandler, {"path": tmEntry['location']}),
-            ( r'/(styles.*)',       tornado.web.StaticFileHandler, {"path": tmEntry['location']}),
+            ( r'/(scripts.*)',       tornado.web.StaticFileHandler, {"path": web_install_path}),
+            ( r'/(styles.*)',       tornado.web.StaticFileHandler, {"path": web_install_path}),
         )
 
         app_settings = dict(
@@ -151,12 +157,14 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 class WebHandler(RequestHandler):
     def get(self):
         print "new web connection"
-        print "defauolt_hash: " + Tm_daemon.default_hash
+        print "default_hash: " + Tm_daemon.default_hash
         print tmgrs.keys()
         print tmgrs.values()
         print "defauolt_hash: " + Tm_daemon.default_hash
         tmEntry = tmgrs[Tm_daemon.default_hash]
-        self.render(os.path.join(tmEntry['location'], "index.html"))
+        currentFile = os.path.realpath(__file__)
+        currentDir = os.path.dirname(currentFile)
+        self.render(os.path.join(currentDir + "/anadama_flows", "index.html"))
         #with open(hashdirectory + "/index.htmln", 'r') as f:
         #    json_data = f.read()
         #self.write(json_data)
