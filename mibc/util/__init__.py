@@ -23,7 +23,7 @@ def generator_flatten(gen):
 class SerializationError(TypeError):
     pass
 
-def deserialize_csv(file_handle):
+def deserialize_tsv(file_handle):
     for i, line in enumerate(file_handle):
         cols = line.split('\t')
         if line.strip() == "":

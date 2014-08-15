@@ -184,7 +184,8 @@ class Project(util.SerializableMixin, projectmixins.validation):
         p = os.path.join(self.path, filename)
         with open(p) as f:
             return dict( (key, val)
-                         for (key, val) in util.deserialize_csv(f) )
+                         for (key, val) in util.deserialize_tsv(f) 
+                         if not hasattr(self, key) )
 
 
     def __getattr__(self, name):
