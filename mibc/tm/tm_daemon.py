@@ -139,6 +139,13 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 self.taskUpdate(task)
         if 'tm' in data:
             setupTm(data['tm'])
+        if 'queue' in data:
+            if data['queue'] == TaskManager.QueueStatus.RUNNING:
+                tmEntry['tm'].startQueue()
+            if data['queue'] == TaskManager.QueueStatus.PAUSED:
+                tmEntry['tm'].pauseQueue()
+            if data['queue'] == TaskManager.QueueStatus.STOPPED:
+                tmEntry['tm'].stopQueue()
 
         #print 'message received %s' % message
 

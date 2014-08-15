@@ -199,18 +199,18 @@ class TaskManager(object):
         print "RUNDIRECTORY: " + rundirectory
         for k, task in self.getTasks().iteritems():
             task.setTaskNum(nextNum(rundirectory))
-            task.setFilename(rundirectory)
+            task.setScriptfile(rundirectory)
 
     def getStatus(self):
         return self.status
 
     def pauseQueue(self):
-        print "pauseQueue"
+        print >> sys.stderr, "pauseQueue"
         self.queueStatus = QueueStatus.PAUSED
         self.governor = -99
 
     def stopQueue(self):
-        print "stopQueue"
+        print >> sys.stderr, "stopQueue"
         self.queueStatus = QueueStatus.STOPPED
         self.governor = -99
         #for task in self.queuedTasks[:]:
@@ -219,7 +219,7 @@ class TaskManager(object):
                 task.cleanup()
 
     def startQueue(self):
-        print "startQueue"
+        print >> sys.stderr, "startQueue"
         self.queueStatus = QueueStatus.RUNNING
         self.governor = self.saved_governor
         self.runQueue()
