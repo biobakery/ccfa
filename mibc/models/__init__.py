@@ -132,6 +132,9 @@ class Project(util.SerializableMixin, projectmixins.validation):
     def _custom_serialize(self):
         if not self._autopopulated:
             self.autopopulate()
+        return self._attrs()
+
+    def _attrs(self):
         return dict( (key, val) 
                      for key, val in self.__dict__.iteritems()
                      if not key.startswith('_') )
@@ -153,6 +156,21 @@ class Project(util.SerializableMixin, projectmixins.validation):
         repo_str, user_str = os.path.split(rest)
         return Repository(path=repo_str).users[user_str].projects[project_str]
         
+
+    def save(self):
+        with open(os.path.join(self.path, "metadata.txt"), 'w') as meta_file,\
+             open(os.path.join(self.path, "map.txt"),      'w') as map_file:
+            util.serialize_tsv(self._attrs(), to_fp=meta_file)
+            if self.map and self.map_headers:
+                print >> map_file, "\t".join(self.map_headers)
+                for record in self.map:
+                    print >> map_file, "\t".join(record)
+            elif self.filename:
+                print >> map_file, "#SampleID"
+                for f in self.filename:
+                    name = os.path.splitext(f)[0]
+                    print >> map_file, os.path.basename(name)
+
 
     def autopopulate(self):
         self.__dict__.update( self._gather('metadata.txt') )
