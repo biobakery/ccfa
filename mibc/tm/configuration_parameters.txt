@@ -3,8 +3,8 @@
     "CLUSTER": "LSF", 
     "CLUSTER_OUTPUT_PARAM": "-o", 
     "CLUSTER_JOB": "bsub -P unspecified--broadfolk -R rusage[mem=4] -J ",
-    "CLUSTER_QUERY": "bjobs", 
-    "CLUSTER_QUEUE": "bhour",
+    "CLUSTER_QUERY": "bjobs -noheader -w", 
+    "CLUSTER_QUEUE": "bweek",
     "CLUSTER_STATS": "bjobs -l ",
     "CLUSTER_JOBID_POS": 2,
     "CLUSTER_STATUS_POS": 3

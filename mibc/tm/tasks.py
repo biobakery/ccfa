@@ -7,6 +7,7 @@ import signal
 import hashlib
 import time
 import globals
+import re
 
 class Enum(set):
     """ duplicates basic java enum functionality """
@@ -197,6 +198,12 @@ class Task(object):
         self.tm.runQueue()
 
     def cleanup(self):
+        ''' Cleanup method is called if the task has failed or the
+            task manager is killed for some reason.  This removes
+            the potentially unfinished products from the file system
+            so the task is recognised as needing to be executed for
+            the next run.  It also removes the pickle script'''
+
         print "cleaning up " + self.getName()
         #if self is not None and self.pid is not None and self.pid.pid is not None:
         try:
@@ -263,6 +270,7 @@ class LSFTask(Task):
     def run(self, callback):
         super(LSFTask, self).run(callback)
         # create subprocess script
+        print >> sys.stderr, "task_id: " + self.getTaskId()
         cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
         sub = """#!/bin/sh
 #BSUB {CLUSTER_QUEUE}
@@ -279,7 +287,6 @@ source {SOURCE_PATH}
         os.chmod(cluster_script, 0755)
 
         monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
-        #import pdb;pdb.set_trace()
         sub = """#!/bin/sh
 # kickoff and monitor LSF cluster job
 
@@ -298,16 +305,15 @@ fi
 
 echo "eval {CLUSTER_JOB} {taskname} < {cluster_script}" >> {log}
 jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
-
-echo "job_id: +${{job_id}}+"
+job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
+echo "job_id: +${{job_id}}+" >> {log}
 done="no"
 while [ "${{done}}" != "yes" ]; do
 
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
-  echo "raw_output: ${{raw_output}}\n"
-  regex="${{job_id}}[\t ]"
+  regex="${{job_id}}"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "output: ${{output}}\n"
+  echo "output: ${{output}}" >> {log}
 
   case ${{output}} in
 
@@ -327,18 +333,21 @@ while [ "${{done}}" != "yes" ]; do
   sleep 60
 done
 if [ "$STATUS" != "OK" ]; then
-    exit(-1)
+    exit -1
 else 
-    exit(0)
+    exit 0
 fi
 
 """     .format(cluster_script=cluster_script,
                    CLUSTER_JOBID_POS=globals.config["CLUSTER_JOBID_POS"],
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
+                   CLUSTER_JOB=globals.config["CLUSTER_JOB"],
+                   taskname=self.getTaskId(),
                    log=self.getFilename())
+
         with open(monitor_script, 'w+') as f:
-          f.write(sub)
+            f.write(sub)
 
         os.chmod(monitor_script, 0755)
         scriptpath = os.path.abspath(monitor_script)
@@ -346,12 +355,29 @@ fi
         self.pid.set_exit_callback(self.callback)
 
     def cleanup(self):
-        super(LocalTask, self).cleanup()
+        jobid = None
+        super(LSFTask, self).cleanup()
         # attempt to get our jobid from the custer
-        with open(self.getFilename()) as f:
-            jobid = re.search(r'job_id: \+(\d+)\+', f.read())
+        if os.path.exists(self.getFilename()):
+            with open(self.getFilename()) as f:
+                jobid = re.search(r'job_id: \+(\d+)\+', f.read())
         if jobid is not None:
-            tornado.process.Subprocess("bkill " + jobid.group(1))
+            sub='''#!/bin/sh
+eval export DK_ROOT="/broad/software/dotkit";                                                                        
+. /broad/software/dotkit/ksh/.dk_init 
+use LSF 
+bkill {jobid}
+        '''.format(jobid=jobid.group(1))
+            subprocess.call(sub, shell=True)
+        #with open(cleanup_script, 'w+') as f:
+        #    f.write(sub)
+
+        #os.chmod(cleanup_script, 0755)
+        #scriptpath = os.path.abspath(cleanup_script)
+            #tornado.process.Subprocess([sub])
+            #subprocess.Popen("use LSF && bkill" + jobid.group(1), shell=True)
+            #tornado.process.Subprocess("use LSF && bkill " + jobid.group(1))
+
 
     def __str__(self):
         str = """Task: {name}

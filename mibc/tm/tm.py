@@ -150,9 +150,10 @@ class TaskManager(object):
 
     def cleanup(self):
         #for task in self.queuedTasks[:]:
+        for task in self.waitingTasks:
+            task.cleanup()
         for task in self.queuedTasks:
-            if task.getStatus() == tasks.Status.RUNNING:
-                task.cleanup()
+            task.cleanup()
 
 
     def notify(self, task):
