@@ -50,9 +50,11 @@ class TaskManager(object):
                 self.completedTasks.append(task)
                 task.setCompleted(True)
                 self.notify(task)
+                task.cleanup()
             elif task.isComplete():
                 self.completedTasks.append(task)
                 self.notify(task)
+                task.cleanup()
 
         for key,task in self.taskList.iteritems():
             if task not in self.completedTasks:
@@ -149,11 +151,10 @@ class TaskManager(object):
             #self.status()
 
     def cleanup(self):
-        #for task in self.queuedTasks[:]:
         for task in self.waitingTasks:
             task.cleanup()
         for task in self.queuedTasks:
-            task.cleanup()
+            task.cleanup_failure()
 
 
     def notify(self, task):

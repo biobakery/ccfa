@@ -197,22 +197,23 @@ class Task(object):
         self.directory = givenDir
 
     def callback(self, exit_code):
-        print "callback task: " + self.getName() + " " + str(exit_code)
+        #print "callback task: " + self.getName() + " " + str(exit_code)
         self.setReturnCode(exit_code)
         self.tm.runQueue()
         if self.logfileno is not None:
-            print >> sys.stderr, "closing logfileno"
+            #print >> sys.stderr, "closing logfileno"
             self.logfileno.flush()
             self.logfileno.close()
         if exit_code == 0:
-            self.cleanup_files()
+            self.cleanup()
 
-    def cleanup_files(self):
-            # remove scripts
-            if os.path.exists(self.getPickleScript()):
-                os.unlink(self.getPickleScript())
-            if os.path.exists(self.getScriptfile()):
-                os.unlink(self.getScriptfile())
+    def cleanup(self):
+        # remove scripts
+        print "cleaning up " + self.getName()
+        if os.path.exists(self.getPickleScript()):
+            os.unlink(self.getPickleScript())
+        if os.path.exists(self.getScriptfile()):
+            os.unlink(self.getScriptfile())
 
     def cleanup_failure(self):
         ''' Cleanup method is called if the task has failed or the
@@ -221,7 +222,6 @@ class Task(object):
             so the task is recognised as needing to be executed for
             the next run.  It also removes the pickle script'''
 
-        print "cleaning up " + self.getName()
         #import pdb;pdb.set_trace()
         #if self is not None and self.pid is not None and self.pid.pid is not None:
         try:
@@ -232,7 +232,7 @@ class Task(object):
             if os.path.exists(product):
                 print "removing " + product
                 os.unlink(product)
-        self.cleanup_files()
+        self.cleanup()
 
     def __str__(self):
         return "Task: " + self.json_node['name']
