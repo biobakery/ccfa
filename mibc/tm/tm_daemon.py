@@ -189,12 +189,15 @@ class TaskHandler(RequestHandler):
 
         for k, task in tmEntry['tm'].getTasks().iteritems():
             if task.getName() == targetTask:
-                if os.path.exists(task.getFilename() + ".log"):
-                    self.render(task.getFilename() + ".log")
-                #elif getLastAvailableTaskRun(task) is not None:
-                #    self.write('<html><head><meta http-equiv="refresh" content="3,url={url}"/></head>'
-                #        .format(url=getLastAvailableTaskRun(task)))
-                #    self.write('<body> Redirecting to the last avaiable log for this task... </body></html>')
+                print >> sys.stderr, "logfile: " + task.getLogfile()
+                if os.path.exists(task.getLogfile()):
+                    self.render(task.getLogfile())
+                elif getLastAvailableTaskRun(task) is not None:
+                    url=getLastAvailableTaskRun(task)
+                    self.write("<div style='color:#FF3300'>")
+                    self.write("<strong> displaying last available log for this task... </strong>")
+                    self.write("</div>")
+                    self.render(url)
                 else:
                     self.write('''<html><body>task has no output log for the current run.  <P>Either it hasn't
                             run yet, or it was successfully executed during a previous run.</body></html>''')
@@ -211,7 +214,7 @@ def getLastAvailableTaskRun(task):
     ''' search all available runs for the given task and return the latest
         logfile available'''
     tmEntry = tmgrs[Tm_daemon.default_hash]
-    filename = os.path.basename(task.getFilename()) + ".log"
+    filename = os.path.basename(task.getLogfile())
     runs = [ runs for runs in os.walk(tmEntry['hashdirectory']).next()[1] ]
     runs.sort(key=natural_keys, reverse=True)
     for run in runs:
