@@ -4,6 +4,7 @@ import json
 import tasks
 import time
 import sys
+import subprocess
 
 QueueStatus = tasks.Enum(['RUNNING', 'PAUSED', 'STOPPED'])
 
@@ -34,6 +35,7 @@ class TaskManager(object):
         self.saved_governor = governor
         self.wslisteners = wslisteners
         self.queueStatus = QueueStatus.RUNNING
+        self.root = None
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -45,13 +47,16 @@ class TaskManager(object):
             assume all tasks that have existing products on the filesystem 
             are complete.  
         """
+        firsttime = True
         for key,task in self.taskList.iteritems():
             if task.getName() == 'root':
+                self.root = task
                 self.completedTasks.append(task)
                 task.setCompleted(True)
                 self.notify(task)
                 task.cleanup()
             elif task.isComplete():
+                firsttime = False;
                 self.completedTasks.append(task)
                 self.notify(task)
                 task.cleanup()
@@ -66,6 +71,8 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
                     self.notify(task)
+        if firsttime:
+            self.callHook("pre")
 
     def runQueue(self):
 
@@ -88,6 +95,7 @@ class TaskManager(object):
                         self.completedTasks.append(task)
                         self.notify(task)
                         updates_made = True
+                        # We didn't run and we failed so do not invoke hook
                     elif task.canRun():
                         task.setStatus(tasks.Status.QUEUED)
                         self.queuedTasks.append(task)
@@ -115,6 +123,8 @@ class TaskManager(object):
                         self.completedTasks.append(task)
                         self.notify(task)
                         updates_made = True
+                        # We did run this job - call hook based on status
+                        task.callHook()
                     elif task.getStatus() == tasks.Status.RUNNING:
                         still_queuedTasks.append(task)
 
@@ -128,27 +138,16 @@ class TaskManager(object):
                         task.setStatus(tasks.Status.QUEUED)
                         task.setCompleted(False)
                         self.notify(task)
+                        # queue has stopped; task will be rolled back; don't call hook
 
-            # check for unrunable waiting tasks
-            #for task in self.waitingTasks[:]:
-            #    if not task.canRun():
-            #        print "task: " + task.getSimpleName() + " possible dead task"
-            #        problem = True
-            #        for parentId in task.getParentIds():
-            #            parentTask = task.getTaskList()[parentId]
-            #            if parentTask not in self.completedTasks:
-            #                print "task: " + task.getSimpleName() + " NOT dead task due to parent " + parentTask.getSimpleName() + " still tbd"
-            #                problem = False
-            #                break
-            #        if problem:
-            #            print "Warning: Task " + task.getName() + " cannot proceed - marking as failed"
-            #            task.setComplete()
-            #            task.setStatus(tasks.Status.FINISHED)
-            #            task.setResult(tasks.Result.FAILURE)
-            #            self.completedTasks.append(task)                
-            #            self.waitingTasks.remove(task)
-            #            self.notify(task)
-            #self.status()
+        if self.isQueueEmpty():
+            all_success = True
+            for completedTask in self.completedTasks:
+                if completedTask.getResult() is tasks.Result.FAILURE:
+                    all_success = False
+            if all_success:
+                self.callHook("post")
+
 
     def cleanup(self):
         for task in self.waitingTasks:
@@ -227,3 +226,30 @@ class TaskManager(object):
 
     def getQueueStatus(self):
         return self.queueStatus
+
+    def callHook(self, pipeline):
+        ''' Method spawns a child process that easily allows user defined things
+            to run after the task completes.  This hook calls hooks/post_task_success.sh
+            or hooks/post_task_failure.sh based on the task result. '''
+        self.setupEnvironment()
+        path = os.path.dirname(os.path.realpath(__file__))
+        hook = str()
+        if pipeline == "pre":
+            hook = os.path.join(path, "hooks/pre_pipeline.sh")
+        elif pipeline == "post":
+            hook = os.path.join(path, "hooks/post_pipeline.sh")
+        print >> sys.stderr, "hook: " + hook
+        subprocess.call(hook, shell=True)
+
+
+    def setupEnvironment(self):
+        os.environ["TaskName"] = self.root.getName()
+        os.environ["TaskResult"] = self.root.getResult()
+        os.environ["TaskReturnCode"] = str(self.root.getReturnCode())
+        os.environ["TaskScriptfile"] = self.root.getScriptfile()
+        os.environ["TaskLogfile"] = self.root.getLogfile()
+        productfiles = str()
+        for file in self.root.getProducts():
+            productfiles += file + " "
+        os.environ["TaskProducts"] = productfiles
+

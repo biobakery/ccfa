@@ -209,7 +209,7 @@ class Task(object):
 
     def cleanup(self):
         # remove scripts
-        print "cleaning up " + self.getName()
+        # print "cleaning up " + self.getName()
         if os.path.exists(self.getPickleScript()):
             os.unlink(self.getPickleScript())
         if os.path.exists(self.getScriptfile()):
@@ -233,6 +233,31 @@ class Task(object):
                 print "removing " + product
                 os.unlink(product)
         self.cleanup()
+
+    def callHook(self):
+        ''' Method spawns a child process that easily allows user defined things
+            to run after the task completes.  This hook calls hooks/post_task_success.sh
+            or hooks/post_task_failure.sh based on the task result. '''
+        self.setupEnvironment()
+        path = os.path.dirname(os.path.realpath(__file__))
+        hook = str()
+        if self.getResult() == Result.SUCCESS:
+            hook = os.path.join(path, "hooks/post_task_success.sh")
+        elif self.getResult() == Result.FAILURE:
+            hook = os.path.join(path, "hooks/post_task_failure.sh")
+        print >> sys.stderr, "hook: " + hook
+        subprocess.call(hook, shell=True)
+
+    def setupEnvironment(self):
+        os.environ["TaskName"] = self.getName()
+        os.environ["TaskResult"] = self.getResult()
+        os.environ["TaskReturnCode"] = str(self.getReturnCode())
+        os.environ["TaskScriptfile"] = self.getScriptfile()
+        os.environ["TaskLogfile"] = self.getLogfile()
+        productfiles = str()
+        for file in self.getProducts():
+            productfiles += file + " "
+        os.environ["TaskProducts"] = productfiles
 
     def __str__(self):
         return "Task: " + self.json_node['name']
