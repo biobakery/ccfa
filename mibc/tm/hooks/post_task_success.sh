@@ -2,5 +2,5 @@
 ##
 ## script executes after successful task run
 ##
-echo "post_task_success.sh"
-set | grep Task
+
+#echo "post_task_success.sh"
