@@ -2,4 +2,5 @@
 ##
 ## script executes after successful pipeline run
 ##
-echo "post_pipeline.sh"
+
+#echo "post_pipeline.sh"

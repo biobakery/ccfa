@@ -2,4 +2,5 @@
 ##
 ## script executes prior to first pipeline run
 ##
-echo "pre_pipeline.sh"
+
+#echo "pre_pipeline.sh"
