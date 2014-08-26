@@ -5,6 +5,7 @@ from doit.cmd_base import TaskLoader
 from doit.exceptions import InvalidCommand
 
 from anadama.pipelines import route
+from anadama.util import guess_seq_filetype
 
 from anadama_workflows import pipelines
 
@@ -31,9 +32,9 @@ class ProjectLoader(TaskLoader):
         if project_is_16s:
             routes = route(
                 files_list,
-                [(r'\.biom$',        'otu_tables'),
-                 (r'_demuxed\.f*a$', 'demuxed_fasta_files'),
-                 (r'.*',             'raw_seq_files')]
+                [(r'\.biom$',         'otu_tables'),
+                 (r'_demuxed\.f*a$',  'demuxed_fasta_files'),
+                 (guess_seq_filetype, 'raw_seq_files')]
             )
             return pipelines.SixteenSPipeline(
                 products_dir=products_dir,
@@ -47,7 +48,7 @@ class ProjectLoader(TaskLoader):
                 files_list,
                 [(r'\.sam$', 'alignment_result_files'),
                  # Catch all that didn't match at the bottom
-                 (r'.*',     'raw_seq_files')]
+                 (guess_seq_filetype, 'raw_seq_files')]
             )
             return pipelines.WGSPipeline(
                 products_dir=products_dir,

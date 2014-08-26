@@ -1,7 +1,10 @@
 import os
 import json
-import datetime
+import types
 import inspect
+import datetime
+from cStringIO import StringIO
+
 
 def stat(path, f):
     return os.stat(
@@ -23,7 +26,7 @@ def generator_flatten(gen):
 class SerializationError(TypeError):
     pass
 
-def deserialize_csv(file_handle):
+def deserialize_tsv(file_handle):
     for i, line in enumerate(file_handle):
         cols = line.split('\t')
         if line.strip() == "":
@@ -39,7 +42,33 @@ def deserialize_csv(file_handle):
             cols[0], 
             [ col.strip() for col in cols[1:] ] 
             )
+
+def _serialize_tsv(data_dict, fp):
+    for key, value in data_dict.iteritems():
+        if not value:
+            continue
+        elif isinstance(value, types.StringTypes):
+            value = [value]
+        elif type(value) in (tuple, list):
+            value = [ str(item) for item in value ]
+        elif type(value) is bool:
+            value = ["true"] if value else ["false"]
+        else:
+            value = [str(value)]
         
+        print >> fp, "\t".join([key]+value)
+
+    return fp
+
+
+def serialize_tsv(data_dict, to_fp=None):
+    if to_fp:
+        _serialize_tsv(data_dict, fp=to_fp)
+        return
+    else:
+        return _serialize_tsv(data_dict, StringIO()).getvalue()
+
+
 def _defaultfunc(obj):
     if hasattr(obj, '_serializable_attrs'):
         return obj._serializable_attrs

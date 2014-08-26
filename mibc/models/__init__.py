@@ -100,7 +100,7 @@ class User(util.SerializableMixin, usermixins.LDAP):
 
     @staticmethod
     def from_path(path):
-        path_parts = os.path.split(path)
+        path_parts = os.path.split(os.path.realpath(os.path.abspath(path)))
         repo_str, user_str = path_parts
         return Repository(path=repo_str).users[user_str]
 
@@ -132,6 +132,9 @@ class Project(util.SerializableMixin, projectmixins.validation):
     def _custom_serialize(self):
         if not self._autopopulated:
             self.autopopulate()
+        return self._attrs()
+
+    def _attrs(self):
         return dict( (key, val) 
                      for key, val in self.__dict__.iteritems()
                      if not key.startswith('_') )
@@ -148,15 +151,31 @@ class Project(util.SerializableMixin, projectmixins.validation):
     
     @staticmethod
     def from_path(path):
-        rest, project_str = os.path.split(path)
+        rest, project_str = os.path.split(
+            os.path.realpath(os.path.abspath(path)))
         repo_str, user_str = os.path.split(rest)
         return Repository(path=repo_str).users[user_str].projects[project_str]
         
 
+    def save(self):
+        with open(os.path.join(self.path, "metadata.txt"), 'w') as meta_file,\
+             open(os.path.join(self.path, "map.txt"),      'w') as map_file:
+            util.serialize_tsv(self._attrs(), to_fp=meta_file)
+            if self.map and self.map_headers:
+                print >> map_file, "\t".join(self.map_headers)
+                for record in self.map:
+                    print >> map_file, "\t".join(record)
+            elif self.filename:
+                print >> map_file, "#SampleID"
+                for f in self.filename:
+                    name = os.path.splitext(f)[0]
+                    print >> map_file, os.path.basename(name)
+
+
     def autopopulate(self):
         self.__dict__.update( self._gather('metadata.txt') )
         self.map = mapping_file.load('map.txt', basepath=self.path)
-        self.map_headers = self.map[0]._fields
+        self.map_headers = self.map[0]._fields if self.map else list()
 
         self._autopopulated = True
 
@@ -165,7 +184,8 @@ class Project(util.SerializableMixin, projectmixins.validation):
         p = os.path.join(self.path, filename)
         with open(p) as f:
             return dict( (key, val)
-                         for (key, val) in util.deserialize_csv(f) )
+                         for (key, val) in util.deserialize_tsv(f) 
+                         if not hasattr(self, key) )
 
 
     def __getattr__(self, name):
