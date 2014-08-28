@@ -276,7 +276,7 @@ class LocalTask(Task):
         #import pdb;pdb.set_trace()
         script = self.getScriptfile()
         sub = """#!/bin/sh
-source /aux/deploy2/bin/activate
+source {SOURCE_PATH}
 echo "<PRE>" 
 date 
 echo "taskname: {taskname}" 
@@ -290,7 +290,9 @@ cmd_exit=`echo $?`
 echo "-- end task cmd output --" 
 date 
 exit $cmd_exit
-            """.format(taskname=self.getName(), pickle=self.getPickleScript())
+            """.format(taskname=self.getName(), 
+                       SOURCE_PATH=globals.config['SOURCE_PATH'],
+                       pickle=self.getPickleScript())
         with open(script, 'w+') as f:
           f.write(sub)
 
