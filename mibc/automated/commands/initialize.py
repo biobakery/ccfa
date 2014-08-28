@@ -17,9 +17,9 @@ true_strings = {
 
 _project_dir = './'
 
-IGNORED_FILES = (
+IGNORED_FILES = [
     'metadata.txt', 'map.txt'
-)
+]
 
 def choices(*selections):
     def wrapped(answer):
@@ -75,6 +75,15 @@ opt_logging = {"name": "logging",
                "help": ("Logging verbosity. Valid choices are "
                         "debug, info, warn, and critical"),}
 
+
+opt_ignore = {"name": "ignore",
+               "long": "ignore",
+               "type": str,
+               "default": "",
+               "help": ("Comma separated list of files to ignore when"
+                        " automatically ading file names to project"
+                        " metadata"),}
+
 class InitializeProject(Command):
     name = "initialize-project"
     doc_purpose = ('Initialize a MIBC project')
@@ -87,15 +96,18 @@ The user will be queried for any missing required metadata
 fields.
 """
 
-    cmd_options = (opt_dir, opt_logging)
+    cmd_options = (opt_dir, opt_logging, opt_ignore)
 
     def execute(self, opt_values, pos_args):
         self.logger = self._setup_logging(opt_values['logging'])
 
         project = Project.from_path(opt_values['dir'])
         # :wince:
-        global _project_dir
+        global _project_dir, IGNORED_FILES
         _project_dir = opt_values['dir']
+        IGNORED_FILES.extend(
+            f.strip() for f in opt_values['ignore'].split(',') if f
+        )
 
         given_fields = self.fields_from_pos_args(pos_args)
         given_fields = dict(given_fields)
