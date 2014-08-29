@@ -262,4 +262,6 @@ class TaskManager(object):
         for file in self.root.getProducts():
             productfiles += file + " "
         os.environ["TaskProducts"] = productfiles
+        if self.root.getPipelineName() is not None: 
+            os.environ["PipelineName"] = self.root.getPipelineName()
 
