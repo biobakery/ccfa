@@ -146,7 +146,9 @@ class TaskManager(object):
                 if completedTask.getResult() is tasks.Result.FAILURE:
                     all_success = False
             if all_success:
-                self.callHook("post")
+                self.callHook("post_success")
+            else:
+                self.callHook("post_failure")
 
 
     def cleanup(self):
@@ -241,8 +243,11 @@ class TaskManager(object):
         hook = str()
         if pipeline == "pre":
             hook = os.path.join(path, "hooks/pre_pipeline.sh")
-        elif pipeline == "post":
-            hook = os.path.join(path, "hooks/post_pipeline.sh")
+        elif pipeline == "post_success":
+            hook = os.path.join(path, "hooks/post_pipeline_success.sh")
+        elif pipeline == "psot_failure":
+            hook = os.path.join(path, "hooks/post_pipeline_failure.sh")
+
         print >> sys.stderr, "hook: " + hook
         subprocess.call(hook, shell=True)
 

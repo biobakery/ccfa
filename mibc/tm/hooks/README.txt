@@ -2,7 +2,8 @@ This area is for user generated code which will be executed at the
 time given by the name of the script file:
 
 pre_pipeline.sh - runs prior to the start of the pipeline
-post_pipeline.sh - runs after the successful completion of the pipeline
+post_pipeline_success.sh - runs after the successful completion of the pipeline
+post_pipeline_failure.sh - runs after the failure to complete the pipeline
 post_task_failure.sh - runs after each task failure
 post_task_success.sh - runs after each task success
 
