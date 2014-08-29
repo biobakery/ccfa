@@ -8,14 +8,12 @@
 if [ -n ${PipelineName} ]; then
 
   mail -s "hmp2 pipeline ${PipelineName} failure" kbayer@broadinstitute.org <<EOF
-this is the mail body
-no pipeline name here!
+no body.
 EOF
 
 else
 
   mail -s 'hmp2 pipeline failure' kbayer@broadinstitute.org <<EOF
-this is the mail body
 no pipeline name here!
 EOF
 
