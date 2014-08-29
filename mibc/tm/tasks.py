@@ -42,7 +42,7 @@ class Task(object):
         self.parents = []
         self.tm = None
         self.runTime = 0
-        self.pipeline = jsondata.get('pipeline_name')
+        self.pipeline = self.json_node.get('pipeline_name')
         # before any tasks are run, find out if this task already ran
         if self.doAllProductsExist():
             self.setCompleted(True)
