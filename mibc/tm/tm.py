@@ -152,6 +152,11 @@ class TaskManager(object):
     def cleanup(self):
         for task in self.waitingTasks:
             task.cleanup()
+        for task in self.completedTasks:
+            if task.getResult() == tasks.Result.FAILURE:
+                task.cleanup_failure()
+            else:
+                task.cleanup()
         for task in self.queuedTasks:
             task.cleanup_failure()
 

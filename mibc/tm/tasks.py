@@ -197,15 +197,11 @@ class Task(object):
         self.directory = givenDir
 
     def callback(self, exit_code):
-        #print "callback task: " + self.getName() + " " + str(exit_code)
         self.setReturnCode(exit_code)
         self.tm.runQueue()
         if self.logfileno is not None:
-            #print >> sys.stderr, "closing logfileno"
             self.logfileno.flush()
             self.logfileno.close()
-        if exit_code == 0:
-            self.cleanup()
 
     def cleanup(self):
         # remove scripts
