@@ -39,25 +39,30 @@ def list_or_listdir(answer):
         return [ item for item in os.listdir(_project_dir)
                  if item not in IGNORED_FILES ]
 
+def true_or_false(answer):
+    return true_strings.get(answer.lower()) or "false",
 
 REQUIRED_FIELDS = {
-    # 'pi_first_name': str,
-    # 'pi_last_name': str,
-    # 'pi_contact_email': str,
-    # 'lab_name': str,
-    # 'researcher_first_name': str,
-    # 'researcher_last_name': str,
-    # 'researcher_contact_email': str,
-    'study_title': str,
-    'study_description': str,
-    'sample_type': str,
-    'filename': list_or_listdir,
-    # 'collection_start_date',
-    # 'collection_end_date',
-    # 'submit_to_insdc',
-    '16s_data': lambda s: true_strings.get(s.lower()) or "false",
-    # 'reverse_primer': str,
-    'platform': choices("illumina", "454")
+    # 'pi_first_name'    : str,
+    # 'pi_last_name'     : str,
+    # 'pi_contact_email' : str,
+    # 'lab_name'         : str,
+
+    # 'researcher_first_name'    : str,
+    # 'researcher_last_name'     : str,
+    # 'researcher_contact_email' : str,
+    # 'collection_start_date'    : str,
+    # 'collection_end_date'      : str,
+    # 'submit_to_insdc'          : true_or_false,
+    # 'reverse_primer'           : str,
+
+    'study_title'       : str,
+    'study_description' : str,
+    'sample_type'       : str,
+    'filename'          : list_or_listdir,
+    '16s_data'          : true_or_false,
+    'visualize'         : true_or_false,
+    'platform'          : choices("illumina", "454")
 }
 
 opt_dir = {"name": "dir",
