@@ -23,8 +23,12 @@ class ProjectLoader(TaskLoader):
         config = pipeline.configure()
         return pipeline.tasks(), config
 
-
     def get_tasks(self, project):
+        pipeline = self._get_basic_pipeline(project)
+        pipeline = self._add_optional_pipelines(pipeline, project)
+        return pipeline
+
+    def _get_basic_pipeline(self, project):
         project_is_16s = getattr(project, "16s_data") == ["true"]
         products_dir = os.path.join(
             project.path, settings.workflows.product_directory)
@@ -55,3 +59,9 @@ class ProjectLoader(TaskLoader):
                 # construct the rest of the options with the route function
                 **routes
             )
+
+    def _add_optional_pipelines(self, basic_pipeline, project):
+        if project.visualize == ["true"]:
+            basic_pipeline.append(pipelines.VisualizationPipeline)
+
+        return basic_pipeline
