@@ -61,7 +61,7 @@ class ProjectLoader(TaskLoader):
             )
 
     def _add_optional_pipelines(self, basic_pipeline, project):
-        if project.visualize == ["true"]:
+        if hasattr(project, 'visualize') and project.visualize == ["true"]:
             basic_pipeline.append(pipelines.VisualizationPipeline)
 
         return basic_pipeline
