@@ -5,7 +5,7 @@
 
 #echo "post_pipeline_failure.sh"
 
-if [ -n ${PipelineName} ]; then
+if [[ -n ${PipelineName} ]]; then
 
   mail -s "hmp2 pipeline ${PipelineName} failure" kbayer@broadinstitute.org <<EOF
 no body.
