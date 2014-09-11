@@ -280,6 +280,8 @@ source {SOURCE_PATH}
 echo "<PRE>" 
 date 
 echo "taskname: {taskname}" 
+echo " dependencies: {deps}"
+echo " products: {products}"
 echo "-- picklescript: {pickle} script --"
 cat {pickle}
 echo "-- end picklescript script--" 
@@ -291,6 +293,8 @@ echo "-- end task cmd output --"
 date 
 exit $cmd_exit
             """.format(taskname=self.getName(), 
+                       deps=self.json_node['depends'],
+                       products=self.json_node['produces'],
                        SOURCE_PATH=globals.config['SOURCE_PATH'],
                        pickle=self.getPickleScript())
         with open(script, 'w+') as f:
