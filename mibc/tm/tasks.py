@@ -258,6 +258,8 @@ class Task(object):
         for file in self.getProducts():
             productfiles += file + " "
         os.environ["TaskProducts"] = productfiles
+        if productfiles:
+            os.environ["TaskOutputDirectory"] = productfiles.split()[0].split('mibc_products')[0] + 'mibc_products/'
 
     def __str__(self):
         return "Task: " + self.json_node['name']
