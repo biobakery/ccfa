@@ -231,7 +231,15 @@ class Task(object):
         for product in self.getProducts():
             if os.path.exists(product):
                 print "removing " + product
-                os.unlink(product)
+                if os.path.isfile(product):
+                    os.unlink(product)
+                elif os.path.isdir(product):
+                    # safety test
+                    dirs = [self.getOutputDirectory(), product]
+                    if os.path.commonprefix(dirs) == self.getOutputDirectory():
+                        shutil.rmtree(product)
+                    else:
+                        print >> sys.stderr, "Warning: attempting to remove directory " + product
         self.cleanup()
 
     def callHook(self):
