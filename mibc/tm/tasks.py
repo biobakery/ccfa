@@ -231,7 +231,15 @@ class Task(object):
         for product in self.getProducts():
             if os.path.exists(product):
                 print "removing " + product
-                os.unlink(product)
+                if os.path.isfile(product):
+                    os.unlink(product)
+                elif os.path.isdir(product):
+                    # safety test
+                    dirs = [self.getOutputDirectory(), product]
+                    if os.path.commonprefix(dirs) == self.getOutputDirectory():
+                        shutil.rmtree(product)
+                    else:
+                        print >> sys.stderr, "Warning: attempting to remove directory " + product
         self.cleanup()
 
     def callHook(self):
@@ -258,6 +266,8 @@ class Task(object):
         for file in self.getProducts():
             productfiles += file + " "
         os.environ["TaskProducts"] = productfiles
+        if productfiles:
+            os.environ["TaskOutputDirectory"] = productfiles.split()[0].split('mibc_products')[0] + 'mibc_products/'
 
     def __str__(self):
         return "Task: " + self.json_node['name']
