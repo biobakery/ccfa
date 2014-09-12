@@ -114,7 +114,8 @@ class Task(object):
         """ Method should only be used prior to running any tasks! """
         for product in self.json_node['produces']:
             if (not os.path.isfile(product)):
-                return False
+                if (not os.path.isdir(product)):
+                    return False
         return True
 
     def hasFailed(self):
