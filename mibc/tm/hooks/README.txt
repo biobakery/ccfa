@@ -18,6 +18,7 @@ be spawned from them.  The shell environment is preset with the
 following name value pairs:
 
 TaskName
+TaskOutputDirectory
 TaskResult
 TaskReturnCode
 TaskScriptfile
