@@ -34,31 +34,29 @@ class ProjectLoader(TaskLoader):
             project.path, settings.workflows.product_directory)
         files_list = [ os.path.join(project.path, f) for f in project.filename ]
         if project_is_16s:
+            pipeline_cls = pipelines.SixteenSPipeline
             routes = route(
                 files_list,
                 [(r'\.biom$',         'otu_tables'),
                  (r'_demuxed\.f*a$',  'demuxed_fasta_files'),
                  (guess_seq_filetype, 'raw_seq_files')]
             )
-            return pipelines.SixteenSPipeline(
-                products_dir=products_dir,
-                sample_metadata=project.map,
-                # construct the rest of the keyword arguments with the
-                # route function
-                **routes
-            )
         else:
+            pipeline_cls = pipelines.WGSPipeline
             routes = route(
                 files_list,
                 [(r'\.sam$', 'alignment_result_files'),
                  # Catch all that didn't match at the bottom
                  (guess_seq_filetype, 'raw_seq_files')]
             )
-            return pipelines.WGSPipeline(
-                products_dir=products_dir,
-                # construct the rest of the options with the route function
-                **routes
-            )
+
+        return pipeline_cls(
+            products_dir=products_dir,
+            sample_metadata=project.map,
+            # construct the rest of the options with the route
+            # function
+            **routes
+        )
 
     def _add_optional_pipelines(self, basic_pipeline, project):
         if hasattr(project, 'visualize') and project.visualize == ["true"]:
