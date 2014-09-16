@@ -255,7 +255,7 @@ class TaskManager(object):
             hook = os.path.join(path, "hooks/pre_pipeline.sh")
         elif pipeline == "post_success":
             hook = os.path.join(path, "hooks/post_pipeline_success.sh")
-        elif pipeline == "psot_failure":
+        elif pipeline == "post_failure":
             hook = os.path.join(path, "hooks/post_pipeline_failure.sh")
 
         print >> sys.stderr, "hook: " + hook
