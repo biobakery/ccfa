@@ -43,9 +43,15 @@ function link_products {
 
 task=`echo ${TaskName} | sed 's/:.*$//'`
 if [[ "${task}" == "breadcrumbs_pcoa_plot" ]]; then
-  set
   if [[ -n ${TaskOutputDirectory} ]]; then
+    touch ${TaskOutputDirectory}/pcoa.html
     TaskProducts="${TaskOutputDirectory}otu_table_merged.biom.pcl_pcoa_plot-BarcodeSequence.png ${TaskOutputDirectory}otu_table_merged.biom.pcl_pcoa_plot-LinkerPrimerSequence.png ${TaskOutputDirectory}otu_table_merged.biom.pcl_pcoa_plot-DOB.png ${TaskOutputDirectory}otu_table_merged.biom.pcl_pcoa_plot-Treatment.png ${TaskOutputDirectory}otu_table_merged.biom.pcl_pcoa_plot-Description.png ${TaskOutputDirectory}otu_table_merged.biom.pcl_pcoa_plot-sample.png"
+  fi
+fi
+
+if [[ "${task}" == "stacked_bar_chart" ]]; then
+  if [[ -n ${TaskOutputDirectory} ]]; then
+    touch ${TaskOutputDirectory}/barchart.html
   fi
 fi
 

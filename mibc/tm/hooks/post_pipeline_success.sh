@@ -8,7 +8,7 @@
 HMP2_DATA_DIR=/seq/ibdmdb/data_deposition
 HMP2_PROCESSING_DIR=/seq/ibdmdb/processing
 HMP2_PUBLIC_DIR=/seq/ibdmdb/public
-extensions="png html biom tsv"
+extensions="png html biom tsv hdf5"
 
 function get_files {
   ext=$1
