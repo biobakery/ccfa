@@ -55,6 +55,22 @@ if [[ "${task}" == "stacked_bar_chart" ]]; then
   fi
 fi
 
+if [[ "${task}" == "merge_otu_tables" ]]; then
+  if [ -f /seq/ibdmdb/centos6/qiime-dev/bin/activate ]; then
+    source /seq/ibdmdb/centos6/bin/activate
+    for file in `echo "${TaskProducts}"`
+    do
+      outfile=`echo ${file%.*}`
+      outfile="${outfile}.hdf5"
+      #qiime-dev_cmd biom convert -i "${file}" -o "${outfile}" --table-type="OTU table" --to-hdf5
+      qiime-dev_cmd biom convert -i "${file}" -o "${outfile}" --to-hdf5
+      if [ $? -eq 0 ]; then
+        TaskProducts="$TaskProducts $outfile"
+      fi
+    done
+  fi
+fi
+
 link_products
 
 
