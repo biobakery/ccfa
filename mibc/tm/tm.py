@@ -36,6 +36,7 @@ class TaskManager(object):
         self.wslisteners = wslisteners
         self.queueStatus = QueueStatus.RUNNING
         self.root = None
+        self.pipeline_output_directory = None
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -71,6 +72,9 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
                     self.notify(task)
+            if not self.getOutputDirectory():
+                if task.getProducts():
+                    self.setOutputDirectory(task.getProducts()[0].split('mibc_products')[0] + 'mibc_products/')
         if firsttime:
             self.callHook("pre")
 
@@ -211,6 +215,12 @@ class TaskManager(object):
     def getStatus(self):
         return self.status
 
+    def getOutputDirectory(self):
+        return self.pipeline_output_directory
+
+    def setOutputDirectory(self, dir):
+        self.pipeline_output_directory = dir
+
     def pauseQueue(self):
         print >> sys.stderr, "pauseQueue"
         self.queueStatus = QueueStatus.PAUSED
@@ -245,7 +255,7 @@ class TaskManager(object):
             hook = os.path.join(path, "hooks/pre_pipeline.sh")
         elif pipeline == "post_success":
             hook = os.path.join(path, "hooks/post_pipeline_success.sh")
-        elif pipeline == "psot_failure":
+        elif pipeline == "post_failure":
             hook = os.path.join(path, "hooks/post_pipeline_failure.sh")
 
         print >> sys.stderr, "hook: " + hook
@@ -258,6 +268,7 @@ class TaskManager(object):
         os.environ["TaskReturnCode"] = str(self.root.getReturnCode())
         os.environ["TaskScriptfile"] = self.root.getScriptfile()
         os.environ["TaskLogfile"] = self.root.getLogfile()
+        os.environ["TaskOutputDirectory"] = self.getOutputDirectory()
         productfiles = str()
         for file in self.root.getProducts():
             productfiles += file + " "

@@ -114,7 +114,8 @@ class Task(object):
         """ Method should only be used prior to running any tasks! """
         for product in self.json_node['produces']:
             if (not os.path.isfile(product)):
-                return False
+                if (not os.path.isdir(product)):
+                    return False
         return True
 
     def hasFailed(self):
@@ -231,7 +232,15 @@ class Task(object):
         for product in self.getProducts():
             if os.path.exists(product):
                 print "removing " + product
-                os.unlink(product)
+                if os.path.isfile(product):
+                    os.unlink(product)
+                elif os.path.isdir(product):
+                    # safety test
+                    dirs = [self.getOutputDirectory(), product]
+                    if os.path.commonprefix(dirs) == self.getOutputDirectory():
+                        shutil.rmtree(product)
+                    else:
+                        print >> sys.stderr, "Warning: attempting to remove directory " + product
         self.cleanup()
 
     def callHook(self):
@@ -258,6 +267,8 @@ class Task(object):
         for file in self.getProducts():
             productfiles += file + " "
         os.environ["TaskProducts"] = productfiles
+        if productfiles:
+            os.environ["TaskOutputDirectory"] = productfiles.split()[0].split('mibc_products')[0] + 'mibc_products/'
 
     def __str__(self):
         return "Task: " + self.json_node['name']
@@ -280,6 +291,8 @@ source {SOURCE_PATH}
 echo "<PRE>" 
 date 
 echo "taskname: {taskname}" 
+echo " dependencies: {deps}"
+echo " products: {products}"
 echo "-- picklescript: {pickle} script --"
 cat {pickle}
 echo "-- end picklescript script--" 
@@ -291,6 +304,8 @@ echo "-- end task cmd output --"
 date 
 exit $cmd_exit
             """.format(taskname=self.getName(), 
+                       deps=self.json_node['depends'],
+                       products=self.json_node['produces'],
                        SOURCE_PATH=globals.config['SOURCE_PATH'],
                        pickle=self.getPickleScript())
         with open(script, 'w+') as f:
