@@ -46,7 +46,8 @@ class TaskManager(object):
         """ method starts the flow 
             at this point, no tasks have been run and the filesystem is quiet
             assume all tasks that have existing products on the filesystem 
-            are complete.  
+            are complete.  If some products do not exist, assume that none
+            exist, removed the other products, and schedule the task.
         """
         firsttime = True
         for key,task in self.taskList.iteritems():
@@ -61,6 +62,10 @@ class TaskManager(object):
                 self.completedTasks.append(task)
                 self.notify(task)
                 task.cleanup()
+            else:
+                """ task not complete.  Clean up any existing products now.
+                """
+                task.cleanup_products()
 
         for key,task in self.taskList.iteritems():
             if task not in self.completedTasks:
