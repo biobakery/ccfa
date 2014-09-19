@@ -302,7 +302,7 @@ cat {pickle}
 echo "-- end picklescript script--" 
 echo ""
 echo "-- task cmd output --" 
-/usr/bin/env time -p {pickle} 
+/usr/bin/env time -p {pickle} -v 
 cmd_exit=`echo $?`
 echo "-- end task cmd output --" 
 date 
@@ -344,7 +344,7 @@ class LSFTask(Task):
 #BSUB {CLUSTER_QUEUE}
 #BSUB -o {OUTPUT}
 source {SOURCE_PATH}
-{picklescript} -r
+{picklescript} -v
 """     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
                        CLUSTER_JOB=globals.config['CLUSTER_JOB'],
                        SOURCE_PATH=globals.config['SOURCE_PATH'],
