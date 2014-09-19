@@ -49,6 +49,11 @@ class Task(object):
             self.setStatus(Status.FINISHED)
             self.result = Result.RUN_PREVIOUSLY
 
+    def markIncomplete(self):
+        self.setCompleted(False)
+        self.setStatus(Status.WAITING)
+        self.result = Result.NA
+
     def getTaskNum(self):
         return self.num
 
@@ -273,6 +278,16 @@ class Task(object):
         os.environ["TaskProducts"] = productfiles
         if productfiles:
             os.environ["TaskOutputDirectory"] = productfiles.split()[0].split('mibc_products')[0] + 'mibc_products/'
+
+    def ancestorIncomplete(self):
+        if self.getName() == "root":
+            return False
+        for parentId in self.getParentIds(): 
+            if not self.taskList[parentId].isComplete():
+                return True
+            if self.taskList[parentId].ancestorIncomplete():
+                return True
+        return False 
 
     def __str__(self):
         return "Task: " + self.json_node['name']

@@ -63,8 +63,15 @@ class TaskManager(object):
                 self.notify(task)
                 task.cleanup()
             else:
-                """ task not complete.  Clean up any existing products now.
+                """ task not complete.  Clean up any existing products belonging to
+                    the task.  Then, requeue any tasks which rely on this task.
                 """
+                task.cleanup_products()
+
+        for key,task in self.taskList.iteritems():
+            if task.isComplete() and task.ancestorIncomplete():
+                task.markIncomplete()
+                self.completedTasks.remove(task)
                 task.cleanup_products()
 
         for key,task in self.taskList.iteritems():
@@ -77,6 +84,8 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
                     self.notify(task)
+            # this is a bit of a hack to find our output directory
+            # at some point this field should come from the root DAG
             if not self.getOutputDirectory():
                 if task.getProducts():
                     self.setOutputDirectory(task.getProducts()[0].split('mibc_products')[0] + 'mibc_products/')
