@@ -46,7 +46,8 @@ class TaskManager(object):
         """ method starts the flow 
             at this point, no tasks have been run and the filesystem is quiet
             assume all tasks that have existing products on the filesystem 
-            are complete.  
+            are complete.  If some products do not exist, assume that none
+            exist, removed the other products, and schedule the task.
         """
         firsttime = True
         for key,task in self.taskList.iteritems():
@@ -60,7 +61,19 @@ class TaskManager(object):
                 firsttime = False;
                 self.completedTasks.append(task)
                 self.notify(task)
-                task.cleanup()
+                #task.cleanup() do not call cleanup now; further processing
+                # may require re-running this task
+            else:
+                """ task not complete.  Clean up any existing products belonging to
+                    the task.  Then, requeue any tasks which rely on this task.
+                """
+                task.cleanup_products()
+
+        for key,task in self.taskList.iteritems():
+            if task.isComplete() and task.ancestorIncomplete():
+                task.markIncomplete()
+                self.completedTasks.remove(task)
+                task.cleanup_products()
 
         for key,task in self.taskList.iteritems():
             if task not in self.completedTasks:
@@ -72,6 +85,11 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
                     self.notify(task)
+            else:
+                task.cleanup()
+
+            # this is a bit of a hack to find our output directory
+            # at some point this field should come from the root DAG
             if not self.getOutputDirectory():
                 if task.getProducts():
                     self.setOutputDirectory(task.getProducts()[0].split('mibc_products')[0] + 'mibc_products/')
