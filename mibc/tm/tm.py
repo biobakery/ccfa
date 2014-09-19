@@ -61,7 +61,8 @@ class TaskManager(object):
                 firsttime = False;
                 self.completedTasks.append(task)
                 self.notify(task)
-                task.cleanup()
+                #task.cleanup() do not call cleanup now; further processing
+                # may require re-running this task
             else:
                 """ task not complete.  Clean up any existing products belonging to
                     the task.  Then, requeue any tasks which rely on this task.
@@ -84,6 +85,9 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
                     self.notify(task)
+            else:
+                task.cleanup()
+
             # this is a bit of a hack to find our output directory
             # at some point this field should come from the root DAG
             if not self.getOutputDirectory():
