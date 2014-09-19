@@ -115,6 +115,7 @@ class Task(object):
         for product in self.json_node['produces']:
             if (not os.path.isfile(product)):
                 if (not os.path.isdir(product)):
+                    print >> sys.stderr, self.getSimpleName() + " " + product + " NOT FOUND."
                     return False
         return True
 
@@ -208,6 +209,20 @@ class Task(object):
             self.logfileno.flush()
             self.logfileno.close()
 
+    def cleanup_products(self):
+        for product in self.getProducts():
+            if os.path.exists(product):
+                print "removing " + product
+                if os.path.isfile(product):
+                    os.unlink(product)
+                elif os.path.isdir(product):
+                    # safety test
+                   dirs = [self.getOutputDirectory(), product]
+                   if os.path.commonprefix(dirs) == self.getOutputDirectory():
+                       shutil.rmtree(product)
+                   else:
+                       print >> sys.stderr, "Warning: attempting to remove directory " + product
+
     def cleanup(self):
         # remove scripts
         # print "cleaning up " + self.getName()
@@ -229,18 +244,7 @@ class Task(object):
             os.kill({self.pid.pid}, signal.SIGTERM)
         except (AttributeError, TypeError):
             print self.getName() + " job removed."
-        for product in self.getProducts():
-            if os.path.exists(product):
-                print "removing " + product
-                if os.path.isfile(product):
-                    os.unlink(product)
-                elif os.path.isdir(product):
-                    # safety test
-                    dirs = [self.getOutputDirectory(), product]
-                    if os.path.commonprefix(dirs) == self.getOutputDirectory():
-                        shutil.rmtree(product)
-                    else:
-                        print >> sys.stderr, "Warning: attempting to remove directory " + product
+        self.cleanup_products()
         self.cleanup()
 
     def callHook(self):
