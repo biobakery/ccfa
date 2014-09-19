@@ -22,10 +22,13 @@ var ws;
             // Adjust SVG height to content
             var main = svgParent.find('g > g');
             var h = main.get(0).getBoundingClientRect().height;
+            var w = main.get(0).getBoundingClientRect().width;
             var newHeight = h + 40;
+            var newWidth = w + 40;
             newHeight = newHeight < 80 ? 80 : newHeight;
+            newWidth = newWidth < 768 ? 768 : newWidth;
             svgParent.height(newHeight);
-            svgParent.width(768);
+            svgParent.width(newWidth);
 
             // Zoom
             d3.select(svgParent.get(0)).call(d3.behavior.zoom().on('zoom', function() {
