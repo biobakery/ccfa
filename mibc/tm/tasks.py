@@ -49,6 +49,11 @@ class Task(object):
             self.setStatus(Status.FINISHED)
             self.result = Result.RUN_PREVIOUSLY
 
+    def markIncomplete(self):
+        self.setCompleted(False)
+        self.setStatus(Status.WAITING)
+        self.result = Result.NA
+
     def getTaskNum(self):
         return self.num
 
@@ -115,6 +120,7 @@ class Task(object):
         for product in self.json_node['produces']:
             if (not os.path.isfile(product)):
                 if (not os.path.isdir(product)):
+                    print >> sys.stderr, self.getSimpleName() + " " + product + " NOT FOUND."
                     return False
         return True
 
@@ -208,6 +214,20 @@ class Task(object):
             self.logfileno.flush()
             self.logfileno.close()
 
+    def cleanup_products(self):
+        for product in self.getProducts():
+            if os.path.exists(product):
+                print "removing " + product
+                if os.path.isfile(product):
+                    os.unlink(product)
+                elif os.path.isdir(product):
+                    # safety test
+                   dirs = [self.getOutputDirectory(), product]
+                   if os.path.commonprefix(dirs) == self.getOutputDirectory():
+                       shutil.rmtree(product)
+                   else:
+                       print >> sys.stderr, "Warning: attempting to remove directory " + product
+
     def cleanup(self):
         # remove scripts
         # print "cleaning up " + self.getName()
@@ -229,18 +249,7 @@ class Task(object):
             os.kill({self.pid.pid}, signal.SIGTERM)
         except (AttributeError, TypeError):
             print self.getName() + " job removed."
-        for product in self.getProducts():
-            if os.path.exists(product):
-                print "removing " + product
-                if os.path.isfile(product):
-                    os.unlink(product)
-                elif os.path.isdir(product):
-                    # safety test
-                    dirs = [self.getOutputDirectory(), product]
-                    if os.path.commonprefix(dirs) == self.getOutputDirectory():
-                        shutil.rmtree(product)
-                    else:
-                        print >> sys.stderr, "Warning: attempting to remove directory " + product
+        self.cleanup_products()
         self.cleanup()
 
     def callHook(self):
@@ -269,6 +278,16 @@ class Task(object):
         os.environ["TaskProducts"] = productfiles
         if productfiles:
             os.environ["TaskOutputDirectory"] = productfiles.split()[0].split('mibc_products')[0] + 'mibc_products/'
+
+    def ancestorIncomplete(self):
+        if self.getName() == "root":
+            return False
+        for parentId in self.getParentIds(): 
+            if not self.taskList[parentId].isComplete():
+                return True
+            if self.taskList[parentId].ancestorIncomplete():
+                return True
+        return False 
 
     def __str__(self):
         return "Task: " + self.json_node['name']
