@@ -8,6 +8,7 @@ import hashlib
 import time
 import globals
 import re
+import shutil
 
 class Enum(set):
     """ duplicates basic java enum functionality """
@@ -213,6 +214,7 @@ class Task(object):
         if self.logfileno is not None:
             self.logfileno.flush()
             self.logfileno.close()
+        self.publishLogfile()
 
     def cleanup_products(self):
         for product in self.getProducts():
@@ -289,8 +291,27 @@ class Task(object):
                 return True
         return False 
 
+    def isAncestor(self, targetTask):
+        if self == targetTask:
+            return True
+        else:
+            for parentId in self.getParentIds():
+                if self.taskList[parentId].isAncestor(targetTask):
+                    return True
+        return False
+
+    def publishLogfile(self):
+        """ Copy the logfile to sit beside each task product with the log's name as the
+            product with the extension of '.log.html'
+        """
+        for product in self.getProducts():
+            if os.path.exists(product):
+                shutil.copy2(self.getLogfile(), os.path.splitext(product)[0] + ".log.html")
+
     def __str__(self):
         return "Task: " + self.json_node['name']
+
+
 
 class LocalTask(Task):
     """ Tasks run on local workstation"""
@@ -306,27 +327,118 @@ class LocalTask(Task):
         #import pdb;pdb.set_trace()
         script = self.getScriptfile()
         sub = """#!/bin/sh
+cat - <<EOF
 source {SOURCE_PATH}
-echo "<PRE>" 
-date 
-echo "taskname: {taskname}" 
-echo " dependencies: {deps}"
-echo " products: {products}"
-echo "-- picklescript: {pickle} script --"
-cat {pickle}
-echo "-- end picklescript script--" 
-echo ""
-echo "-- task cmd output --" 
+<script src='http://d3js.org/d3.v3.min.js'></script>
+<script src='http://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
+<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
+
+<div align=center>
+<H5> <B>Run Status: </B></H5>
+<table border='1' cellspacing=5 cellpadding=5>
+<TR><Td>date<Td>" `date`
+<TR><td>taskname<td> {taskname}
+</table> <P> </div>
+
+<style>
+#dag svg {{
+    border: 1px solid #999;
+}}
+
+#dag text {{
+    font-weight: 300;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+            font-size: 14px;
+}}
+
+#dag rect {{
+    fill: #fff;
+}}
+
+#dag .node rect {{
+    stroke-width: 2px;
+        stroke: #333;
+            fill: none;
+}}
+
+#dag .node:hover rect {{
+    stroke: #828b9e;
+        fill:   #eaeaea;
+}}
+
+#dag .edge rect {{
+    fill: #fff;
+}}
+
+#dag .edge path {{
+    fill: none;
+        stroke: #333;
+            stroke-width: 1.5px;
+}}
+
+#dag .edgePath path {{
+    fill: none;
+        stroke: #333;
+            stroke-width: 1.5px;
+}}
+
+</style>
+
+<p>DAG: <span id='dag-name'></span></p>
+<div id='dag'><svg height='80'><g transform='translate(20, 20)'/></svg></div>
+
+<script src='http://d3js.org/d3.v3.min.js'></script>
+<script src='http://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" ></script>
+<script> 
+
+var graph = {graph}
+                                                                                                                        
+var nodes = graph.nodes;
+var links = graph.links;
+var graphElem = jQuery('#dag > svg').children('g').get(0);
+var svg = d3.select(graphElem);
+var renderer = new dagreD3.Renderer();
+var layout = dagreD3.layout().rankDir('LR');
+renderer.layout(layout).run(dagreD3.json.decode(nodes, links), svg.append('g'));
+
+// Adjust SVG height to content
+var main = jQuery('#dag > svg').find('g > g');
+var h = main.get(0).getBoundingClientRect().height;
+var w = main.get(0).getBoundingClientRect().width;
+var newHeight = h + 40;
+var newWidth = w + 40;
+newHeight = newHeight < 80 ? 80 : newHeight;
+newWidth = newWidth < 768 ? 768 : newWidth;
+jQuery('#dag > svg').height(newHeight);
+jQuery('#dag > svg').width(newWidth);
+</script>
+
+<UL> dependencies: 
+EOF
+for dep in {deps}; do
+  echo "<LI> $dep </LI>"
+done
+echo "</UL>"
+
+echo "<UL> products: "
+for prod in {products}; do
+  echo "<LI> $prod </LI>"
+done
+echo "</UL>"
+
+echo "<P>"
+echo "-- task cmd output --<br>" 
 /usr/bin/env time -p {pickle} -v 
 cmd_exit=`echo $?`
-echo "-- end task cmd output --" 
-date 
+echo "<br>-- end task cmd output --<br>" 
 exit $cmd_exit
             """.format(taskname=self.getName(), 
                        deps=self.json_node['depends'],
                        products=self.json_node['produces'],
                        SOURCE_PATH=globals.config['SOURCE_PATH'],
-                       pickle=self.getPickleScript())
+                       pickle=self.getPickleScript(),
+                       graph=self.tm.getJsonTaskGraph(self))
         with open(script, 'w+') as f:
           f.write(sub)
 
@@ -372,9 +484,108 @@ source {SOURCE_PATH}
         monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
         sub = """#!/bin/sh
 # kickoff and monitor LSF cluster job
+cat - <<EOF
+<script src='http://d3js.org/d3.v3.min.js'></script>
+<script src='http://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
+<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
 
-# setup LSF environment
-eval export DK_ROOT="/broad/software/dotkit";
+<div align=center>
+<H5> <B>Run Status: </B></H5>
+<table border='1' cellspacing=5 cellpadding=5>
+<TR><Td>date<Td>" `date`
+<TR><td>taskname<td> {taskname}
+</table> <P> </div>
+
+<style>
+#dag svg {{
+    border: 1px solid #999;
+}}
+
+#dag text {{
+    font-weight: 300;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+                        font-size: 14px;
+}}
+
+#dag rect {{
+    fill: #fff;
+}}
+
+#dag .node rect {{
+    stroke-width: 2px;
+            stroke: #333;
+                        fill: none;
+}}
+
+#dag .node:hover rect {{
+    stroke: #828b9e;
+            fill:   #eaeaea;
+}}
+
+#dag .edge rect {{
+    fill: #fff;
+}}
+
+#dag .edge path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+#dag .edge path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+#dag .edgePath path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+</style>
+
+<p>DAG: <span id='dag-name'></span></p>
+<div id='dag'><svg height='80'><g transform='translate(20, 20)'/></svg></div>
+<script> 
+
+var graph = {graph}
+
+var nodes = graph.nodes;
+var links = graph.links;
+var graphElem = jQuery('#dag > svg').children('g').get(0);
+var svg = d3.select(graphElem);
+var renderer = new dagreD3.Renderer();
+var layout = dagreD3.layout().rankDir('LR');
+renderer.layout(layout).run(dagreD3.json.decode(nodes, links), svg.append('g'));
+
+// Adjust SVG height to content
+var main = jQuery('#dag > svg').find('g > g');
+var h = main.get(0).getBoundingClientRect().height;
+var w = main.get(0).getBoundingClientRect().width;
+var newHeight = h + 40;
+var newWidth = w + 40;
+newHeight = newHeight < 80 ? 80 : newHeight;
+newWidth = newWidth < 768 ? 768 : newWidth;
+jQuery('#dag > svg').height(newHeight);
+jQuery('#dag > svg').width(newWidth);
+</script>
+<UL> dependencies: 
+EOF
+for dep in {deps}; do
+  echo "<LI> $dep </LI>"
+done
+echo "</UL>"
+
+echo "<UL> products: "
+for prod in {products}; do
+  echo "<LI> $prod </LI>"
+done
+echo "</UL>"
+echo "<P>"
+
+export DK_ROOT="/broad/software/dotkit";
 . /broad/software/dotkit/ksh/.dk_init
 use LSF 
 
@@ -386,10 +597,10 @@ fi
 
 # launch job
 
-echo "eval {CLUSTER_JOB} {taskname} < {cluster_script}" 
+eval {CLUSTER_JOB} {taskname} < {cluster_script}
 jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
-echo "job_id: +${{job_id}}+" 
+job_id: +${{job_id}}+
 done="no"
 while [ "${{done}}" != "yes" ]; do
 
@@ -420,7 +631,7 @@ if [ "$STATUS" != "OK" ]; then
 else 
     exit 0
 fi
-
+EOF
 """     .format(cluster_script=cluster_script,
                    CLUSTER_JOBID_POS=globals.config["CLUSTER_JOBID_POS"],
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],

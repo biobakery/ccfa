@@ -294,3 +294,29 @@ class TaskManager(object):
         if self.root.getPipelineName() is not None: 
             os.environ["PipelineName"] = self.root.getPipelineName()
 
+    def getJsonTaskGraph(self, task):
+        """ Generate graph structure for a single task flowchart
+            encompassing all tasks up to the given task.
+        """
+        graph = {}
+        graph['name'] = "graph1"
+        graph['nodes'] = []
+        graph['links'] = []
+
+        # nodes
+        for k, targetTask in self.getTasks().iteritems():
+            nodes = graph['nodes']
+            links = graph['links']
+            if task == targetTask or task.isAncestor(targetTask):
+                nodes.append({'id': targetTask.getName(), 'value': { 'label': targetTask.getSimpleName()}})
+                for parentId in targetTask.getParentIds():
+                    parent = self.getTasks()[parentId]
+                    links.append(
+                        {'u': parent.getName(), 'v': targetTask.getName(),
+                         'value': { 'label': ''}})
+
+        json_encoded = json.dumps(graph, sort_keys=True, indent=4, separators=(',', ": "))
+        #print "graph: " + repr(graph)
+        #print "json : " + json_encoded
+        return json_encoded
+
