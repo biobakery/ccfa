@@ -327,8 +327,8 @@ class LocalTask(Task):
         #import pdb;pdb.set_trace()
         script = self.getScriptfile()
         sub = """#!/bin/sh
-cat - <<EOF
 source {SOURCE_PATH}
+cat - <<EOF
 <script src='http://d3js.org/d3.v3.min.js'></script>
 <script src='http://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
 <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
