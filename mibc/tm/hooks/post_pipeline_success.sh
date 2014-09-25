@@ -18,6 +18,9 @@ function get_files {
 
 if [[ -n ${PipelineName} ]]; then
 
+  # touch file in output directory to indicate full results available (this is picked up via website)
+  touch ${TaskOutputDirectory}/complete.html
+
   for extension in $extensions
   do
     for file in `get_files $extension`
