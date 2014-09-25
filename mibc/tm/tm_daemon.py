@@ -165,9 +165,9 @@ class WebHandler(RequestHandler):
     def get(self):
         print "new web connection"
         print "default_hash: " + Tm_daemon.default_hash
-        print tmgrs.keys()
-        print tmgrs.values()
-        print "defauolt_hash: " + Tm_daemon.default_hash
+        #print tmgrs.keys()
+        #print tmgrs.values()
+        #print "default_hash: " + Tm_daemon.default_hash
         tmEntry = tmgrs[Tm_daemon.default_hash]
         currentFile = os.path.realpath(__file__)
         currentDir = os.path.dirname(currentFile)
