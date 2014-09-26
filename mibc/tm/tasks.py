@@ -336,7 +336,7 @@ cat - <<EOF
 <div align=center>
 <H5> <B>Run Status: </B></H5>
 <table border='1' cellspacing=5 cellpadding=5>
-<TR><Td>date<Td>" `date`
+<TR><Td>date<Td> `date`
 <TR><td>taskname<td> {taskname}
 </table> <P> </div>
 
@@ -492,7 +492,7 @@ cat - <<EOF
 <div align=center>
 <H5> <B>Run Status: </B></H5>
 <table border='1' cellspacing=5 cellpadding=5>
-<TR><Td>date<Td>" `date`
+<TR><Td>date<Td> `date`
 <TR><td>taskname<td> {taskname}
 </table> <P> </div>
 
