@@ -329,14 +329,14 @@ class LocalTask(Task):
         sub = """#!/bin/sh
 source {SOURCE_PATH}
 cat - <<EOF
-<script src='http://d3js.org/d3.v3.min.js'></script>
-<script src='http://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
-<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
+<script src='https://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
 
 <div align=center>
 <H5> <B>Run Status: </B></H5>
 <table border='1' cellspacing=5 cellpadding=5>
-<TR><Td>date<Td>" `date`
+<TR><Td>date<Td> `date`
 <TR><td>taskname<td> {taskname}
 </table> <P> </div>
 
@@ -387,9 +387,6 @@ cat - <<EOF
 <p>DAG: <span id='dag-name'></span></p>
 <div id='dag'><svg height='80'><g transform='translate(20, 20)'/></svg></div>
 
-<script src='http://d3js.org/d3.v3.min.js'></script>
-<script src='http://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" ></script>
 <script> 
 
 var graph = {graph}
@@ -492,7 +489,7 @@ cat - <<EOF
 <div align=center>
 <H5> <B>Run Status: </B></H5>
 <table border='1' cellspacing=5 cellpadding=5>
-<TR><Td>date<Td>" `date`
+<TR><Td>date<Td> `date`
 <TR><td>taskname<td> {taskname}
 </table> <P> </div>
 
