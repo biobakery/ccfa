@@ -306,7 +306,7 @@ class Task(object):
         """
         for product in self.getProducts():
             if os.path.exists(product):
-                shutil.copy2(self.getLogfile(), os.path.splitext(product)[0] + ".log.html")
+                shutil.copy2(self.getLogfile(), product + ".log.html")
 
     def __str__(self):
         return "Task: " + self.json_node['name']
