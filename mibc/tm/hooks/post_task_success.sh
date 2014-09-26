@@ -49,11 +49,11 @@ if [[ "${task}" == "breadcrumbs_pcoa_plot" ]]; then
   fi
 fi
 
-if [[ "${task}" == "stacked_bar_chart" ]]; then
-  if [[ -n ${TaskOutputDirectory} ]]; then
-    #touch ${TaskOutputDirectory}/taxonomy_profile.html
-  fi
-fi
+#if [[ "${task}" == "stacked_bar_chart" ]]; then
+#  if [[ -n ${TaskOutputDirectory} ]]; then
+#    #touch ${TaskOutputDirectory}/taxonomy_profile.html
+#  fi
+#fi
 
 if [[ "${task}" == "merge_otu_tables" ]]; then
   if [ -f /seq/ibdmdb/centos6/qiime-dev/bin/activate ]; then
