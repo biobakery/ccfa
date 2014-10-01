@@ -189,7 +189,7 @@ class TaskHandler(RequestHandler):
 
         for k, task in tmEntry['tm'].getTasks().iteritems():
             if task.getName() == targetTask:
-                print >> sys.stderr, "logfile: " + task.getLogfile()
+                #print >> sys.stderr, "logfile: " + task.getLogfile()
                 if os.path.exists(task.getLogfile()):
                     self.render(task.getLogfile())
                 elif getLastAvailableTaskRun(task) is not None:
