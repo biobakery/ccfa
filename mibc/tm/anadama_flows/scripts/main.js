@@ -44,9 +44,27 @@ var ws;
 
         click: function(d) {
             console.log(d);
-            
-            host = document.location.host;
-            window.open("http://" + host + "/task?task=" + d);
+            $("dag").dialog({
+                    modal: true,
+                    position: "top",
+                    buttons: {"logfile": 
+                                {id: "logfile",
+                                    click: function() 
+                                    {
+                                        host = document.location.host;
+                                        window.open("http://" + host + "/task?task=" + d);
+                                    }
+                                },
+                            "redo task": 
+                                {id: "redo",
+                                    click: function() {
+                                    var obj = {'dag': 'dag'};
+                                    var json = JSON.stringify(obj);
+                                    ws.send(json);
+                                    }
+                                }
+                            }
+            });
         },
 
         updateGraph: function(graph, task, status) {
