@@ -46,7 +46,11 @@ if [[ -n ${PipelineName} ]]; then
         mkdir -p "${linkdir}"
       fi
 
-      ln -s "${file}" "${linkfile}"
+      if [[ $extension == "hdf5" ]]; then
+        cp "${file}" "${linkfile}"
+      else
+        ln -s "${file}" "${linkfile}"
+      fi
       
     done
   done
