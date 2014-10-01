@@ -36,6 +36,11 @@ function link_products {
     fi
   
     ln -s "${file}" "${linkfile}"
+    
+    # public the logfile for the product if it exists
+    if [ -f "${file}.log.html" ]; then
+        ln -s "${file}.log.html" "${linkfile}.log.html"
+    fi
   
   done
   
