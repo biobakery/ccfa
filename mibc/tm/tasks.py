@@ -56,7 +56,10 @@ class Task(object):
         self.result = Result.NA
 
     def getTaskNum(self):
-        return self.num
+        try:
+            return self.num
+        except AttributeError:
+            return "00"
 
     def setTaskNum(self, num):
         self.num = num
@@ -149,11 +152,12 @@ class Task(object):
     def getStatus(self):
         if not self.isComplete() and self.return_code is not None:
             if self.return_code == 0:
-                print >> sys.stderr, "FINISHED TASK: " + self.getName()
+                print >> sys.stderr, "FINISHED TASK: " + self.getTaskId()
                 self.setStatus(Status.FINISHED)
                 self.result = Result.SUCCESS
             else:
                 print >> sys.stderr, "FINISHED (FAILED) TASK: " + self.getName() + " " + str(self.getReturnCode())
+                print >> sys.stderr, " logfile: " + self.getLogfile()
                 self.setStatus(Status.FINISHED)
                 self.result = Result.FAILURE
             self.setCompleted(True)
@@ -165,7 +169,7 @@ class Task(object):
         if (givenStatus in Status):
             self.status = givenStatus
             if self.fifo is not None:
-                print >> self.fifo, "Task " + self.getName() + " status is now " + givenStatus
+                print >> self.fifo, "Task " + self.getTaskId() + " status is now " + givenStatus
         else: 
             logging.error("Setting task status to unknown status: " + givenStatus)
 
@@ -462,7 +466,7 @@ class LSFTask(Task):
     def run(self, callback):
         super(LSFTask, self).run(callback)
         # create subprocess script
-        print >> sys.stderr, "task_id: " + self.getTaskId()
+        #print >> sys.stderr, "task_id: " + self.getTaskId()
         cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
         sub = """#!/bin/sh
 #BSUB {CLUSTER_QUEUE}
@@ -481,10 +485,11 @@ source {SOURCE_PATH}
         monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
         sub = """#!/bin/sh
 # kickoff and monitor LSF cluster job
+source {SOURCE_PATH}
 cat - <<EOF
-<script src='http://d3js.org/d3.v3.min.js'></script>
-<script src='http://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
-<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
+<script src='https://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
 
 <div align=center>
 <H5> <B>Run Status: </B></H5>
@@ -594,17 +599,16 @@ fi
 
 # launch job
 
-eval {CLUSTER_JOB} {taskname} < {cluster_script}
 jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
-job_id: +${{job_id}}+
+echo "<BR>job_id: +${{job_id}}+"
 done="no"
 while [ "${{done}}" != "yes" ]; do
 
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "output: ${{output}}" 
+  echo "<BR>output: ${{output}}" 
 
   case ${{output}} in
 
@@ -623,6 +627,7 @@ while [ "${{done}}" != "yes" ]; do
 
   sleep 60
 done
+echo "<PRE>"
 if [ "$STATUS" != "OK" ]; then
     exit -1
 else 
@@ -634,6 +639,10 @@ EOF
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
                    CLUSTER_JOB=globals.config["CLUSTER_JOB"],
+                   SOURCE_PATH=globals.config['SOURCE_PATH'],
+                   graph=self.tm.getJsonTaskGraph(self),
+                   products=self.json_node['produces'],
+                   deps=self.json_node['depends'],
                    taskname=self.getTaskId())
 
         with open(monitor_script, 'w+') as f:
