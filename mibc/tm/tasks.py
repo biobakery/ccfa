@@ -213,12 +213,12 @@ class Task(object):
         self.directory = givenDir
 
     def callback(self, exit_code):
-        self.setReturnCode(exit_code)
-        self.tm.runQueue()
         if self.logfileno is not None:
             self.logfileno.flush()
             self.logfileno.close()
         self.publishLogfile()
+        self.setReturnCode(exit_code)
+        self.tm.runQueue()
 
     def cleanup_products(self):
         for product in self.getProducts():
