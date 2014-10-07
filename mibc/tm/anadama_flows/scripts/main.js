@@ -1,6 +1,7 @@
 /*global jQuery, jQuery UI, d3, dagreD3, DAG */
 var ws;
 var node_click = "LOG";
+/*
 var dialog = $("dag").dialog({
                     modal: true,
                     position: "top",
@@ -18,6 +19,7 @@ var dialog = $("dag").dialog({
                                     }
                     }
             });
+*/
 
 (function () {
     'use strict';
