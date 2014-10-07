@@ -19,14 +19,14 @@ HMP2_PUBLIC_DIR=/seq/ibdmdb/public
 if [[ -n ${PipelineName} ]]; then
 
   mail -s "hmp2 pipeline ${PipelineName} started" kbayer@broadinstitute.org <<EOF
-no body.
+echo "Server started on port: ${ServerPort}"
 EOF
 
 else
 
   mail -s 'hmp2 pipeline started' kbayer@broadinstitute.org <<EOF
 no pipeline name found!
+echo "Server started on port: ${ServerPort}"
 EOF
 
 fi
-
