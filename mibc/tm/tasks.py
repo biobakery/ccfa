@@ -216,13 +216,10 @@ class Task(object):
         if self.logfileno is not None:
             self.logfileno.flush()
             self.logfileno.close()
-        self.publishLogfile()
-        if self.getStatus() == Status.FINISHED: 
+        if self.pid is not None:
+            self.publishLogfile()
             self.setReturnCode(exit_code)
-        else:
-            print 
-KRB
-        self.tm.runQueue()
+            self.tm.runQueue()
 
     def cleanupProducts(self):
         for product in self.getProducts():
@@ -251,6 +248,8 @@ KRB
             os.kill({self.pid.pid}, signal.SIGTERM)
         except (AttributeError, TypeError):
             print self.getName() + " job removed."
+        # set our pid to None as a flag for any job callbacks to ignore the results
+        self.pid = None
 
     def cleanupFailure(self):
         ''' Cleanup method is called if the task has failed or the

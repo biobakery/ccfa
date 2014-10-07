@@ -279,7 +279,8 @@ class TaskManager(object):
                 continue
             if task.getStatus() == tasks.Status.QUEUED:
                 self.notify(task)
-                self.queuedTasks.remove(task)
+                if task in self.queuedTasks:
+                    self.queuedTasks.remove(task)
                 continue
             if task.getStatus() == tasks.Status.RUNNING:
                 task.killRun()
