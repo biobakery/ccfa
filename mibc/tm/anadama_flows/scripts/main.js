@@ -1,5 +1,23 @@
-/*global jQuery, d3, dagreD3, DAG */
+/*global jQuery, jQuery UI, d3, dagreD3, DAG */
 var ws;
+var node_click = "LOG";
+var dialog = $("dag").dialog({
+                    modal: true,
+                    position: "top",
+                    buttons: {
+                                    "logfile" : function() 
+                                    {
+                                        host = document.location.host;
+                                        window.open("http://" + host + "/task?task=" + d);
+                                    },
+                                    "redo task" : function() 
+                                    {
+                                      var obj = {'dag': 'dag'};
+                                      var json = JSON.stringify(obj);
+                                      ws.send(json);
+                                    }
+                    }
+            });
 
 (function () {
     'use strict';
@@ -44,27 +62,16 @@ var ws;
 
         click: function(d) {
             console.log(d);
-            $("dag").dialog({
-                    modal: true,
-                    position: "top",
-                    buttons: {"logfile": 
-                                {id: "logfile",
-                                    click: function() 
-                                    {
-                                        host = document.location.host;
-                                        window.open("http://" + host + "/task?task=" + d);
-                                    }
-                                },
-                            "redo task": 
-                                {id: "redo",
-                                    click: function() {
-                                    var obj = {'dag': 'dag'};
-                                    var json = JSON.stringify(obj);
-                                    ws.send(json);
-                                    }
-                                }
-                            }
-            });
+			if (node_click == "LOG") {
+              host = document.location.host;
+              window.open("http://" + host + "/task?task=" + d);
+            }
+            else {
+              // contact tm to redo our task
+              var obj = {'redo': d};
+              var json = JSON.stringify(obj);
+              ws.send(json);
+            }
         },
 
         updateGraph: function(graph, task, status) {
@@ -338,6 +345,25 @@ function convertDate(totalSeconds) {
  */
 $(document).ready(function() {
   console.log( "JQuery welcome" );
+  /*
+  $dialog = $("#dag").dialog({
+      modal: true,
+      position: "top",
+      autoOpen: false,
+      title: 'my title',
+      buttons: 
+      {
+        "zero": 
+        {
+          id: "oh",
+          click: function() {
+            console.log('oh');
+          }
+        },
+      }
+    });
+  */ 
+
   taskMap = new Object();
   taskTime = new Object();
   //taskBar = new Object();
@@ -380,8 +406,14 @@ $(document).ready(function() {
 });
 
 function handleRadio(radio) {
-  console.info("radio: " + radio.value)
-  var obj = {'queue': radio.value};
-  var json = JSON.stringify(obj);
-  ws.send(json);
+  if (radio.value == "LOG" || radio.value == "REDO") {
+    node_click = radio.value;
+  }
+  else 
+  {
+    console.info("radio: " + radio.value)
+    var obj = {'queue': radio.value};
+    var json = JSON.stringify(obj);
+    ws.send(json);
+  }
 }
