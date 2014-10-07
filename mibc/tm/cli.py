@@ -43,8 +43,8 @@ opts_list = [
                          dest="governor", help="Rate limit the number of concurrent tasks.  Useful for limited resource on local desktops / laptops."),
     optparse.make_option('-D', '--daemon', action="store_true", 
                          dest="daemon", help="Specify task manager to run as a daemon.  Will process multiple dags."),
-    optparse.make_option('-p', '--port', action="store", type="int", default="8888",
-                         dest="port", help="Specify the port of the webserver - defaults to 8888.")
+    optparse.make_option('-p', '--port', action="store", type="int", default=None,
+                         dest="port", help="Specify the port of the webserver.")
     #optparse.make_option('-o', '--o', action="store", type="string",
     #                     dest="output_file", 
     #                     help="The FASTA output file."),
@@ -195,6 +195,7 @@ def main():
     # create json to send to server
     d = {'tm': 
             {'dag': data, 
+                'port': opts.port,
                 'type': opts.type, 
                 'location': opts.location,
                 'rundirectory': rundirectory,
@@ -210,14 +211,16 @@ def main():
         sigtermSetup()
 
         daemon = tm_daemon.Tm_daemon()
+        print >> sys.stderr, "No daemon, port is " + str(opts.port)
         daemon.setupTm(d['tm'])
-        daemon.run(opts.port)
+        daemon.run()
         # daemon doesn't return
 
     # connect to daemon (or start it)
     else:
         done = False
         while not done:
+            print >> sys.stderr, "Daemon set, port is " + str(opts.port)
             try:
                 ws = websocket.create_connection("ws://localhost:" + str(opts.port) + "/websocket/")
                 down = True

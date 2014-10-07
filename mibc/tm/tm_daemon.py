@@ -6,6 +6,7 @@ import signal
 import tempfile
 from pprint import pprint
 import tornado.httpserver
+import tornado.testing
 import tornado.websocket
 import tornado.ioloop
 import tornado.web 
@@ -43,10 +44,18 @@ class Tm_daemon(object):
         unlikely with 5 characters (but certainly possible).
     '''
     default_hash = None
+    port = None
+    sock = None
 
     def setupTm(self, tm_data):
         ''' each call sets up a new task manager controlling the tasks
             within each dag.'''
+        # need to reserve port early in the startup process
+        if tm_data['port'] is not None:
+            self.port = tm_data['port']
+        else:
+            self.sock, self.port = tornado.testing.bind_unused_port()
+
         # parse the dag from mibc_build
         tmEntry['parser'] = parser.Parser(tm_data['dag'], tm_data['type'].upper(), sys.stdout)
         tmEntry['rundirectory'] = tm_data['rundirectory']
@@ -67,13 +76,14 @@ class Tm_daemon(object):
         # create TaskManager and give it the tasks to run
         tmEntry['tm'] = TaskManager.TaskManager(tmEntry['parser'].getTasks(), wslisteners, tmEntry['governor'])
         tmEntry['tm'].setTaskOutputs(tmEntry['rundirectory'])
+        tmEntry['tm'].setServerPort(self.getPort())
         tmEntry['tm'].setupQueue()
         tmEntry['tm'].runQueue()
         hash = tmEntry['parser'].getHashTuple()[0]
         tmgrs[hash] = tmEntry
         Tm_daemon.default_hash = hash
 
-    def run(self, port):
+    def run(self):
         ''' method runs the tornado webservice - it does not return. '''
 
         currentFile = os.path.realpath(__file__)
@@ -100,11 +110,18 @@ class Tm_daemon(object):
             debug=True
             )
 
+        io_loop = tornado.ioloop.IOLoop.instance()
         app = tornado.web.Application( routes, **app_settings )
-        app.listen(port)
-        print "webserver listening on localhost:" + str(port) + "..."
-        ioloop = tornado.ioloop.IOLoop.instance()
-        ioloop.start()
+        if self.getSock() is None:
+            print >> sys.stderr, "NO SOCKED - SETTING PORT TO " + str(self.getPort())
+            app.listen(self.getPort())
+        else:
+            server = tornado.httpserver.HTTPServer(app, io_loop)
+            server.add_sockets([self.getSock()])
+            server.start()
+
+        print "webserver listening on localhost:" + str(self.getPort()) + "..."
+        io_loop.start()
 
     @staticmethod
     def cleanup():
@@ -112,6 +129,11 @@ class Tm_daemon(object):
             tmEntry = entry
             tmEntry['tm'].cleanup()
 
+    def getPort(self):
+        return self.port
+
+    def getSock(self):
+        return self.sock
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     @tornado.web.asynchronous

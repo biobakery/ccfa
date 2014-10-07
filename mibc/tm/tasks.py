@@ -213,12 +213,12 @@ class Task(object):
         self.directory = givenDir
 
     def callback(self, exit_code):
-        self.setReturnCode(exit_code)
-        self.tm.runQueue()
         if self.logfileno is not None:
             self.logfileno.flush()
             self.logfileno.close()
         self.publishLogfile()
+        self.setReturnCode(exit_code)
+        self.tm.runQueue()
 
     def cleanup_products(self):
         for product in self.getProducts():
@@ -251,10 +251,11 @@ class Task(object):
 
         #import pdb;pdb.set_trace()
         #if self is not None and self.pid is not None and self.pid.pid is not None:
-        try:
-            os.kill({self.pid.pid}, signal.SIGTERM)
-        except (AttributeError, TypeError):
-            print self.getName() + " job removed."
+        if self.getStatus() == Status.RUNNING:
+            try:
+                os.kill({self.pid.pid}, signal.SIGTERM)
+            except (AttributeError, TypeError):
+                print self.getName() + " job removed."
         self.cleanup_products()
         self.cleanup()
 
@@ -661,7 +662,7 @@ EOF
         if os.path.exists(self.getLogfile()):
             with open(self.getLogfile()) as f:
                 jobid = re.search(r'job_id: \+(\d+)\+', f.read())
-        if jobid is not None:
+        if jobid is not None and self.getStatus() == Status.RUNNING:
             # kill the LSF job on the cluster
             sub='''#!/bin/sh
 eval export DK_ROOT="/broad/software/dotkit";                                                                        

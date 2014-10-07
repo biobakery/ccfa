@@ -37,6 +37,7 @@ class TaskManager(object):
         self.queueStatus = QueueStatus.RUNNING
         self.root = None
         self.pipeline_output_directory = None
+        self.serverPort = None
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -95,6 +96,8 @@ class TaskManager(object):
                     self.setOutputDirectory(task.getProducts()[0].split('mibc_products')[0] + 'mibc_products/')
         if firsttime:
             self.callHook("pre")
+        else:
+            self.callHook("pre_restart")
 
     def runQueue(self):
 
@@ -262,6 +265,10 @@ class TaskManager(object):
     def getQueueStatus(self):
         return self.queueStatus
 
+    def setServerPort(self, givenPort):
+        print >> sys.stderr, "SETTING SERVERPORT TO: " + str(givenPort)
+        self.serverPort = givenPort
+
     def callHook(self, pipeline):
         ''' Method spawns a child process that easily allows user defined things
             to run after the task completes.  This hook calls hooks/post_task_success.sh
@@ -275,6 +282,8 @@ class TaskManager(object):
             hook = os.path.join(path, "hooks/post_pipeline_success.sh")
         elif pipeline == "post_failure":
             hook = os.path.join(path, "hooks/post_pipeline_failure.sh")
+        elif pipeline == "pre_restart":
+            hook = os.path.join(path, "hooks/pre_pipeline_restart.sh")
 
         print >> sys.stderr, "hook: " + hook
         subprocess.call(hook, shell=True)
@@ -293,6 +302,8 @@ class TaskManager(object):
         os.environ["TaskProducts"] = productfiles
         if self.root.getPipelineName() is not None: 
             os.environ["PipelineName"] = self.root.getPipelineName()
+        if self.serverPort is not None:
+            os.environ["ServerPort"] = str(self.serverPort)
 
     def getJsonTaskGraph(self, task):
         """ Generate graph structure for a single task flowchart

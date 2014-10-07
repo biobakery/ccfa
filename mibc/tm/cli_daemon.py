@@ -38,7 +38,7 @@ opts_list = [
                          dest="verbose", default=False,
                          help="Turn on verbose output (to stderr)"),
     optparse.make_option('-p', '--port', action="store", type="string",
-                         dest="port", default=8888, help="Specify port daemon listens on"),
+                         dest="port", default=None, help="Specify port daemon listens on"),
     optparse.make_option('-c', '--configuration', action="store", type="string",
                          dest="directory", default=os.getcwd(), help="Specify configuration file "),
 ]
@@ -46,9 +46,6 @@ opts_list = [
 
 def optionHandling():
     global opts
-
-    if opts.port is None:
-        opts.port = 8888
 
 def main():
     global opts, p, argParser, tmgrs
