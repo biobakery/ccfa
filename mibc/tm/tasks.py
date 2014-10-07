@@ -217,10 +217,14 @@ class Task(object):
             self.logfileno.flush()
             self.logfileno.close()
         self.publishLogfile()
-        self.setReturnCode(exit_code)
+        if self.getStatus() == Status.FINISHED: 
+            self.setReturnCode(exit_code)
+        else:
+            print 
+KRB
         self.tm.runQueue()
 
-    def cleanup_products(self):
+    def cleanupProducts(self):
         for product in self.getProducts():
             if os.path.exists(product):
                 print "removing " + product
@@ -242,20 +246,21 @@ class Task(object):
         if os.path.exists(self.getScriptfile()):
             os.unlink(self.getScriptfile())
 
-    def cleanup_failure(self):
+    def killRun(self):
+        try:
+            os.kill({self.pid.pid}, signal.SIGTERM)
+        except (AttributeError, TypeError):
+            print self.getName() + " job removed."
+
+    def cleanupFailure(self):
         ''' Cleanup method is called if the task has failed or the
             task manager is killed for some reason.  This removes
             the potentially unfinished products from the file system
             so the task is recognised as needing to be executed for
             the next run.  It also removes the pickle script'''
 
-        #import pdb;pdb.set_trace()
-        #if self is not None and self.pid is not None and self.pid.pid is not None:
-        try:
-            os.kill({self.pid.pid}, signal.SIGTERM)
-        except (AttributeError, TypeError):
-            print self.getName() + " job removed."
-        self.cleanup_products()
+        self.killRun()
+        self.cleanupProducts()
         self.cleanup()
 
     def callHook(self):
@@ -296,6 +301,9 @@ class Task(object):
         return False 
 
     def isAncestor(self, targetTask):
+        """ method returns true if the targetTask is an ancestor; false otherwise
+        """
+
         if self == targetTask:
             return True
         else:
