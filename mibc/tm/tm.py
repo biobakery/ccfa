@@ -85,8 +85,9 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
                     self.notify(task)
-            else:
-                task.cleanup()
+            # prevent cleanup until tm is brought down
+            #else:
+                #task.cleanup()
 
             # this is a bit of a hack to find our output directory
             # at some point this field should come from the root DAG
@@ -269,13 +270,16 @@ class TaskManager(object):
             Finally, it kicks off the queue to find if anything new can be processed.
         """
         print >> sys.stderr, "redoTask: " + givenTaskString
-        if givenTaskString == "root":
-            print >> sys.stderr, "cannot redo root task."
-            return
+        #if givenTaskString == "root":
+        #    print >> sys.stderr, "cannot redo root task."
+        #    return
 
         givenTask = [task for k,task in self.getTasks().iteritems() if task.getName() == givenTaskString]
         redoTasks = [child for k,child in self.getTasks().iteritems() if child.isAncestor(givenTask[0])]
         for task in redoTasks:
+            # always skip root task
+            if task.getName() == "root":
+                continue
             print >> sys.stderr, "putting " + task.getSimpleName() + " back into waiting queue"
             self.waitingTasks.append(task)
             task.cleanupProducts()
