@@ -146,6 +146,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 tmEntry['tm'].pauseQueue()
             if data['queue'] == TaskManager.QueueStatus.STOPPED:
                 tmEntry['tm'].stopQueue()
+        if 'redo' in data:
+            tmEntry['tm'].redoTask(data['redo'])
 
         #print 'message received %s' % message
 

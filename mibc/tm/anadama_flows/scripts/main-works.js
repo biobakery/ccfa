@@ -1,25 +1,5 @@
-/*global jQuery, jQuery UI, d3, dagreD3, DAG */
+/*global jQuery, d3, dagreD3, DAG */
 var ws;
-var node_click = "LOG";
-/*
-var dialog = $("dag").dialog({
-                    modal: true,
-                    position: "top",
-                    buttons: {
-                                    "logfile" : function() 
-                                    {
-                                        host = document.location.host;
-                                        window.open("http://" + host + "/task?task=" + d);
-                                    },
-                                    "redo task" : function() 
-                                    {
-                                      var obj = {'dag': 'dag'};
-                                      var json = JSON.stringify(obj);
-                                      ws.send(json);
-                                    }
-                    }
-            });
-*/
 
 (function () {
     'use strict';
@@ -42,13 +22,10 @@ var dialog = $("dag").dialog({
             // Adjust SVG height to content
             var main = svgParent.find('g > g');
             var h = main.get(0).getBoundingClientRect().height;
-            var w = main.get(0).getBoundingClientRect().width;
             var newHeight = h + 40;
-            var newWidth = w + 40;
             newHeight = newHeight < 80 ? 80 : newHeight;
-            newWidth = newWidth < 768 ? 768 : newWidth;
             svgParent.height(newHeight);
-            svgParent.width(newWidth);
+            svgParent.width(768);
 
             // Zoom
             d3.select(svgParent.get(0)).call(d3.behavior.zoom().on('zoom', function() {
@@ -64,16 +41,7 @@ var dialog = $("dag").dialog({
 
         click: function(d) {
             console.log(d);
-			if (node_click == "LOG") {
-              host = document.location.host;
-              window.open("http://" + host + "/task?task=" + d);
-            }
-            else {
-              // contact tm to redo our task
-              var obj = {'redo': d};
-              var json = JSON.stringify(obj);
-              ws.send(json);
-            }
+            window.open("http://localhost:8888/task?task=" + d);
         },
 
         updateGraph: function(graph, task, status) {
@@ -172,7 +140,7 @@ var dialog = $("dag").dialog({
 
     },
 
-    updateChart: function(graph, taskid, status) {
+    updateChart: function(graph, taskid, status, runtime) {
             console.info("Status: " + status);
           var chart = d3.select(".chart");
           var selection = chart.selectAll("g");
@@ -190,11 +158,19 @@ var dialog = $("dag").dialog({
                d3.select(this).style("fill", getFill(status));
             }
           });
-         
+       
+          /* 
+          we want to set the runtime for every task here
+          however, only the running tasks should be updated by a tick
+          every taskMap[taskid] gets updated by a tick
+          can we duplicate the update in tick here so that we can do 
+          it one time for every task?
+          */
+
           if (status == "RUNNING") {
             var now = new Date().getTime() / 1000;
             console.info("RUNNING task.id: " + taskid);
-            taskMap[taskid] = now;
+            taskMap[taskid] = now - runtime;
             /*
             var chart2 = d3.select(".chart2");
             var existingBars = chart2.selectAll("g");
@@ -223,8 +199,7 @@ var dialog = $("dag").dialog({
 
     click: function(d) {
       //console.log(d);
-      host = document.location.host;
-      window.open("http://" + host + "/task?task=" + d.id);
+      window.open("http://localhost:8888/task?task=" + d.id);
     }
   }
 })();
@@ -262,8 +237,6 @@ function taskTick() {
   var xScale;
 
   existingBars.each(function(d, i) {
-    //if (!(isNaN(d)))
-    //{
     if (!(isNaN(taskMap[d.id]))) {
       bar = d3.select(this);
       bar.select("rect")
@@ -294,17 +267,11 @@ function taskTick() {
           return str;
       });
     }
-    //}
   });
 
-  /*
-  var xAxis = d3.svg.axis()
+  var xAxis = chart2.select("xAxis")
     .scale(xScale)
     .orient("top");
-
-  chart2.append("g")
-         .call(xAxis);
-  */
 
   /* 
   d3.select(bar)
@@ -347,32 +314,11 @@ function convertDate(totalSeconds) {
  */
 $(document).ready(function() {
   console.log( "JQuery welcome" );
-  /*
-  $dialog = $("#dag").dialog({
-      modal: true,
-      position: "top",
-      autoOpen: false,
-      title: 'my title',
-      buttons: 
-      {
-        "zero": 
-        {
-          id: "oh",
-          click: function() {
-            console.log('oh');
-          }
-        },
-      }
-    });
-  */ 
-
   taskMap = new Object();
   taskTime = new Object();
   //taskBar = new Object();
   var bars = [];
-  host = document.location.host;
-  console.info("host: " + host);
-  ws = new WebSocket("ws://" + host + "/websocket/");
+  ws = new WebSocket("ws://localhost:8888/websocket/");
   ws.onopen = function() {
       var obj = {'dag': 'dag'};
       var json = JSON.stringify(obj);
@@ -397,7 +343,7 @@ $(document).ready(function() {
           //alert(update.task);
           //console.info(update.task + " " + update.status);
           DAG.updateGraph(json_dag, update.task, update.status);
-          BAR.updateChart(json_dag, update.task, update.status);
+          BAR.updateChart(json_dag, update.task, update.status, update.runTime);
         }
       }
   };
@@ -408,14 +354,8 @@ $(document).ready(function() {
 });
 
 function handleRadio(radio) {
-  if (radio.value == "LOG" || radio.value == "REDO") {
-    node_click = radio.value;
-  }
-  else 
-  {
-    console.info("radio: " + radio.value)
-    var obj = {'queue': radio.value};
-    var json = JSON.stringify(obj);
-    ws.send(json);
-  }
+  console.info("radio: " + radio.value)
+  var obj = {'queue': radio.value};
+  var json = JSON.stringify(obj);
+  ws.send(json);
 }

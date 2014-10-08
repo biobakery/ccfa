@@ -67,13 +67,13 @@ class TaskManager(object):
                 """ task not complete.  Clean up any existing products belonging to
                     the task.  Then, requeue any tasks which rely on this task.
                 """
-                task.cleanup_products()
+                task.cleanupProducts()
 
         for key,task in self.taskList.iteritems():
             if task.isComplete() and task.ancestorIncomplete():
                 task.markIncomplete()
                 self.completedTasks.remove(task)
-                task.cleanup_products()
+                task.cleanupProducts()
 
         for key,task in self.taskList.iteritems():
             if task not in self.completedTasks:
@@ -85,8 +85,9 @@ class TaskManager(object):
                     task.setStatus(tasks.Status.WAITING)
                     self.waitingTasks.append(task)
                     self.notify(task)
-            else:
-                task.cleanup()
+            # prevent cleanup until tm is brought down
+            #else:
+                #task.cleanup()
 
             # this is a bit of a hack to find our output directory
             # at some point this field should come from the root DAG
@@ -178,11 +179,11 @@ class TaskManager(object):
             task.cleanup()
         for task in self.completedTasks:
             if task.getResult() == tasks.Result.FAILURE:
-                task.cleanup_failure()
+                task.cleanupFailure()
             else:
                 task.cleanup()
         for task in self.queuedTasks:
-            task.cleanup_failure()
+            task.cleanupFailure()
 
 
     def notify(self, task):
@@ -261,6 +262,57 @@ class TaskManager(object):
 
     def getQueueStatus(self):
         return self.queueStatus
+
+    def redoTask(self, givenTaskString):
+        """ Method retrieves a handle to the real task identified by the given task
+            string.  It then forces this task into the taskWaiting Queue.  It then
+            traverses the task list looking for downstream tasks to also 'redo'.
+            Finally, it kicks off the queue to find if anything new can be processed.
+        """
+        print >> sys.stderr, "redoTask: " + givenTaskString
+        #if givenTaskString == "root":
+        #    print >> sys.stderr, "cannot redo root task."
+        #    return
+
+        givenTask = [task for k,task in self.getTasks().iteritems() if task.getName() == givenTaskString]
+        redoTasks = [child for k,child in self.getTasks().iteritems() if child.isAncestor(givenTask[0])]
+        for task in redoTasks:
+            # always skip root task
+            if task.getName() == "root":
+                continue
+            print >> sys.stderr, "putting " + task.getSimpleName() + " back into waiting queue"
+            self.waitingTasks.append(task)
+            task.cleanupProducts()
+            task.setCompleted(False)
+            if task.getStatus() == tasks.Status.WAITING:
+                continue
+            if task.getStatus() == tasks.Status.QUEUED:
+                if task in self.queuedTasks:
+                    self.queuedTasks.remove(task)
+                self.notify(task)
+                continue
+            if task.getStatus() == tasks.Status.RUNNING:
+                task.killRun()
+                self.queuedTasks.remove(task)
+                task.cleanupProducts()
+                task.setReturnCode(None)
+                task.setResult(tasks.Result.NA)
+                task.setStatus(tasks.Status.WAITING)
+                task.setCompleted(False)
+                self.notify(task)
+                # reset queue governor
+                self.governor += 1
+                continue
+            if task.getStatus() == tasks.Status.FINISHED:
+                self.completedTasks.remove(task)
+                task.cleanupProducts()
+                task.setReturnCode(None)
+                task.setResult(tasks.Result.NA)
+                task.setStatus(tasks.Status.WAITING)
+                task.setCompleted(False)
+                self.notify(task)
+
+        self.runQueue()
 
     def callHook(self, pipeline):
         ''' Method spawns a child process that easily allows user defined things
