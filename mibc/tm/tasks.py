@@ -612,6 +612,8 @@ echo "<BR>job_id: +${{job_id}}+"
 done="no"
 while [ "${{done}}" != "yes" ]; do
 
+  sleep 60
+
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
@@ -632,7 +634,6 @@ while [ "${{done}}" != "yes" ]; do
 
   esac
 
-  sleep 60
 done
 echo "<PRE>"
 if [ "$STATUS" != "OK" ]; then
