@@ -8,6 +8,7 @@ import hashlib
 import time
 import globals
 import re
+import shutil
 
 class Enum(set):
     """ duplicates basic java enum functionality """
@@ -55,7 +56,10 @@ class Task(object):
         self.result = Result.NA
 
     def getTaskNum(self):
-        return self.num
+        try:
+            return self.num
+        except AttributeError:
+            return "00"
 
     def setTaskNum(self, num):
         self.num = num
@@ -148,11 +152,12 @@ class Task(object):
     def getStatus(self):
         if not self.isComplete() and self.return_code is not None:
             if self.return_code == 0:
-                print >> sys.stderr, "FINISHED TASK: " + self.getName()
+                print >> sys.stderr, "FINISHED TASK: " + self.getTaskId()
                 self.setStatus(Status.FINISHED)
                 self.result = Result.SUCCESS
             else:
                 print >> sys.stderr, "FINISHED (FAILED) TASK: " + self.getName() + " " + str(self.getReturnCode())
+                print >> sys.stderr, " logfile: " + self.getLogfile()
                 self.setStatus(Status.FINISHED)
                 self.result = Result.FAILURE
             self.setCompleted(True)
@@ -164,7 +169,7 @@ class Task(object):
         if (givenStatus in Status):
             self.status = givenStatus
             if self.fifo is not None:
-                print >> self.fifo, "Task " + self.getName() + " status is now " + givenStatus
+                print >> self.fifo, "Task " + self.getTaskId() + " status is now " + givenStatus
         else: 
             logging.error("Setting task status to unknown status: " + givenStatus)
 
@@ -208,13 +213,15 @@ class Task(object):
         self.directory = givenDir
 
     def callback(self, exit_code):
-        self.setReturnCode(exit_code)
-        self.tm.runQueue()
         if self.logfileno is not None:
             self.logfileno.flush()
             self.logfileno.close()
+        if self.pid is not None:
+            self.publishLogfile()
+            self.setReturnCode(exit_code)
+            self.tm.runQueue()
 
-    def cleanup_products(self):
+    def cleanupProducts(self):
         for product in self.getProducts():
             if os.path.exists(product):
                 print "removing " + product
@@ -236,20 +243,23 @@ class Task(object):
         if os.path.exists(self.getScriptfile()):
             os.unlink(self.getScriptfile())
 
-    def cleanup_failure(self):
+    def killRun(self):
+        try:
+            os.kill({self.pid.pid}, signal.SIGTERM)
+        except (AttributeError, TypeError):
+            print self.getName() + " job removed."
+        # set our pid to None as a flag for any job callbacks to ignore the results
+        self.pid = None
+
+    def cleanupFailure(self):
         ''' Cleanup method is called if the task has failed or the
             task manager is killed for some reason.  This removes
             the potentially unfinished products from the file system
             so the task is recognised as needing to be executed for
             the next run.  It also removes the pickle script'''
 
-        #import pdb;pdb.set_trace()
-        #if self is not None and self.pid is not None and self.pid.pid is not None:
-        try:
-            os.kill({self.pid.pid}, signal.SIGTERM)
-        except (AttributeError, TypeError):
-            print self.getName() + " job removed."
-        self.cleanup_products()
+        self.killRun()
+        self.cleanupProducts()
         self.cleanup()
 
     def callHook(self):
@@ -289,8 +299,30 @@ class Task(object):
                 return True
         return False 
 
+    def isAncestor(self, targetTask):
+        """ method returns true if the targetTask is an ancestor; false otherwise
+        """
+
+        if self == targetTask:
+            return True
+        else:
+            for parentId in self.getParentIds():
+                if self.taskList[parentId].isAncestor(targetTask):
+                    return True
+        return False
+
+    def publishLogfile(self):
+        """ Copy the logfile to sit beside each task product with the log's name as the
+            product with the extension of '.log.html'
+        """
+        for product in self.getProducts():
+            if os.path.exists(product):
+                shutil.copy2(self.getLogfile(), product + ".log.html")
+
     def __str__(self):
         return "Task: " + self.json_node['name']
+
+
 
 class LocalTask(Task):
     """ Tasks run on local workstation"""
@@ -307,26 +339,114 @@ class LocalTask(Task):
         script = self.getScriptfile()
         sub = """#!/bin/sh
 source {SOURCE_PATH}
-echo "<PRE>" 
-date 
-echo "taskname: {taskname}" 
-echo " dependencies: {deps}"
-echo " products: {products}"
-echo "-- picklescript: {pickle} script --"
-cat {pickle}
-echo "-- end picklescript script--" 
-echo ""
-echo "-- task cmd output --" 
+cat - <<EOF
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
+<script src='https://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
+
+<div align=center>
+<H5> <B>Run Status: </B></H5>
+<table border='1' cellspacing=5 cellpadding=5>
+<TR><Td>date<Td> `date`
+<TR><td>taskname<td> {taskname}
+</table> <P> </div>
+
+<style>
+#dag svg {{
+    border: 1px solid #999;
+}}
+
+#dag text {{
+    font-weight: 300;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+            font-size: 14px;
+}}
+
+#dag rect {{
+    fill: #fff;
+}}
+
+#dag .node rect {{
+    stroke-width: 2px;
+        stroke: #333;
+            fill: none;
+}}
+
+#dag .node:hover rect {{
+    stroke: #828b9e;
+        fill:   #eaeaea;
+}}
+
+#dag .edge rect {{
+    fill: #fff;
+}}
+
+#dag .edge path {{
+    fill: none;
+        stroke: #333;
+            stroke-width: 1.5px;
+}}
+
+#dag .edgePath path {{
+    fill: none;
+        stroke: #333;
+            stroke-width: 1.5px;
+}}
+
+</style>
+
+<p>DAG: <span id='dag-name'></span></p>
+<div id='dag'><svg height='80'><g transform='translate(20, 20)'/></svg></div>
+
+<script> 
+
+var graph = {graph}
+                                                                                                                        
+var nodes = graph.nodes;
+var links = graph.links;
+var graphElem = jQuery('#dag > svg').children('g').get(0);
+var svg = d3.select(graphElem);
+var renderer = new dagreD3.Renderer();
+var layout = dagreD3.layout().rankDir('LR');
+renderer.layout(layout).run(dagreD3.json.decode(nodes, links), svg.append('g'));
+
+// Adjust SVG height to content
+var main = jQuery('#dag > svg').find('g > g');
+var h = main.get(0).getBoundingClientRect().height;
+var w = main.get(0).getBoundingClientRect().width;
+var newHeight = h + 40;
+var newWidth = w + 40;
+newHeight = newHeight < 80 ? 80 : newHeight;
+newWidth = newWidth < 768 ? 768 : newWidth;
+jQuery('#dag > svg').height(newHeight);
+jQuery('#dag > svg').width(newWidth);
+</script>
+
+<UL> dependencies: 
+EOF
+for dep in {deps}; do
+  echo "<LI> $dep </LI>"
+done
+echo "</UL>"
+
+echo "<UL> products: "
+for prod in {products}; do
+  echo "<LI> $prod </LI>"
+done
+echo "</UL>"
+
+echo "<P>"
+echo "-- task cmd output --<br>" 
 /usr/bin/env time -p {pickle} -v 
 cmd_exit=`echo $?`
-echo "-- end task cmd output --" 
-date 
+echo "<br>-- end task cmd output --<br>" 
 exit $cmd_exit
             """.format(taskname=self.getName(), 
                        deps=self.json_node['depends'],
                        products=self.json_node['produces'],
                        SOURCE_PATH=globals.config['SOURCE_PATH'],
-                       pickle=self.getPickleScript())
+                       pickle=self.getPickleScript(),
+                       graph=self.tm.getJsonTaskGraph(self))
         with open(script, 'w+') as f:
           f.write(sub)
 
@@ -353,7 +473,7 @@ class LSFTask(Task):
     def run(self, callback):
         super(LSFTask, self).run(callback)
         # create subprocess script
-        print >> sys.stderr, "task_id: " + self.getTaskId()
+        #print >> sys.stderr, "task_id: " + self.getTaskId()
         cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
         sub = """#!/bin/sh
 #BSUB {CLUSTER_QUEUE}
@@ -372,9 +492,109 @@ source {SOURCE_PATH}
         monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
         sub = """#!/bin/sh
 # kickoff and monitor LSF cluster job
+source {SOURCE_PATH}
+cat - <<EOF
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
+<script src='https://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
 
-# setup LSF environment
-eval export DK_ROOT="/broad/software/dotkit";
+<div align=center>
+<H5> <B>Run Status: </B></H5>
+<table border='1' cellspacing=5 cellpadding=5>
+<TR><Td>date<Td> `date`
+<TR><td>taskname<td> {taskname}
+</table> <P> </div>
+
+<style>
+#dag svg {{
+    border: 1px solid #999;
+}}
+
+#dag text {{
+    font-weight: 300;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+                        font-size: 14px;
+}}
+
+#dag rect {{
+    fill: #fff;
+}}
+
+#dag .node rect {{
+    stroke-width: 2px;
+            stroke: #333;
+                        fill: none;
+}}
+
+#dag .node:hover rect {{
+    stroke: #828b9e;
+            fill:   #eaeaea;
+}}
+
+#dag .edge rect {{
+    fill: #fff;
+}}
+
+#dag .edge path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+#dag .edge path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+#dag .edgePath path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+</style>
+
+<p>DAG: <span id='dag-name'></span></p>
+<div id='dag'><svg height='80'><g transform='translate(20, 20)'/></svg></div>
+<script> 
+
+var graph = {graph}
+
+var nodes = graph.nodes;
+var links = graph.links;
+var graphElem = jQuery('#dag > svg').children('g').get(0);
+var svg = d3.select(graphElem);
+var renderer = new dagreD3.Renderer();
+var layout = dagreD3.layout().rankDir('LR');
+renderer.layout(layout).run(dagreD3.json.decode(nodes, links), svg.append('g'));
+
+// Adjust SVG height to content
+var main = jQuery('#dag > svg').find('g > g');
+var h = main.get(0).getBoundingClientRect().height;
+var w = main.get(0).getBoundingClientRect().width;
+var newHeight = h + 40;
+var newWidth = w + 40;
+newHeight = newHeight < 80 ? 80 : newHeight;
+newWidth = newWidth < 768 ? 768 : newWidth;
+jQuery('#dag > svg').height(newHeight);
+jQuery('#dag > svg').width(newWidth);
+</script>
+<UL> dependencies: 
+EOF
+for dep in {deps}; do
+  echo "<LI> $dep </LI>"
+done
+echo "</UL>"
+
+echo "<UL> products: "
+for prod in {products}; do
+  echo "<LI> $prod </LI>"
+done
+echo "</UL>"
+echo "<P>"
+
+export DK_ROOT="/broad/software/dotkit";
 . /broad/software/dotkit/ksh/.dk_init
 use LSF 
 
@@ -386,17 +606,18 @@ fi
 
 # launch job
 
-echo "eval {CLUSTER_JOB} {taskname} < {cluster_script}" 
 jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
-echo "job_id: +${{job_id}}+" 
+echo "<BR>job_id: +${{job_id}}+"
 done="no"
 while [ "${{done}}" != "yes" ]; do
+
+  sleep 60
 
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "output: ${{output}}" 
+  echo "<BR>output: ${{output}}" 
 
   case ${{output}} in
 
@@ -413,19 +634,23 @@ while [ "${{done}}" != "yes" ]; do
 
   esac
 
-  sleep 60
 done
+echo "<PRE>"
 if [ "$STATUS" != "OK" ]; then
     exit -1
 else 
     exit 0
 fi
-
+EOF
 """     .format(cluster_script=cluster_script,
                    CLUSTER_JOBID_POS=globals.config["CLUSTER_JOBID_POS"],
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
                    CLUSTER_JOB=globals.config["CLUSTER_JOB"],
+                   SOURCE_PATH=globals.config['SOURCE_PATH'],
+                   graph=self.tm.getJsonTaskGraph(self),
+                   products=self.json_node['produces'],
+                   deps=self.json_node['depends'],
                    taskname=self.getTaskId())
 
         with open(monitor_script, 'w+') as f:
