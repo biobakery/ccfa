@@ -606,7 +606,7 @@ fi
 
 # launch job
 
-jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
+jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
 echo "<BR>job_id: +${{job_id}}+"
 done="no"
@@ -647,6 +647,10 @@ EOF
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
                    CLUSTER_JOB=globals.config["CLUSTER_JOB"],
+                   CLUSTER_PROJECT=globals.config["CLUSTER_PROJECT"],
+                   CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"],
+                   CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"],
+                   CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
                    SOURCE_PATH=globals.config['SOURCE_PATH'],
                    graph=self.tm.getJsonTaskGraph(self),
                    products=self.json_node['produces'],
