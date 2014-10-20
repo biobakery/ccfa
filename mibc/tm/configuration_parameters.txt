@@ -5,9 +5,9 @@
     "CLUSTER_JOB": "bsub",
     "CLUSTER_PROJECT": " -P unspecified--broadfolk",
     "CLUSTER_MEMORY": " -R rusage[mem=4]",
+    "CLUSTER_QUEUE": " -q bweek",
     "CLUSTER_JOBNAME": " -J ",
     "CLUSTER_QUERY": "bjobs -noheader -w", 
-    "CLUSTER_QUEUE": "bweek",
     "CLUSTER_STATS": "bjobs -l ",
     "CLUSTER_JOBID_POS": 2,
     "CLUSTER_STATUS_POS": 3

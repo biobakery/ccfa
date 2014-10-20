@@ -606,11 +606,13 @@ fi
 
 # launch job
 
-jobid_str=`eval {CLUSTER_JOB} {taskname} < "{cluster_script}"`
+jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
 echo "<BR>job_id: +${{job_id}}+"
 done="no"
 while [ "${{done}}" != "yes" ]; do
+
+  sleep 60
 
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}"
@@ -632,7 +634,6 @@ while [ "${{done}}" != "yes" ]; do
 
   esac
 
-  sleep 60
 done
 echo "<PRE>"
 if [ "$STATUS" != "OK" ]; then
@@ -646,6 +647,10 @@ EOF
                    CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
                    CLUSTER_JOB=globals.config["CLUSTER_JOB"],
+                   CLUSTER_PROJECT=globals.config["CLUSTER_PROJECT"],
+                   CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"],
+                   CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"],
+                   CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
                    SOURCE_PATH=globals.config['SOURCE_PATH'],
                    graph=self.tm.getJsonTaskGraph(self),
                    products=self.json_node['produces'],
@@ -675,6 +680,230 @@ eval export DK_ROOT="/broad/software/dotkit";
 . /broad/software/dotkit/ksh/.dk_init 
 use LSF 
 bkill {jobid}
+        '''.format(jobid=jobid.group(1))
+            subprocess.call(sub, shell=True)
+
+
+    def __str__(self):
+        str = """Task: {name}
+                 Result: {result}
+                 Status: {status}""".format(name=self.getName(), result = self.result, status=self.status)
+        return str
+
+
+class SlurmTask(Task):
+    """ Tasks run on Slurm queue """
+
+    def __init__(self, jsondata, taskList, fifo):
+        super(SlurmTask, self).__init__(jsondata, taskList, fifo)
+        self.taskType = Type.SLURM
+
+    def run(self, callback):
+        super(SlurmTask, self).run(callback)
+        # create subprocess script
+        #print >> sys.stderr, "task_id: " + self.getTaskId()
+        cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
+        sub = """#!/bin/sh
+source {SOURCE_PATH}
+{picklescript} -v
+"""     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
+                       CLUSTER_JOB=globals.config['CLUSTER_JOB'],
+                       SOURCE_PATH=globals.config['SOURCE_PATH'],
+                       OUTPUT=self.getLogfile(),
+                       picklescript=self.getPickleScript())
+        with open(cluster_script, 'w+') as f:
+          f.write(sub)
+        os.chmod(cluster_script, 0755)
+
+        monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
+        sub = """#!/bin/sh
+# kickoff and monitor SLURM cluster job
+source {SOURCE_PATH}
+cat - <<EOF
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
+<script src='https://cpettitt.github.io/project/dagre-d3/v0.2.9/dagre-d3.min.js'></script>
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js' ></script>
+
+<div align=center>
+<H5> <B>Run Status: </B></H5>
+<table border='1' cellspacing=5 cellpadding=5>
+<TR><Td>date<Td> `date`
+<TR><td>taskname<td> {taskname}
+</table> <P> </div>
+
+<style>
+#dag svg {{
+    border: 1px solid #999;
+}}
+
+#dag text {{
+    font-weight: 300;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+                        font-size: 14px;
+}}
+
+#dag rect {{
+    fill: #fff;
+}}
+
+#dag .node rect {{
+    stroke-width: 2px;
+            stroke: #333;
+                        fill: none;
+}}
+
+#dag .node:hover rect {{
+    stroke: #828b9e;
+            fill:   #eaeaea;
+}}
+
+#dag .edge rect {{
+    fill: #fff;
+}}
+
+#dag .edge path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+#dag .edge path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+#dag .edgePath path {{
+    fill: none;
+            stroke: #333;
+                        stroke-width: 1.5px;
+}}
+
+</style>
+
+<p>DAG: <span id='dag-name'></span></p>
+<div id='dag'><svg height='80'><g transform='translate(20, 20)'/></svg></div>
+<script> 
+
+var graph = {graph}
+
+var nodes = graph.nodes;
+var links = graph.links;
+var graphElem = jQuery('#dag > svg').children('g').get(0);
+var svg = d3.select(graphElem);
+var renderer = new dagreD3.Renderer();
+var layout = dagreD3.layout().rankDir('LR');
+renderer.layout(layout).run(dagreD3.json.decode(nodes, links), svg.append('g'));
+
+// Adjust SVG height to content
+var main = jQuery('#dag > svg').find('g > g');
+var h = main.get(0).getBoundingClientRect().height;
+var w = main.get(0).getBoundingClientRect().width;
+var newHeight = h + 40;
+var newWidth = w + 40;
+newHeight = newHeight < 80 ? 80 : newHeight;
+newWidth = newWidth < 768 ? 768 : newWidth;
+jQuery('#dag > svg').height(newHeight);
+jQuery('#dag > svg').width(newWidth);
+</script>
+<UL> dependencies: 
+EOF
+for dep in {deps}; do
+  echo "<LI> $dep </LI>"
+done
+echo "</UL>"
+
+echo "<UL> products: "
+for prod in {products}; do
+  echo "<LI> $prod </LI>"
+done
+echo "</UL>"
+echo "<P>"
+
+. {SOURCE_PATH}
+
+which sbatch
+if [ $? != 0 ];then
+  echo "can't find sbatch" 
+fi
+
+# launch job
+
+jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} --open-mode=append {CLUSTER_OUTPUT_PARAM} {LOGFILE} < "{cluster_script}"`
+job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}'`
+echo "<BR>job_id: +${{job_id}}+"
+done="no"
+while [ "${{done}}" != "yes" ]; do
+
+  sleep 60
+
+  raw_output=`{CLUSTER_QUERY} ${{job_id}}`
+  regex="${{job_id}}[\t ]"
+  output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
+  echo "<BR>output: ${{output}}" 
+
+  case ${{output}} in
+
+    PEND)      ;;
+    RUN)       ;;
+    DONE)      STATUS="OK" && done="yes";;
+    COMPLETED) STATUS="OK" && done="yes";;
+    EXIT)      STATUS="FAILED" && done="yes";;
+    FAILED)    STATUS="FAILED" && done="yes";;
+    CANCELLED|CANCELLED+) STATUS="CANCEL" && done="yes";;
+    TIMEOUT)   export STATUS="TIMEOUT" && done="yes";;
+    NODE_FAIL) export STATUS="RETRY" && done="yes";;
+    *)         ;;
+
+  esac
+
+done
+echo "<PRE>"
+{CLUSTER_STATS} "${{job_id}}"
+if [ "$STATUS" != "OK" ]; then
+    exit -1
+else 
+    exit 0
+fi
+EOF
+"""     .format(cluster_script=cluster_script,
+                   CLUSTER_JOBID_POS=globals.config["CLUSTER_JOBID_POS"],
+                   CLUSTER_QUERY=globals.config["CLUSTER_QUERY"],
+                   CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
+                   CLUSTER_JOB=globals.config["CLUSTER_JOB"],
+                   CLUSTER_PROJECT=globals.config["CLUSTER_PROJECT"],
+                   CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"],
+                   CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"],
+                   CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
+                   CLUSTER_OUTPUT_PARAM=globals.config["CLUSTER_OUTPUT_PARAM"],
+                   CLUSTER_STATS=globals.config["CLUSTER_STATS"],
+                   LOGFILE=self.getLogfile(),
+                   SOURCE_PATH=globals.config['SOURCE_PATH'],
+                   graph=self.tm.getJsonTaskGraph(self),
+                   products=self.json_node['produces'],
+                   deps=self.json_node['depends'],
+                   taskname=self.getTaskId())
+
+        with open(monitor_script, 'w+') as f:
+            f.write(sub)
+
+        os.chmod(monitor_script, 0755)
+        scriptpath = os.path.abspath(monitor_script)
+        self.logfileno = open(self.getLogfile(), "a+")
+        self.pid = tornado.process.Subprocess([scriptpath], stdout=self.logfileno, stderr=self.logfileno)
+        self.pid.set_exit_callback(self.callback)
+
+    def cleanup(self):
+        jobid = None
+        super(SlurmTask, self).cleanup()
+        # attempt to get our jobid from the custer
+        if os.path.exists(self.getLogfile()):
+            with open(self.getLogfile()) as f:
+                jobid = re.search(r'job_id: \+(\d+)\+', f.read())
+        if jobid is not None:
+            # kill the SLURM job on the cluster
+            sub='''#!/bin/sh
+skill {jobid}
         '''.format(jobid=jobid.group(1))
             subprocess.call(sub, shell=True)
 
