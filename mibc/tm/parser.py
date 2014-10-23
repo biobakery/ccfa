@@ -28,6 +28,12 @@ class Parser(object):
                     print "Error: duplicate task Identifier: " + task.getId()
                     sys.exit(-1)
                 self.taskList[task.getId()] = task;
+            elif taskType == tasks.Type.SLURM:
+                task = tasks.SlurmTask(node, self.taskList, fifo)
+                if task.getId() in self.taskList.keys():
+                    print "Error: duplicate task Identifier: " + task.getId()
+                    sys.exit(-1)
+                self.taskList[task.getId()] = task;
             else:
                 print "Task type: " + taskType + " not supported (yet)"
                 sys.exit(0);
