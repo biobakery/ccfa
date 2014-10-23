@@ -1,25 +1,6 @@
 /*global jQuery, jQuery UI, d3, dagreD3, DAG */
 var ws;
 var node_click = "LOG";
-/*
-var dialog = $("dag").dialog({
-                    modal: true,
-                    position: "top",
-                    buttons: {
-                                    "logfile" : function() 
-                                    {
-                                        host = document.location.host;
-                                        window.open("http://" + host + "/task?task=" + d);
-                                    },
-                                    "redo task" : function() 
-                                    {
-                                      var obj = {'dag': 'dag'};
-                                      var json = JSON.stringify(obj);
-                                      ws.send(json);
-                                    }
-                    }
-            });
-*/
 
 (function () {
     'use strict';
@@ -38,6 +19,7 @@ var dialog = $("dag").dialog({
             var renderer = new dagreD3.Renderer();
             var layout = dagreD3.layout().rankDir('LR');
             renderer.layout(layout).run(dagreD3.json.decode(nodes, links), svg.append('g'));
+            // renderer.layout(layout).run(svg.append('g'), dagreD3.json.decode(nodes, links));
 
             // Adjust SVG height to content
             var main = svgParent.find('g > g');
@@ -51,29 +33,54 @@ var dialog = $("dag").dialog({
             svgParent.width(newWidth);
 
             // Zoom
-            d3.select(svgParent.get(0)).call(d3.behavior.zoom().on('zoom', function() {
-                var ev = d3.event;
-                svg.select('g')
+            d3.select(svgParent.get(0))
+                .on("mousedown", mousedowned)
+                .call(d3.behavior.zoom().on('zoom', function() {
+                    var ev = d3.event;
+                    svg.select('g')
                     .attr('transform', 'translate(' + ev.translate + ') scale(' + ev.scale + ')');
             }));
 
-            // Click
-            var d3nodes = d3.selectAll("g.node.enter");
-            d3nodes.on("click", DAG.click)
-        },
+            function mousedowned() {
+				var stop = d3.event.button || d3.event.ctrlKey;
+				if (stop) d3.event.stopImmediatePropagation(); // stop zoom or pan
+            }
 
-        click: function(d) {
-            console.log(d);
-			if (node_click == "LOG") {
-              host = document.location.host;
-              window.open("http://" + host + "/task?task=" + d);
-            }
-            else {
-              // contact tm to redo our task
-              var obj = {'redo': d};
-              var json = JSON.stringify(obj);
-              ws.send(json);
-            }
+            $.contextMenu({
+                 selector: 'g.node.enter', 
+                 callback: function(key, options) {
+                     var nodeValue = this[0].__data__
+                     console.log(nodeValue);
+                     if (key == "logfile") {
+                         host = document.location.host;
+                         window.open("http://" + host + "/task?task=" + nodeValue);
+                     }
+                     else if (key == "redo") {
+                         // contact tm to redo our task
+                         var obj = {'redo': nodeValue};
+                         var json = JSON.stringify(obj);
+                         ws.send(json);
+                     }
+                 },
+                 items: {
+                     "logfile": {name: "Show Logfile", icon: "edit"},
+                     "redo": {name: "Rerun Task", icon: "cut"},
+                 }
+            });
+            $.contextMenu({
+                 selector: 'svg', 
+                 callback: function(key, options) {
+                     console.log(key);
+                     var obj = {'queue': key};
+                     var json = JSON.stringify(obj);
+                     ws.send(json);
+                 },
+                 items: {
+                     "RUNNING": {name: "Run Queue", icon: "edit"},
+                     "PAUSED": {name: "Pause Queue", icon: "cut"},
+                     "STOPPED": {name: "Stop Queue", icon: "cut"},
+                 }
+            });
         },
 
         updateGraph: function(graph, task, status) {
@@ -264,6 +271,8 @@ function taskTick() {
   existingBars.each(function(d, i) {
     //if (!(isNaN(d)))
     //{
+	try
+	{
     if (!(isNaN(taskMap[d.id]))) {
       bar = d3.select(this);
       bar.select("rect")
@@ -293,6 +302,9 @@ function taskTick() {
           str = convertDate(sec);
           return str;
       });
+    }
+    }
+    catch(e) {
     }
     //}
   });
@@ -347,25 +359,6 @@ function convertDate(totalSeconds) {
  */
 $(document).ready(function() {
   console.log( "JQuery welcome" );
-  /*
-  $dialog = $("#dag").dialog({
-      modal: true,
-      position: "top",
-      autoOpen: false,
-      title: 'my title',
-      buttons: 
-      {
-        "zero": 
-        {
-          id: "oh",
-          click: function() {
-            console.log('oh');
-          }
-        },
-      }
-    });
-  */ 
-
   taskMap = new Object();
   taskTime = new Object();
   //taskBar = new Object();

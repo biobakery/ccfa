@@ -11,26 +11,14 @@
         <meta name="viewport" content="width=device-width">
         <!-- build:css(.tmp) styles/main.css -->
         <link rel="stylesheet" href="styles/main.css">
+        <link rel="stylesheet" href="styles/jquery.contextMenu.css">
         <!-- endbuild -->
     </head>
     <body>
         <!--[if lt IE 10]>
 <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
 <![endif]-->
-        <table style="width:80%">
-                <th> Queue: <th> Node Click
-        <tr align="center">
-        <td>
-                <Input type = radio Name = r1 Value = "RUNNING" onclick="handleRadio(this);" checked>Run
-                <Input type = radio Name = r1 Value = "PAUSED" onclick="handleRadio(this);">Pause
-                <Input type = radio Name = r1 Value = "STOPPED" onclick="handleRadio(this);">Stop
-        </td>
-        <td>
-                <Input type = radio Name = r2 Value = "LOG" onclick="handleRadio(this);" checked>Display Logfile
-                <Input type = radio Name = r2 Value = "REDO" onclick="handleRadio(this);">Rerun Task 
-        </td>
-        </table>
-        <p>DAG: <span id="dag-name"></span></p>
+        <p>Workflow Diagram: <span id="dag-name"></span> <i>Right click on diagram for context menus...</i></p>
         <div id="dag">
             <svg height="80">
                 <g transform="translate(20, 20)"/>
@@ -52,6 +40,8 @@
 
         <!-- build:js scripts/main.js -->
         <script src="scripts/main.js"></script>
+        <script src="scripts/jquery.contextMenu.js"></script>
+        <script src="scripts/jquery.ui.position.js"></script>
         <!-- endbuild -->
         <g transform="translate(20, 20)"/>
 </body>
