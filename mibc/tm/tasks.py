@@ -9,6 +9,7 @@ import time
 import globals
 import re
 import shutil
+import psutil
 
 class Enum(set):
     """ duplicates basic java enum functionality """
@@ -245,9 +246,12 @@ class Task(object):
 
     def killRun(self):
         try:
-            os.kill({self.pid.pid}, signal.SIGTERM)
+            p = psutil.Process(self.pid.pid)
+            for child in p.children(True):
+                os.kill(child.pid, signal.SIGTERM)
+            os.kill(self.pid.pid, signal.SIGTERM)
         except (AttributeError, TypeError):
-            print self.getName() + " job removed."
+            print >> sys.stderr, self.getName() + " job removed."
         # set our pid to None as a flag for any job callbacks to ignore the results
         self.pid = None
 
