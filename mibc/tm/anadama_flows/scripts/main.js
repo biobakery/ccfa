@@ -79,6 +79,8 @@ var node_click = "LOG";
                      "RUNNING": {name: "Run Queue", icon: "edit"},
                      "PAUSED": {name: "Pause Queue", icon: "cut"},
                      "STOPPED": {name: "Stop Queue", icon: "cut"},
+                     "increase": {name: "Increase Governor", icon: "cut"},
+                     "decrease": {name: "Decrease Governor", icon: "cut"},
                  }
             });
         },
