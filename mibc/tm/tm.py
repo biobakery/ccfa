@@ -94,7 +94,7 @@ class TaskManager(object):
             if not self.getOutputDirectory():
                 if task.getProducts():
                     self.setOutputDirectory(task.getProducts()[0].split('mibc_products')[0] + 'mibc_products/')
-        if firsttime:
+        if True:
             self.callHook("pre")
 
     def runQueue(self):
