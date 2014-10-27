@@ -165,14 +165,16 @@ class Project(util.SerializableMixin, projectmixins.validation):
         
 
     def save(self):
-        with open(os.path.join(self.path, "metadata.txt"), 'w') as meta_file,\
-             open(os.path.join(self.path, "map.txt"),      'w') as map_file:
+        with open(os.path.join(self.path, "metadata.txt"), 'w') as meta_file:
             util.serialize_tsv(self._metadata_attrs(), to_fp=meta_file)
-            if self.map and self.map_headers:
+        
+        if self.map and self.map_headers:
+	    with open(os.path.join(self.path, "map.txt"), 'w') as map_file:
                 print >> map_file, "\t".join(self.map_headers)
                 for record in self.map:
                     print >> map_file, "\t".join(record)
-            elif self.filename:
+        elif self.filename:
+	    with open(os.path.join(self.path, "map.txt"), 'w') as map_file:
                 print >> map_file, "#SampleID"
                 for f in self.filename:
                     name = os.path.splitext(f)[0]
