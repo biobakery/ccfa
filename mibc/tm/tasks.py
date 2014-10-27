@@ -9,6 +9,7 @@ import time
 import globals
 import re
 import shutil
+import psutil
 
 class Enum(set):
     """ duplicates basic java enum functionality """
@@ -43,6 +44,8 @@ class Task(object):
         self.parents = []
         self.tm = None
         self.runTime = 0
+        self.retryMemoryIndex = 0
+        self.retryQueueIndex = 0
         self.pipeline = self.json_node.get('pipeline_name')
         # before any tasks are run, find out if this task already ran
         if self.doAllProductsExist():
@@ -103,6 +106,18 @@ class Task(object):
             rtime = int(time.time()) - self.runTime
             return rtime
 
+    def getRetryMemoryIndex(self):
+        return self.retryMemory
+
+    def setRetryMemoryIndex(self, counter):
+        self.retryMemoryIndex+= counter
+
+    def getRetryQueueIndex(self):
+        return self.retryQueueIndex
+
+    def setRetryQueueIndex(self, counter):
+        self.retryQueueIndex+= counter
+    
     def run(self, callback):
         #print "in parent Task class setting status to RUNNING"
         self.setStatus(Status.RUNNING)
@@ -245,9 +260,12 @@ class Task(object):
 
     def killRun(self):
         try:
-            os.kill({self.pid.pid}, signal.SIGTERM)
+            p = psutil.Process(self.pid.pid)
+            for child in p.children(True):
+                os.kill(child.pid, signal.SIGTERM)
+            os.kill(self.pid.pid, signal.SIGTERM)
         except (AttributeError, TypeError):
-            print self.getName() + " job removed."
+            print >> sys.stderr, self.getName() + " job removed."
         # set our pid to None as a flag for any job callbacks to ignore the results
         self.pid = None
 
@@ -648,8 +666,8 @@ EOF
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
                    CLUSTER_JOB=globals.config["CLUSTER_JOB"],
                    CLUSTER_PROJECT=globals.config["CLUSTER_PROJECT"],
-                   CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"],
-                   CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"],
+                   CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"][self.getRetryMemoryIndex()],
+                   CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"][self.getRetryQueueIndex()],
                    CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
                    SOURCE_PATH=globals.config['SOURCE_PATH'],
                    graph=self.tm.getJsonTaskGraph(self),
@@ -872,8 +890,8 @@ EOF
                    CLUSTER_STATUS_POS=globals.config["CLUSTER_STATUS_POS"],
                    CLUSTER_JOB=globals.config["CLUSTER_JOB"],
                    CLUSTER_PROJECT=globals.config["CLUSTER_PROJECT"],
-                   CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"],
-                   CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"],
+                   CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"][self.getRetryMemoryIndex()],
+                   CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"][self.getRetryQueueIndex()],
                    CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
                    CLUSTER_OUTPUT_PARAM=globals.config["CLUSTER_OUTPUT_PARAM"],
                    CLUSTER_STATS=globals.config["CLUSTER_STATS"],

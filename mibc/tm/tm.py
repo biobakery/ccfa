@@ -104,7 +104,6 @@ class TaskManager(object):
             For now, this method will run until all jobs
             are finished...
         """
-
         updates_made = True
         while updates_made:
 
@@ -143,6 +142,12 @@ class TaskManager(object):
 
                     elif task.getStatus() == tasks.Status.FINISHED:
                         self.governor += 1
+                        # Did the task fail? 
+                        if task.getResult() == tasks.Result.FAILURE:
+                            # Can we mitigate it?
+                            if task.canRedo():
+                                pass
+
                         self.completedTasks.append(task)
                         self.notify(task)
                         updates_made = True
@@ -249,30 +254,49 @@ class TaskManager(object):
         print >> sys.stderr, "stopQueue"
         self.queueStatus = QueueStatus.STOPPED
         self.governor = -99
-        #for task in self.queuedTasks[:]:
         for task in self.queuedTasks:
+            if task in self.waitingTasks:
+                print >> sys.stderr, "ERROR! " + task.getTaskId() + " is already in waiting list!"
+            else:
+                self.waitingTasks.insert(0, task)
             if task.getStatus() == tasks.Status.RUNNING:
-                task.cleanup()
+                print >> sys.stderr, "Task is RUNNING - Killing it now:" + task.getSimpleName() 
+                task.killRun()
+                task.cleanupProducts()
+                task.setCompleted(False)
+                task.setReturnCode(None)
+                task.setResult(tasks.Result.NA)
+            task.setStatus(tasks.Status.WAITING)
+            self.notify(task)
+        self.queuedTasks = []
 
     def startQueue(self):
         print >> sys.stderr, "startQueue"
         self.queueStatus = QueueStatus.RUNNING
         self.governor = self.saved_governor
+        print >> sys.stderr, "governor: " + str(self.governor)
         self.runQueue()
 
     def getQueueStatus(self):
         return self.queueStatus
 
+    def increaseGovernor(self):
+        self.governor+=1
+        self.saved_governor+=1
+        self.runQueue()
+
+    def decreaseGovernor(self):
+        self.governor-=1
+        self.saved_governor-=1
+
     def redoTask(self, givenTaskString):
         """ Method retrieves a handle to the real task identified by the given task
             string.  It then forces this task into the taskWaiting Queue.  It then
             traverses the task list looking for downstream tasks to also 'redo'.
+            If downstream tasks are running, they are killed and their products are removed.
             Finally, it kicks off the queue to find if anything new can be processed.
         """
         print >> sys.stderr, "redoTask: " + givenTaskString
-        #if givenTaskString == "root":
-        #    print >> sys.stderr, "cannot redo root task."
-        #    return
 
         givenTask = [task for k,task in self.getTasks().iteritems() if task.getName() == givenTaskString]
         redoTasks = [child for k,child in self.getTasks().iteritems() if child.isAncestor(givenTask[0])]
@@ -285,10 +309,12 @@ class TaskManager(object):
             task.cleanupProducts()
             task.setCompleted(False)
             if task.getStatus() == tasks.Status.WAITING:
+                self.notify(task)
                 continue
             if task.getStatus() == tasks.Status.QUEUED:
                 if task in self.queuedTasks:
                     self.queuedTasks.remove(task)
+                task.setStatus(tasks.Status.WAITING)
                 self.notify(task)
                 continue
             if task.getStatus() == tasks.Status.RUNNING:
