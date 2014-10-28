@@ -180,10 +180,6 @@ def main():
     print "loading globals"
     globals.init(os.path.dirname(opts.location))
 
-    # if os.path.exists(os.path.join(opts.directory, "/configuration_parameters.txt")):
-    #    with open("./configuration_parameters") as config_file:
-    #        config = json.load(config_file)
-
     # setup output directories
     fileHandling()
    
