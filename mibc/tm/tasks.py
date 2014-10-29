@@ -107,7 +107,7 @@ class Task(object):
             return rtime
 
     def getRetryMemoryIndex(self):
-        return self.retryMemory
+        return self.retryMemoryIndex
 
     def setRetryMemoryIndex(self, counter):
         self.retryMemoryIndex+= counter
