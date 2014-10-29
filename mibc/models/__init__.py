@@ -114,7 +114,7 @@ class User(util.SerializableMixin, usermixins.LDAP):
 
 class Project(util.SerializableMixin, projectmixins.validation):
     
-    dont_belong_in_metadata = [ 'user', 'name', 'path' ]
+    dont_belong_in_metadata = [ 'user', 'name', 'path', 'map', 'map_headers' ]
 
     def __init__(self, name, user, autopopulate=False):
         self.name = name
