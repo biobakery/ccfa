@@ -1,4 +1,5 @@
 import os
+import re
 from collections import OrderedDict
 
 from doit.cmd_base import TaskLoader
@@ -33,6 +34,7 @@ class ProjectLoader(TaskLoader):
         products_dir = os.path.join(
             project.path, settings.workflows.product_directory)
         files_list = [ os.path.join(project.path, f) for f in project.filename ]
+        pairs, files_list = infer_pairs(files_list)
         if project_is_16s:
             pipeline_cls = pipelines.SixteenSPipeline
             routes = route(
@@ -50,6 +52,8 @@ class ProjectLoader(TaskLoader):
                  (guess_seq_filetype, 'raw_seq_files')]
             )
 
+        routes['raw_seq_files'].extend(pairs)
+
         return pipeline_cls(
             products_dir=products_dir,
             sample_metadata=project.map,
@@ -63,3 +67,33 @@ class ProjectLoader(TaskLoader):
             basic_pipeline.append(pipelines.VisualizationPipeline)
 
         return basic_pipeline
+
+
+def infer_pairs(list_fnames):
+    one_files, two_files, notpairs = _regex_filter(list_fnames)
+    pairs = zip( sorted(one_files), sorted(two_files) )
+    
+    return pairs, notpairs
+
+
+def _regex_filter(list_fnames):
+    """Go through each name; group into R1, R2, or singleton based on a
+    regular expression that searches for R1 or r2 or R2 or r1.
+
+    """
+    regex = re.compile(r'[-._ ][rR]([12])[-._ ]')
+    one, two, notpairs = list(), list(), list()
+
+    matches = zip( list_fnames, map(regex.search, list_fnames))
+    for fname, regex_result in matches:
+        if not regex_result:
+            notpairs.append(fname)
+        else:
+            if regex_result.group(1) == "1":
+                one.append(fname)
+            elif regex_result.group(1) == "2":
+                two.append(fname)
+            else:
+                notpairs.append(fname)    
+
+    return one, two, notpairs
