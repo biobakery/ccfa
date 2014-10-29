@@ -114,7 +114,7 @@ class User(util.SerializableMixin, usermixins.LDAP):
 
 class Project(util.SerializableMixin, projectmixins.validation):
     
-    dont_belong_in_metadata = [ 'user', 'name', 'path' ]
+    dont_belong_in_metadata = [ 'user', 'name', 'path', 'map', 'map_headers' ]
 
     def __init__(self, name, user, autopopulate=False):
         self.name = name
@@ -183,7 +183,10 @@ class Project(util.SerializableMixin, projectmixins.validation):
 
     def autopopulate(self):
         self.__dict__.update( self._gather('metadata.txt') )
-        self.map = mapping_file.load('map.txt', basepath=self.path)
+        try:
+            self.map = mapping_file.load('map.txt', basepath=self.path)
+        except IOError:
+            self.map = list()
         self.map_headers = self.map[0]._fields if self.map else list()
 
         self._autopopulated = True

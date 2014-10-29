@@ -23,7 +23,7 @@ function printtrack() {
 echo "----------------------------------------"
 echo "Running functional test for 16s pipeline"
 echo "----------------------------------------"
-wget -O- 'http://huttenhower.sph.harvard.edu/biobakery-shop/anadama/16s_functional_test.tgz' | tar -xvzf -
+wget -O- 'http://huttenhower.sph.harvard.edu/biobakery-shop/anadama/16s_functional_test.tgz' | tar -xzf -
 cd 16s_functional_test
 mibc_build initialize-project \
 	'study_description: test' \
@@ -43,7 +43,7 @@ echo "----------------------------------------"
 echo "----------------------------------------"
 echo "Running functional test for wgs pipeline"
 echo "----------------------------------------"
-wget -O- 'http://huttenhower.sph.harvard.edu/biobakery-shop/anadama/wgs_functional_test.tgz' | tar -xvzf -
+wget -O- 'http://huttenhower.sph.harvard.edu/biobakery-shop/anadama/wgs_functional_test.tgz' | tar -xzf -
 cd wgs_functional_test
 mibc_build initialize-project \
         'study_description: test' \
