@@ -36,8 +36,16 @@ def list_or_listdir(answer):
     if answer and ',' in answer:
         return answer.split(',')
     else:
-        return [ item for item in os.listdir(_project_dir)
-                 if item not in IGNORED_FILES ]
+        return filter(not_ignored, os.listdir(_project_dir))
+
+def not_ignored(fname):
+    """for use in filters; determines whether this file should be
+    included in the 'filename' field in the metadata.txt file
+
+    """
+    return fname not in IGNORED_FILES and os.path.isfile(fname)
+
+
 
 def true_or_false(answer):
     return true_strings.get(answer.lower()) or "false",

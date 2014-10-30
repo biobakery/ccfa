@@ -11,6 +11,9 @@ setup(
         'nose>=1.3.0',
         'python-dateutil>=2.2',
         'bottle>=0.10',
+        'psutil',
+        'websocket',
+        'tornado>=4.0',
         # doit, six, networkx, etc should come with anadama
         'anadama',
         'anadama_workflows',
