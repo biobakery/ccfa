@@ -1,5 +1,8 @@
 {
     "TEMP_PATH": "/tmp/batch_output",
+    "SOURCE_PATH": "/aux/deploy6/bin/activate"
+    "GOVERNOR" : 10,
+    "PORT" : 8888,
     "CLUSTER": "LSF", 
     "CLUSTER_OUTPUT_PARAM": "-o", 
     "CLUSTER_JOB": "bsub",
