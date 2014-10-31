@@ -264,7 +264,7 @@ class Task(object):
             for child in p.children(True):
                 os.kill(child.pid, signal.SIGTERM)
             os.kill(self.pid.pid, signal.SIGTERM)
-        except (AttributeError, TypeError):
+        except (AttributeError, TypeError, psutil.NoSuchProcess) as e:
             print >> sys.stderr, self.getName() + " job removed."
         # set our pid to None as a flag for any job callbacks to ignore the results
         self.pid = None
