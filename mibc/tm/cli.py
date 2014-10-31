@@ -13,7 +13,7 @@ import hashlib
 import globals
 
 
-HELP="""%prog [options] [-i <json encoded inputfile>] [-t type] [-d] [-g governor] [-p port]
+HELP="""%prog -t type [-i <json encoded inputfile>] [-l location] [-D] [-g governor] [-p port]
 
 %prog - TM (Task Manager) parses the tasks contained in the given 
 json encoded directed acyclic graph (DAG) file.  This command
@@ -39,15 +39,12 @@ opts_list = [
     optparse.make_option('-t', '--type', action="store",
                          dest="type", type="string", 
                          help="The type of task to be run (local, slurm, or lsf)"),
-    optparse.make_option('-g', '--governor', action="store", type="int", default="999",
+    optparse.make_option('-g', '--governor', action="store", type="int", 
                          dest="governor", help="Rate limit the number of concurrent tasks.  Useful for limited resource on local desktops / laptops."),
     optparse.make_option('-D', '--daemon', action="store_true", 
                          dest="daemon", help="Specify task manager to run as a daemon.  Will process multiple dags."),
-    optparse.make_option('-p', '--port', action="store", type="int", default="8888",
+    optparse.make_option('-p', '--port', action="store", type="int", 
                          dest="port", help="Specify the port of the webserver - defaults to 8888.")
-    #optparse.make_option('-o', '--o', action="store", type="string",
-    #                     dest="output_file", 
-    #                     help="The FASTA output file."),
 ]
 
 
@@ -112,31 +109,43 @@ def optionHandling():
         if opts.verbose:
             print >> sys.stderr, "Input is stdin."
 
-    if opts.location is None:
-        print >> sys.stderr, "location not specified."
-        argParser.print_usage()
-        sys.exit(1)
+    if opts.type not in types:
+        if globals.config.get("CLUSTER") is None:
+            print >> sys.stderr, "type not one of 'local', 'slurm', or 'lsf'."
+            argParser.print_usage()
+            sys.exit(1)
+        else:
+            opts.type = globals.config["CLUSTER"].lower()
+    print >> sys.stderr, " opts.type: " + str(opts.type)
 
-    elif opts.type not in types:
-        print >> sys.stderr, "type not one of 'local', 'slurm', or 'lsf'."
-        argParser.print_usage()
-        sys.exit(1)
-
-    if opts.location is not None:
-        if opts.location is "":
+    if opts.location is "":
+        if globals.config.get("TEMP_PATH") is not None:
+            opts.location = globals.config["TEMP_PATH"] + "/anadama_flows"
+        else:
             opts.location = os.getcwd() + "/anadama_flows"
-    else:
-        opts.location = os.getcwd() + "/anadama_flows"
 
     if not os.access(os.path.dirname(opts.location), os.W_OK):
         print >> sys.stderr, "directory " + opts.location + " is not writable."
         argParser.print_usage()
         sys.exit(1)
 
+    if opts.port is None or "":
+        if globals.config.get("PORT") is None:
+            opts.port = 8888
+        else:
+            opts.port = globals.config["PORT"]
+    print >> sys.stderr, " opts.port: " + str(opts.port)
+
+    if opts.governor is None or "":
+        if globals.config.get("GOVERNOR") is None:
+            opts.governor = 999
+        else:
+            opts.governor = globals.config["GOVERNOR"]
+    print >> sys.stderr, " opts.governor: " + str(opts.governor)
+
     if input is "-":
-        #jsonString = iter(stdin.readline, '')
+        print >> sys.stderr, sys.stdin
         jsonString = sys.stdin.read()
-        #print "jsonString: " + jsonString
         data = json.loads(jsonString);
     else:
         jsonfile = open(opts.dagfile)
@@ -169,16 +178,14 @@ def main():
         print "shutting down webserver..."
         sys.exit(0)
 
+    # load configuration parameters (if they exist)
+    globals.init(os.getcwd())
 
     # read in options
     argParser = optparse.OptionParser(option_list=opts_list,
                                    usage=HELP)
     (opts, args) = argParser.parse_args()
     optionHandling()
-
-    # load configuration parameters (if they exist)
-    print "loading globals"
-    globals.init(os.path.dirname(opts.location))
 
     # setup output directories
     fileHandling()
