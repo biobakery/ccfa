@@ -8,13 +8,23 @@
 HMP2_DATA_DIR=/seq/ibdmdb/data_deposition
 HMP2_PROCESSING_DIR=/seq/ibdmdb/processing
 HMP2_PUBLIC_DIR=/seq/ibdmdb/public
-extensions="png html biom tsv hdf5"
+extensions="png html biom tsv hdf5 txt"
 
 function get_files {
   ext=$1
-  find ${TaskOutputDirectory} -name \*."${ext}"
+  if [ $ext == "txt" ]; then
+    find ${TaskOutputDirectory} -name \*."${ext}" -maxdepth 1
+  else
+    find ${TaskOutputDirectory} -name \*."${ext}"
+  fi
 }
 
+# first copy metadata 'map.txt' file from deposition into mibc_products
+TaskInputDirectory=`dirname ${TaskOutputDirectory}`
+if [ -f ${TaskInputDirectory}/map.txt ] && [ ! -f ${TaskOutputDirectory}/map.txt ]; then
+  echo "copying metadata into output directory ${TaskOutputDirectory}"
+  cp ${TaskInputDirectory}/map.txt ${TaskOutputDirectory}/map.txt
+fi
 
 if [[ -n ${PipelineName} ]]; then
 
@@ -46,7 +56,7 @@ if [[ -n ${PipelineName} ]]; then
         mkdir -p "${linkdir}"
       fi
 
-      if [[ $extension == "hdf5" ]]; then
+      if [ $extension == "hdf5" ] || [ $extension == "txt" ]; then
         cp "${file}" "${linkfile}"
       else
         ln -s "${file}" "${linkfile}"
