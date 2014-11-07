@@ -34,6 +34,7 @@ class ProjectLoader(TaskLoader):
         products_dir = os.path.join(
             project.path, settings.workflows.product_directory)
         files_list = [ os.path.join(project.path, f) for f in project.filename ]
+        maybe_barcodes, files_list = infer_barcode_files(files_list)
         pairs, files_list = infer_pairs(files_list)
         if project_is_16s:
             pipeline_cls = pipelines.SixteenSPipeline
@@ -43,6 +44,7 @@ class ProjectLoader(TaskLoader):
                  (r'_demuxed\.f*a$',  'demuxed_fasta_files'),
                  (guess_seq_filetype, 'raw_seq_files')]
             )
+            routes['barcode_seq_files'] = maybe_barcodes
         else:
             pipeline_cls = pipelines.WGSPipeline
             routes = route(
@@ -68,6 +70,17 @@ class ProjectLoader(TaskLoader):
 
         return basic_pipeline
 
+
+def infer_barcode_files(fnames):
+    barcode_files, nonbarcode_files = list(), list()
+    regex = re.compile(r'[._ -]i\d*[._ -]|code', re.IGNORECASE)
+    for fname in fnames:
+        if regex.search(fname):
+            barcode_files.append(fname)
+        else:
+            nonbarcode_files.append(fname)
+
+    return barcode_files, nonbarcode_files
 
 def infer_pairs(list_fnames):
     one_files, two_files, notpairs = _regex_filter(list_fnames)
