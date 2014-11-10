@@ -47,6 +47,8 @@ class Task(object):
         self.retryMemoryIndex = 0
         self.retryQueueIndex = 0
         self.pipeline = self.json_node.get('pipeline_name')
+        self.logfileno = None
+        self.logscriptno = None
         # before any tasks are run, find out if this task already ran
         if self.doAllProductsExist():
             self.setCompleted(True)
@@ -229,8 +231,15 @@ class Task(object):
 
     def callback(self, exit_code):
         if self.logfileno is not None:
+            if self.logscriptno is not None:
+                self.logscriptno.seek(0)
+                for line in self.logscriptno:
+                    self.logfileno.write(line)
+                    self.logscriptno.flush()
+                self.logscriptno.close()
             self.logfileno.flush()
             self.logfileno.close()
+
         if self.pid is not None:
             self.publishLogfile()
             self.setReturnCode(exit_code)
@@ -907,8 +916,9 @@ EOF
 
         os.chmod(monitor_script, 0755)
         scriptpath = os.path.abspath(monitor_script)
-        self.logfileno = open(self.getLogfile(), "a+")
-        self.pid = tornado.process.Subprocess([scriptpath], stdout=self.logfileno, stderr=self.logfileno)
+        self.logscriptno = open(self.getLogfile() + "+", "a+")
+        self.pid = tornado.process.Subprocess([scriptpath], stdout=self.logscriptno, stderr=self.logscriptno)
+
         self.pid.set_exit_callback(self.callback)
 
     def cleanup(self):

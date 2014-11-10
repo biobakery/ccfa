@@ -144,9 +144,10 @@ class TaskManager(object):
                         self.governor += 1
                         # Did the task fail? 
                         if task.getResult() == tasks.Result.FAILURE:
+                            pass
                             # Can we mitigate it?
-                            if task.canRedo():
-                                pass
+                            #if task.canRedo():
+                            #    pass
 
                         self.completedTasks.append(task)
                         self.notify(task)
