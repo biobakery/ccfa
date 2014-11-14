@@ -145,8 +145,9 @@ class TaskManager(object):
                         # Did the task fail? 
                         if task.getResult() == tasks.Result.FAILURE:
                             # Can we mitigate it?
-                            if task.canRedo():
-                                pass
+                            #if task.canRedo():
+                            #    pass
+                            pass
 
                         self.completedTasks.append(task)
                         self.notify(task)

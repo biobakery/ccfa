@@ -47,6 +47,8 @@ class Task(object):
         self.retryMemoryIndex = 0
         self.retryQueueIndex = 0
         self.pipeline = self.json_node.get('pipeline_name')
+        self.logfileno = None
+        self.logscriptno = None
         # before any tasks are run, find out if this task already ran
         if self.doAllProductsExist():
             self.setCompleted(True)
@@ -229,8 +231,15 @@ class Task(object):
 
     def callback(self, exit_code):
         if self.logfileno is not None:
+            if self.logscriptno is not None:
+                self.logscriptno.seek(0)
+                for line in self.logscriptno:
+                    self.logfileno.write(line)
+                    self.logscriptno.flush()
+                self.logscriptno.close()
             self.logfileno.flush()
             self.logfileno.close()
+
         if self.pid is not None:
             self.publishLogfile()
             self.setReturnCode(exit_code)
@@ -264,7 +273,7 @@ class Task(object):
             for child in p.children(True):
                 os.kill(child.pid, signal.SIGTERM)
             os.kill(self.pid.pid, signal.SIGTERM)
-        except (AttributeError, TypeError):
+        except (AttributeError, TypeError, psutil.NoSuchProcess) as e:
             print >> sys.stderr, self.getName() + " job removed."
         # set our pid to None as a flag for any job callbacks to ignore the results
         self.pid = None
@@ -624,10 +633,11 @@ fi
 
 # launch job
 
-jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} < "{cluster_script}"`
+jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} {CLUSTER_OUTPUT_PARAM} {BATCHLOGFILE} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
 echo "<BR>job_id: +${{job_id}}+"
 done="no"
+last_output=""
 while [ "${{done}}" != "yes" ]; do
 
   sleep 60
@@ -635,7 +645,12 @@ while [ "${{done}}" != "yes" ]; do
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "<BR>output: ${{output}}" 
+  if [ "${{last_output}}" = "${{output}}" ]; then
+    echo -n "."
+  else
+    echo "<BR>batch run: ${{output}}" 
+    last_output=${{output}}
+  fi
 
   case ${{output}} in
 
@@ -653,6 +668,13 @@ while [ "${{done}}" != "yes" ]; do
   esac
 
 done
+
+echo "<BR>"
+# append job log to our monitor log
+if [ -f {BATCHLOGFILE} ]; then
+  cat {BATCHLOGFILE} >> {LOGFILE}
+  rm {BATCHLOGFILE}
+fi
 echo "<PRE>"
 if [ "$STATUS" != "OK" ]; then
     exit -1
@@ -669,6 +691,8 @@ EOF
                    CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"][self.getRetryMemoryIndex()],
                    CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"][self.getRetryQueueIndex()],
                    CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
+                   BATCHLOGFILE=self.getLogfile() + ".batch",
+                   LOGFILE=self.getLogfile(),
                    SOURCE_PATH=globals.config['SOURCE_PATH'],
                    graph=self.tm.getJsonTaskGraph(self),
                    products=self.json_node['produces'],
@@ -847,10 +871,11 @@ fi
 
 # launch job
 
-jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} --open-mode=append {CLUSTER_OUTPUT_PARAM} {LOGFILE} < "{cluster_script}"`
+jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} --open-mode=append {CLUSTER_OUTPUT_PARAM} {BATCHLOGFILE} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}'`
 echo "<BR>job_id: +${{job_id}}+"
 done="no"
+last_output=""
 while [ "${{done}}" != "yes" ]; do
 
   sleep 60
@@ -858,7 +883,12 @@ while [ "${{done}}" != "yes" ]; do
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}[\t ]"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "<BR>output: ${{output}}" 
+  if [ "${{last_output}}" = "${{output}}" ]; then
+    echo -n "."
+  else
+    echo "<BR>batch run: ${{output}}" 
+    last_output=${{output}}
+  fi
 
   case ${{output}} in
 
@@ -876,6 +906,14 @@ while [ "${{done}}" != "yes" ]; do
   esac
 
 done
+
+echo "<BR>"
+# append job log to our monitor log
+if [ -f {BATCHLOGFILE} ]; then
+  cat {BATCHLOGFILE} >> {LOGFILE}
+  rm {BATCHLOGFILE}
+fi
+
 echo "<PRE>"
 {CLUSTER_STATS} "${{job_id}}"
 if [ "$STATUS" != "OK" ]; then
@@ -895,6 +933,7 @@ EOF
                    CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
                    CLUSTER_OUTPUT_PARAM=globals.config["CLUSTER_OUTPUT_PARAM"],
                    CLUSTER_STATS=globals.config["CLUSTER_STATS"],
+                   BATCHLOGFILE=self.getLogfile() + ".batch",
                    LOGFILE=self.getLogfile(),
                    SOURCE_PATH=globals.config['SOURCE_PATH'],
                    graph=self.tm.getJsonTaskGraph(self),
@@ -909,6 +948,7 @@ EOF
         scriptpath = os.path.abspath(monitor_script)
         self.logfileno = open(self.getLogfile(), "a+")
         self.pid = tornado.process.Subprocess([scriptpath], stdout=self.logfileno, stderr=self.logfileno)
+
         self.pid.set_exit_callback(self.callback)
 
     def cleanup(self):
