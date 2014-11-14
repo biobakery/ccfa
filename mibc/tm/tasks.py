@@ -633,10 +633,11 @@ fi
 
 # launch job
 
-jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} < "{cluster_script}"`
+jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} {CLUSTER_OUTPUT_PARAM} {BATCHLOGFILE} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}' | sed -e 's/^.//' -e 's/.$//'`
 echo "<BR>job_id: +${{job_id}}+"
 done="no"
+last_output=""
 while [ "${{done}}" != "yes" ]; do
 
   sleep 60
@@ -644,7 +645,12 @@ while [ "${{done}}" != "yes" ]; do
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "<BR>output: ${{output}}" 
+  if [ "${{last_output}}" = "${{output}}" ]; then
+    echo -n "."
+  else
+    echo "<BR>batch run: ${{output}}" 
+    last_output=${{output}}
+  fi
 
   case ${{output}} in
 
@@ -662,6 +668,13 @@ while [ "${{done}}" != "yes" ]; do
   esac
 
 done
+
+echo "<BR>"
+# append job log to our monitor log
+if [ -f {BATCHLOGFILE} ]; then
+  cat {BATCHLOGFILE} >> {LOGFILE}
+  rm {BATCHLOGFILE}
+fi
 echo "<PRE>"
 if [ "$STATUS" != "OK" ]; then
     exit -1
@@ -678,6 +691,8 @@ EOF
                    CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"][self.getRetryMemoryIndex()],
                    CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"][self.getRetryQueueIndex()],
                    CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
+                   BATCHLOGFILE=self.getLogfile() + ".batch",
+                   LOGFILE=self.getLogfile(),
                    SOURCE_PATH=globals.config['SOURCE_PATH'],
                    graph=self.tm.getJsonTaskGraph(self),
                    products=self.json_node['produces'],
