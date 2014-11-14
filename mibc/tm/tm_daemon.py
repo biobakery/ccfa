@@ -102,7 +102,7 @@ class Tm_daemon(object):
 
         app = tornado.web.Application( routes, **app_settings )
         app.listen(port)
-        print "webserver listening on localhost:" + str(port) + "..."
+        print "webserver listening on host:" + str(port) + "..."
         ioloop = tornado.ioloop.IOLoop.instance()
         ioloop.start()
 
