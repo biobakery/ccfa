@@ -856,10 +856,11 @@ fi
 
 # launch job
 
-jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} --open-mode=append {CLUSTER_OUTPUT_PARAM} {LOGFILE} < "{cluster_script}"`
+jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} --open-mode=append {CLUSTER_OUTPUT_PARAM} {BATCHLOGFILE} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}'`
 echo "<BR>job_id: +${{job_id}}+"
 done="no"
+last_output=""
 while [ "${{done}}" != "yes" ]; do
 
   sleep 60
@@ -867,7 +868,12 @@ while [ "${{done}}" != "yes" ]; do
   raw_output=`{CLUSTER_QUERY} ${{job_id}}`
   regex="${{job_id}}[\t ]"
   output=`{CLUSTER_QUERY} ${{job_id}} | grep "$regex" | awk -v i={CLUSTER_STATUS_POS} '{{printf $i}}'`
-  echo "<BR>output: ${{output}}" 
+  if [ "${{last_output}}" = "${{output}}" ]; then
+    echo -n "."
+  else
+    echo "<BR>batch run: ${{output}}" 
+    last_output=${{output}}
+  fi
 
   case ${{output}} in
 
@@ -885,6 +891,14 @@ while [ "${{done}}" != "yes" ]; do
   esac
 
 done
+
+echo "<BR>"
+# append job log to our monitor log
+if [ -f {BATCHLOGFILE} ]; then
+  cat {BATCHLOGFILE} >> {LOGFILE}
+  rm {BATCHLOGFILE}
+fi
+
 echo "<PRE>"
 {CLUSTER_STATS} "${{job_id}}"
 if [ "$STATUS" != "OK" ]; then
@@ -904,6 +918,7 @@ EOF
                    CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
                    CLUSTER_OUTPUT_PARAM=globals.config["CLUSTER_OUTPUT_PARAM"],
                    CLUSTER_STATS=globals.config["CLUSTER_STATS"],
+                   BATCHLOGFILE=self.getLogfile() + ".batch",
                    LOGFILE=self.getLogfile(),
                    SOURCE_PATH=globals.config['SOURCE_PATH'],
                    graph=self.tm.getJsonTaskGraph(self),
@@ -916,8 +931,8 @@ EOF
 
         os.chmod(monitor_script, 0755)
         scriptpath = os.path.abspath(monitor_script)
-        self.logscriptno = open(self.getLogfile() + "+", "a+")
-        self.pid = tornado.process.Subprocess([scriptpath], stdout=self.logscriptno, stderr=self.logscriptno)
+        self.logfileno = open(self.getLogfile(), "a+")
+        self.pid = tornado.process.Subprocess([scriptpath], stdout=self.logfileno, stderr=self.logfileno)
 
         self.pid.set_exit_callback(self.callback)
 
