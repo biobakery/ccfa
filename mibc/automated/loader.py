@@ -49,9 +49,8 @@ class ProjectLoader(TaskLoader):
             pipeline_cls = pipelines.WGSPipeline
             routes = route(
                 files_list,
-                [(r'\.sam$', 'alignment_result_files'),
-                 # Catch all that didn't match at the bottom
-                 (guess_seq_filetype, 'raw_seq_files')]
+                # Catch all
+                [(guess_seq_filetype, 'raw_seq_files')]
             )
 
         routes['raw_seq_files'].extend(pairs)
