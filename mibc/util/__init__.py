@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import types
 import inspect
@@ -110,3 +111,13 @@ def islambda(func):
     return getattr(func,'func_name') == '<lambda>'
 
 
+def rmext(name_str):
+    """removes file extensions"""
+    path, name_str = os.path.split(name_str)
+    match = re.match(r'(.+)(\..*)', name_str)
+    if match:
+        noext = match.group(1)
+    else:
+        noext = name_str
+
+    return os.path.join(path, noext)
