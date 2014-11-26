@@ -116,7 +116,6 @@ def optionHandling():
             sys.exit(1)
         else:
             opts.type = globals.config["CLUSTER"].lower()
-    print >> sys.stderr, " opts.type: " + str(opts.type)
 
     if opts.location is "":
         if globals.config.get("TEMP_PATH") is not None:
@@ -134,17 +133,14 @@ def optionHandling():
             opts.port = 8888
         else:
             opts.port = globals.config["PORT"]
-    print >> sys.stderr, " opts.port: " + str(opts.port)
 
     if opts.governor is None or "":
         if globals.config.get("GOVERNOR") is None:
             opts.governor = 999
         else:
             opts.governor = globals.config["GOVERNOR"]
-    print >> sys.stderr, " opts.governor: " + str(opts.governor)
 
     if input is "-":
-        print >> sys.stderr, sys.stdin
         jsonString = sys.stdin.read()
         data = json.loads(jsonString);
     else:

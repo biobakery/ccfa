@@ -5,6 +5,7 @@ import tasks
 import time
 import sys
 import subprocess
+import traceback
 
 QueueStatus = tasks.Enum(['RUNNING', 'PAUSED', 'STOPPED'])
 
@@ -135,12 +136,14 @@ class TaskManager(object):
                 for task in self.queuedTasks:
                     if task.getStatus() == tasks.Status.QUEUED:
                         if self.governor > 0:
+                            print >> sys.stderr, "governor: " + str(self.governor) + "->" + str(self.governor - 1)
                             self.governor -= 1
                             task.run(self)
                             self.notify(task)
                         still_queuedTasks.append(task)
 
                     elif task.getStatus() == tasks.Status.FINISHED:
+                        print >> sys.stderr, "governor: " + str(self.governor) + "->" + str(self.governor + 1)
                         self.governor += 1
                         # Did the task fail? 
                         if task.getResult() == tasks.Result.FAILURE:
@@ -273,10 +276,11 @@ class TaskManager(object):
 
     def startQueue(self):
         print >> sys.stderr, "startQueue"
-        self.queueStatus = QueueStatus.RUNNING
-        self.governor = self.saved_governor
+        if self.queueStatus is not QueueStatus.RUNNING:
+            self.queueStatus = QueueStatus.RUNNING
+            self.governor = self.saved_governor
+            self.runQueue()
         print >> sys.stderr, "governor: " + str(self.governor)
-        self.runQueue()
 
     def getQueueStatus(self):
         return self.queueStatus
@@ -297,6 +301,9 @@ class TaskManager(object):
             If downstream tasks are running, they are killed and their products are removed.
             Finally, it kicks off the queue to find if anything new can be processed.
         """
+        if self.queueStatus != QueueStatus.STOPPED:
+            return
+
         print >> sys.stderr, "redoTask: " + givenTaskString
 
         givenTask = [task for k,task in self.getTasks().iteritems() if task.getName() == givenTaskString]
@@ -319,8 +326,8 @@ class TaskManager(object):
                 self.notify(task)
                 continue
             if task.getStatus() == tasks.Status.RUNNING:
-                task.killRun()
                 self.queuedTasks.remove(task)
+                task.killRun()
                 task.cleanupProducts()
                 task.setReturnCode(None)
                 task.setResult(tasks.Result.NA)
