@@ -2,7 +2,9 @@
 the automatic metadata generator webform
 """
 import os
+import re
 import sys
+import glob
 import logging
 
 from doit.cmd_base import Command
@@ -21,6 +23,7 @@ IGNORED_FILES = [
     'metadata.txt', 'map.txt'
 ]
 
+
 def choices(*selections):
     def wrapped(answer):
         answer = answer.lower()
@@ -32,11 +35,24 @@ def choices(*selections):
 
     return wrapped
 
-def list_or_listdir(answer):
-    if answer and ',' in answer:
+
+def pattern_list_or_listdir(answer):
+    if not answer:
+        return filter(not_ignored, os.listdir(_project_dir))
+    elif answer.startswith("glob:"):
+        pattern = os.path.join(_project_dir,
+                               answer.split("glob:")[1])
+        files = map(os.path.basename, glob.glob(pattern))
+        return filter(not_ignored, files)
+    elif answer.startswith("re:"):
+        matcher = lambda s: re.search(answer.split("re:")[1], s)
+        files = filter(matcher, os.listdir(_project_dir))
+        return filter(not_ignored, files)
+    elif ',' in answer:
         return answer.split(',')
     else:
-        return filter(not_ignored, os.listdir(_project_dir))
+        return [answer]
+    
 
 def not_ignored(fname):
     """for use in filters; determines whether this file should be
@@ -46,9 +62,9 @@ def not_ignored(fname):
     return fname not in IGNORED_FILES and os.path.isfile(fname)
 
 
-
 def true_or_false(answer):
     return true_strings.get(answer.lower()) or "false",
+
 
 REQUIRED_FIELDS = {
     # 'pi_first_name'    : str,
@@ -67,7 +83,7 @@ REQUIRED_FIELDS = {
     'study_title'       : str,
     'study_description' : str,
     'sample_type'       : str,
-    'filename'          : list_or_listdir,
+    'filename'          : pattern_list_or_listdir,
     '16s_data'          : true_or_false,
     'visualize'         : true_or_false,
     'platform'          : choices("illumina", "454")
@@ -96,6 +112,7 @@ opt_ignore = {"name": "ignore",
                "help": ("Comma separated list of files to ignore when"
                         " automatically ading file names to project"
                         " metadata"),}
+
 
 class InitializeProject(Command):
     name = "initialize-project"
@@ -147,7 +164,7 @@ fields.
                 self.logger.warn("Ill-formatted argument `%s'. "
                                  "Arguments should be formatted key:value", arg)
                 continue
-            key, val = arg.split(':')
+            key, val = arg.split(':', 1)
             val = val.strip()
             if key in REQUIRED_FIELDS:
                 try:
