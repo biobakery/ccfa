@@ -177,7 +177,7 @@ class Project(util.SerializableMixin, projectmixins.validation):
 	    with open(os.path.join(self.path, "map.txt"), 'w') as map_file:
                 print >> map_file, "#SampleID"
                 for f in self.filename:
-                    name = os.path.splitext(f)[0]
+                    name = util.rmext(os.path.basename(f))
                     print >> map_file, os.path.basename(name)
 
 
