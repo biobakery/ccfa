@@ -56,8 +56,11 @@ class ProjectLoader(TaskLoader):
 
         routes['raw_seq_files'].extend(pairs)
 
-        skipfilters = [ TaskFilter(filter_str) 
-                        for filter_str in project.skiptasks ]
+        if hasattr(project, "skiptasks"):
+            skipfilters = [ TaskFilter(filter_str) 
+                            for filter_str in project.skiptasks ]
+        else:
+            skipfilters = []
 
         return pipeline_cls(
             products_dir=products_dir,
