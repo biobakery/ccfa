@@ -12,6 +12,7 @@ from anadama_workflows import pipelines
 
 from .. import models, settings
 
+
 class ProjectLoader(TaskLoader):
 
     def load_tasks(self, cmd, opt_values, pos_args):
@@ -49,16 +50,22 @@ class ProjectLoader(TaskLoader):
             pipeline_cls = pipelines.WGSPipeline
             routes = route(
                 files_list,
-                [(r'\.sam$', 'alignment_result_files'),
-                 # Catch all that didn't match at the bottom
-                 (guess_seq_filetype, 'raw_seq_files')]
+                # Catch all
+                [(guess_seq_filetype, 'raw_seq_files')]
             )
 
         routes['raw_seq_files'].extend(pairs)
 
+        if hasattr(project, "skiptasks"):
+            skipfilters = [ TaskFilter(filter_str) 
+                            for filter_str in project.skiptasks ]
+        else:
+            skipfilters = []
+
         return pipeline_cls(
             products_dir=products_dir,
             sample_metadata=project.map,
+            skipfilters=skipfilters,
             # construct the rest of the options with the route
             # function
             **routes
@@ -110,3 +117,12 @@ def _regex_filter(list_fnames):
                 notpairs.append(fname)    
 
     return one, two, notpairs
+
+
+def TaskFilter(filter_str):
+    key, regex = filter_str.split(':', 1)
+    def the_filter(task_dict):
+        return re.search(regex, task_dict[key])
+
+    return the_filter
+    

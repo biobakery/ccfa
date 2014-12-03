@@ -2,8 +2,11 @@
 the automatic metadata generator webform
 """
 import os
+import re
 import sys
+import glob
 import logging
+from collections import defaultdict
 
 from doit.cmd_base import Command
 
@@ -21,6 +24,7 @@ IGNORED_FILES = [
     'metadata.txt', 'map.txt'
 ]
 
+
 def choices(*selections):
     def wrapped(answer):
         answer = answer.lower()
@@ -32,11 +36,24 @@ def choices(*selections):
 
     return wrapped
 
-def list_or_listdir(answer):
-    if answer and ',' in answer:
+
+def pattern_list_or_listdir(answer):
+    if not answer:
+        return filter(not_ignored, os.listdir(_project_dir))
+    elif answer.startswith("glob:"):
+        pattern = os.path.join(_project_dir,
+                               answer.split("glob:")[1])
+        files = map(os.path.basename, glob.glob(pattern))
+        return filter(not_ignored, files)
+    elif answer.startswith("re:"):
+        matcher = lambda s: re.search(answer.split("re:")[1], s)
+        files = filter(matcher, os.listdir(_project_dir))
+        return filter(not_ignored, files)
+    elif ',' in answer:
         return answer.split(',')
     else:
-        return filter(not_ignored, os.listdir(_project_dir))
+        return [answer]
+    
 
 def not_ignored(fname):
     """for use in filters; determines whether this file should be
@@ -46,28 +63,30 @@ def not_ignored(fname):
     return fname not in IGNORED_FILES and os.path.isfile(fname)
 
 
-
 def true_or_false(answer):
     return true_strings.get(answer.lower()) or "false",
 
+
+OPTIONAL_FIELDS = {
+    'pi_first_name'            : str,
+    'pi_last_name'             : str,
+    'pi_contact_email'         : str,
+    'lab_name'                 : str,
+    'researcher_first_name'    : str,
+    'researcher_last_name'     : str,
+    'researcher_contact_email' : str,
+    'collection_start_date'    : str,
+    'collection_end_date'      : str,
+    'submit_to_insdc'          : true_or_false,
+    'reverse_primer'           : str,
+    'skiptasks'                : str
+}
+
 REQUIRED_FIELDS = {
-    # 'pi_first_name'    : str,
-    # 'pi_last_name'     : str,
-    # 'pi_contact_email' : str,
-    # 'lab_name'         : str,
-
-    # 'researcher_first_name'    : str,
-    # 'researcher_last_name'     : str,
-    # 'researcher_contact_email' : str,
-    # 'collection_start_date'    : str,
-    # 'collection_end_date'      : str,
-    # 'submit_to_insdc'          : true_or_false,
-    # 'reverse_primer'           : str,
-
     'study_title'       : str,
     'study_description' : str,
     'sample_type'       : str,
-    'filename'          : list_or_listdir,
+    'filename'          : pattern_list_or_listdir,
     '16s_data'          : true_or_false,
     'visualize'         : true_or_false,
     'platform'          : choices("illumina", "454")
@@ -97,6 +116,7 @@ opt_ignore = {"name": "ignore",
                         " automatically ading file names to project"
                         " metadata"),}
 
+
 class InitializeProject(Command):
     name = "initialize-project"
     doc_purpose = ('Initialize a MIBC project')
@@ -122,13 +142,17 @@ fields.
             f.strip() for f in opt_values['ignore'].split(',') if f
         )
 
-        given_fields = self.fields_from_pos_args(pos_args)
-        given_fields = dict(given_fields)
+        given_fields = self.parse_pos_args(pos_args)
+        given_fields = self.merge_fields(given_fields)
         for f in REQUIRED_FIELDS:
             if f in given_fields:
-                value = given_fields[f]
+                value = given_fields.pop(f)
             else:
                 value = self.query_user_for_field(f)
+            setattr(project, f, value)
+
+        # now add the rest of the optional fields
+        for f, value in given_fields.items():
             setattr(project, f, value)
 
         project.save()
@@ -141,17 +165,29 @@ fields.
         return l
 
 
-    def fields_from_pos_args(self, pos_args):
+    def merge_fields(self, fields):
+        fields_dict = defaultdict(list)
+        for key, val in fields:
+            if type(val) in (tuple, list):
+                fields_dict[key].extend(val)
+            else:
+                fields_dict[key].append(val)
+        return fields_dict
+
+
+    def parse_pos_args(self, pos_args):
+        index = REQUIRED_FIELDS.copy()
+        index.update(OPTIONAL_FIELDS)
         for arg in pos_args:
             if ":" not in arg:
                 self.logger.warn("Ill-formatted argument `%s'. "
                                  "Arguments should be formatted key:value", arg)
                 continue
-            key, val = arg.split(':')
+            key, val = arg.split(':', 1)
             val = val.strip()
-            if key in REQUIRED_FIELDS:
+            if key in index:
                 try:
-                    func = REQUIRED_FIELDS[key]
+                    func = index[key]
                     yield key, func(val)
                 except KeyError as e:
                     self.logger.warn(e)

@@ -691,6 +691,7 @@ EOF
                    CLUSTER_MEMORY=globals.config["CLUSTER_MEMORY"][self.getRetryMemoryIndex()],
                    CLUSTER_QUEUE=globals.config["CLUSTER_QUEUE"][self.getRetryQueueIndex()],
                    CLUSTER_JOBNAME=globals.config["CLUSTER_JOBNAME"],
+                   CLUSTER_OUTPUT_PARAM=globals.config["CLUSTER_OUTPUT_PARAM"],
                    BATCHLOGFILE=self.getLogfile() + ".batch",
                    LOGFILE=self.getLogfile(),
                    SOURCE_PATH=globals.config['SOURCE_PATH'],
