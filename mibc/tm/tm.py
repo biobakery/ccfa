@@ -362,8 +362,11 @@ class TaskManager(object):
         elif pipeline == "post_failure":
             hook = os.path.join(path, "hooks/post_pipeline_failure.sh")
 
-        print >> sys.stderr, "hook: " + hook
-        subprocess.call(hook, shell=True)
+        if os.path.exists(hook):
+            print >> sys.stderr, "hook: " + hook
+            subprocess.call(hook, shell=True)
+        else:
+            print >> sys.stderr, "hook: " + hook + " not found."
 
 
     def setupEnvironment(self):

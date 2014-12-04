@@ -300,8 +300,12 @@ class Task(object):
             hook = os.path.join(path, "hooks/post_task_success.sh")
         elif self.getResult() == Result.FAILURE:
             hook = os.path.join(path, "hooks/post_task_failure.sh")
-        print >> sys.stderr, "hook: " + hook
-        subprocess.call(hook, shell=True)
+        if os.path.exists(hook):
+            print >> sys.stderr, "hook: " + hook
+            subprocess.call(hook, shell=True)
+        else:
+            print >> sys.stderr, "hook: " + hook + " not found."
+
 
     def setupEnvironment(self):
         os.environ["TaskName"] = self.getName()
