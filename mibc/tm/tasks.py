@@ -504,13 +504,11 @@ class LSFTask(Task):
         cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
         sub = """#!/bin/sh
 #BSUB {CLUSTER_QUEUE}
-#BSUB -o {OUTPUT}
 source {SOURCE_PATH}
 {picklescript} -v
 """     .format(CLUSTER_QUEUE=globals.config['CLUSTER_QUEUE'],
                        CLUSTER_JOB=globals.config['CLUSTER_JOB'],
                        SOURCE_PATH=globals.config['SOURCE_PATH'],
-                       OUTPUT=self.getLogfile(),
                        picklescript=self.getPickleScript())
         with open(cluster_script, 'w+') as f:
           f.write(sub)
