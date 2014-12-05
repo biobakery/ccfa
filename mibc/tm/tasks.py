@@ -294,12 +294,13 @@ class Task(object):
             to run after the task completes.  This hook calls hooks/post_task_success.sh
             or hooks/post_task_failure.sh based on the task result. '''
         self.setupEnvironment()
-        path = os.path.dirname(os.path.realpath(__file__))
+        #path = os.path.dirname(os.path.realpath(__file__))
+        hooks = self.tm.getHooks()
         hook = str()
         if self.getResult() == Result.SUCCESS:
-            hook = os.path.join(path, "hooks/post_task_success.sh")
+            hook = os.path.join(hooks, "post_task_success.sh")
         elif self.getResult() == Result.FAILURE:
-            hook = os.path.join(path, "hooks/post_task_failure.sh")
+            hook = os.path.join(hooks, "post_task_failure.sh")
         if os.path.exists(hook):
             print >> sys.stderr, "hook: " + hook
             subprocess.call(hook, shell=True)

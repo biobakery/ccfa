@@ -13,13 +13,22 @@ import hashlib
 import globals
 
 
-HELP="""%prog -t type [-i <json encoded inputfile>] [-l location] [-D] [-g governor] [-p port]
+HELP="""%prog -t type [-i <json encoded inputfile>] [-l location] [-D] [-g governor] [-p port][-k hooks dir]
 
 %prog - TM (Task Manager) parses the tasks contained in the given 
 json encoded directed acyclic graph (DAG) file.  This command
 is designed to read the json encoded DAG from stdin.  However, a filename 
 may be specified for input (-i filename.json) if that method is preferred.
 type currently can be one of three values: local, slurm, or lsf.
+
+User supplied 'hooks' are called for the given events:
+    post_pipeline_failure.sh  
+    post_pipeline_success.sh  
+    post_task_failure.sh  
+    post_task_success.sh  
+    pre_pipeline.sh  
+    pre_pipeline_restart.sh
+    
 
 NOTE:
 -D indicates that the task_manager daemon should be started and will 
@@ -44,7 +53,9 @@ opts_list = [
     optparse.make_option('-D', '--daemon', action="store_true", 
                          dest="daemon", help="Specify task manager to run as a daemon.  Will process multiple dags."),
     optparse.make_option('-p', '--port', action="store", type="int", 
-                         dest="port", help="Specify the port of the webserver - defaults to 8888.")
+                         dest="port", help="Specify the port of the webserver - defaults to 8888."),
+    optparse.make_option('-k', '--hooks', action="store", type="string", 
+                         dest="hooks", help="Specify the directory of the user supplied hooks.")
 ]
 
 
@@ -140,6 +151,12 @@ def optionHandling():
         else:
             opts.governor = globals.config["GOVERNOR"]
 
+    if opts.hooks is None or "":
+        if globals.config.get("HOOKS") is None:
+            opts.hooks = os.path.dirname(os.path.realpath(__file__)) + "/hooks"
+        else:
+            opts.hooks = globals.config["HOOKS"]
+            
     if input is "-":
         jsonString = sys.stdin.read()
         data = json.loads(jsonString);
@@ -198,7 +215,8 @@ def main():
                 'location': opts.location,
                 'rundirectory': rundirectory,
                 'hashdirectory': hashdirectory,
-                'governor': opts.governor}}
+                'governor': opts.governor,
+                'hooks': opts.hooks}}
     msg = json.dumps(d)
     #print >> sys.stderr, msg
 
