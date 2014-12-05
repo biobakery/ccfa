@@ -3,6 +3,7 @@
     "SOURCE_PATH": "/aux/deploy6/bin/activate"
     "GOVERNOR" : 10,
     "PORT" : 8888,
+    "HOOKS" : "/aux/deploy6/tmp/ccfa/mibc/tm/hooks",
     "CLUSTER": "LSF", 
     "CLUSTER_OUTPUT_PARAM": "-o", 
     "CLUSTER_JOB": "bsub",

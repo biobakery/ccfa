@@ -273,7 +273,7 @@ class Task(object):
             for child in p.children(True):
                 os.kill(child.pid, signal.SIGTERM)
             os.kill(self.pid.pid, signal.SIGTERM)
-        except (AttributeError, TypeError, psutil.NoSuchProcess) as e:
+        except Exception as e:
             print >> sys.stderr, self.getName() + " job removed."
         # set our pid to None as a flag for any job callbacks to ignore the results
         self.pid = None
@@ -294,14 +294,19 @@ class Task(object):
             to run after the task completes.  This hook calls hooks/post_task_success.sh
             or hooks/post_task_failure.sh based on the task result. '''
         self.setupEnvironment()
-        path = os.path.dirname(os.path.realpath(__file__))
+        #path = os.path.dirname(os.path.realpath(__file__))
+        hooks = self.tm.getHooks()
         hook = str()
         if self.getResult() == Result.SUCCESS:
-            hook = os.path.join(path, "hooks/post_task_success.sh")
+            hook = os.path.join(hooks, "post_task_success.sh")
         elif self.getResult() == Result.FAILURE:
-            hook = os.path.join(path, "hooks/post_task_failure.sh")
-        print >> sys.stderr, "hook: " + hook
-        subprocess.call(hook, shell=True)
+            hook = os.path.join(hooks, "post_task_failure.sh")
+        if os.path.exists(hook):
+            print >> sys.stderr, "hook: " + hook
+            subprocess.call(hook, shell=True)
+        else:
+            print >> sys.stderr, "hook: " + hook + " not found."
+
 
     def setupEnvironment(self):
         os.environ["TaskName"] = self.getName()
@@ -361,8 +366,6 @@ class LocalTask(Task):
     def run(self, callback):
         super(LocalTask, self).run(callback)
         # create subprocess script
-        #script = tempfile.NamedTemporaryFile(dir=self.directory, delete=False)
-        #import pdb;pdb.set_trace()
         script = self.getScriptfile()
         sub = """#!/bin/sh
 source {SOURCE_PATH}
@@ -468,7 +471,7 @@ echo "-- task cmd output --<br>"
 cmd_exit=`echo $?`
 echo "<br>-- end task cmd output --<br>" 
 exit $cmd_exit
-            """.format(taskname=self.getName(), 
+            """.format(taskname=self.getTaskId(), 
                        deps=self.json_node['depends'],
                        products=self.json_node['produces'],
                        SOURCE_PATH=globals.config['SOURCE_PATH'],

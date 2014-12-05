@@ -52,6 +52,7 @@ class Tm_daemon(object):
         tmEntry['rundirectory'] = tm_data['rundirectory']
         tmEntry['hashdirectory'] = tm_data['hashdirectory']
         tmEntry['governor'] = tm_data['governor']
+        tmEntry['hooks'] = tm_data['hooks']
         tmEntry['location'] = tm_data['location']
         tmEntry['graph'] = tmEntry['parser'].getJsonGraph()
         if not os.path.exists(tmEntry['rundirectory'] + "/graph.json"):
@@ -65,7 +66,10 @@ class Tm_daemon(object):
                 f.write(json.dumps(tm_data))
    
         # create TaskManager and give it the tasks to run
-        tmEntry['tm'] = TaskManager.TaskManager(tmEntry['parser'].getTasks(), wslisteners, tmEntry['governor'])
+        tmEntry['tm'] = TaskManager.TaskManager(tmEntry['parser'].getTasks(), 
+                                                wslisteners, 
+                                                tmEntry['hooks'], 
+                                                tmEntry['governor'])
         tmEntry['tm'].setTaskOutputs(tmEntry['rundirectory'])
         tmEntry['tm'].setupQueue()
         tmEntry['tm'].runQueue()
@@ -101,6 +105,7 @@ class Tm_daemon(object):
             )
 
         app = tornado.web.Application( routes, **app_settings )
+        #app.listen(port, address='127.0.0.1')
         app.listen(port)
         print "webserver listening on host:" + str(port) + "..."
         ioloop = tornado.ioloop.IOLoop.instance()

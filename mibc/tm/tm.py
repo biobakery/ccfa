@@ -5,6 +5,7 @@ import tasks
 import time
 import sys
 import subprocess
+import traceback
 
 QueueStatus = tasks.Enum(['RUNNING', 'PAUSED', 'STOPPED'])
 
@@ -26,13 +27,14 @@ def nextNum(localDir):
 class TaskManager(object):
     """ Parse the json dag passed in via cmdline args """
 
-    def __init__(self, taskList, wslisteners, governor=99):
+    def __init__(self, taskList, wslisteners, hooks, governor=99):
         self.taskList = taskList
         self.completedTasks = []
         self.waitingTasks = []
         self.queuedTasks = []
         self.governor = governor
         self.saved_governor = governor
+        self.hooks = hooks
         self.wslisteners = wslisteners
         self.queueStatus = QueueStatus.RUNNING
         self.root = None
@@ -135,12 +137,14 @@ class TaskManager(object):
                 for task in self.queuedTasks:
                     if task.getStatus() == tasks.Status.QUEUED:
                         if self.governor > 0:
+                            print >> sys.stderr, "governor: " + str(self.governor) + "->" + str(self.governor - 1)
                             self.governor -= 1
                             task.run(self)
                             self.notify(task)
                         still_queuedTasks.append(task)
 
                     elif task.getStatus() == tasks.Status.FINISHED:
+                        print >> sys.stderr, "governor: " + str(self.governor) + "->" + str(self.governor + 1)
                         self.governor += 1
                         # Did the task fail? 
                         if task.getResult() == tasks.Result.FAILURE:
@@ -273,10 +277,11 @@ class TaskManager(object):
 
     def startQueue(self):
         print >> sys.stderr, "startQueue"
-        self.queueStatus = QueueStatus.RUNNING
-        self.governor = self.saved_governor
+        if self.queueStatus is not QueueStatus.RUNNING:
+            self.queueStatus = QueueStatus.RUNNING
+            self.governor = self.saved_governor
+            self.runQueue()
         print >> sys.stderr, "governor: " + str(self.governor)
-        self.runQueue()
 
     def getQueueStatus(self):
         return self.queueStatus
@@ -297,6 +302,9 @@ class TaskManager(object):
             If downstream tasks are running, they are killed and their products are removed.
             Finally, it kicks off the queue to find if anything new can be processed.
         """
+        if self.queueStatus != QueueStatus.STOPPED:
+            return
+
         print >> sys.stderr, "redoTask: " + givenTaskString
 
         givenTask = [task for k,task in self.getTasks().iteritems() if task.getName() == givenTaskString]
@@ -319,8 +327,8 @@ class TaskManager(object):
                 self.notify(task)
                 continue
             if task.getStatus() == tasks.Status.RUNNING:
-                task.killRun()
                 self.queuedTasks.remove(task)
+                task.killRun()
                 task.cleanupProducts()
                 task.setReturnCode(None)
                 task.setResult(tasks.Result.NA)
@@ -341,22 +349,27 @@ class TaskManager(object):
 
         self.runQueue()
 
+    def getHooks(self):
+        return self.hooks
+
     def callHook(self, pipeline):
         ''' Method spawns a child process that easily allows user defined things
             to run after the task completes.  This hook calls hooks/post_task_success.sh
             or hooks/post_task_failure.sh based on the task result. '''
         self.setupEnvironment()
-        path = os.path.dirname(os.path.realpath(__file__))
         hook = str()
         if pipeline == "pre":
-            hook = os.path.join(path, "hooks/pre_pipeline.sh")
+            hook = os.path.join(self.hooks, "pre_pipeline.sh")
         elif pipeline == "post_success":
-            hook = os.path.join(path, "hooks/post_pipeline_success.sh")
+            hook = os.path.join(self.hooks, "post_pipeline_success.sh")
         elif pipeline == "post_failure":
-            hook = os.path.join(path, "hooks/post_pipeline_failure.sh")
+            hook = os.path.join(self.hooks, "post_pipeline_failure.sh")
 
-        print >> sys.stderr, "hook: " + hook
-        subprocess.call(hook, shell=True)
+        if os.path.exists(hook):
+            print >> sys.stderr, "hook: " + hook
+            subprocess.call(hook, shell=True)
+        else:
+            print >> sys.stderr, "hook: " + hook + " not found."
 
 
     def setupEnvironment(self):
