@@ -2,6 +2,9 @@
 ##
 ## script executes after successful pipeline run
 ##
+# HMP2 architecture as of 12/16/14.
+# We only wish to expose pipeline outputs - not processing outputs as originally
+# intended.  Thus, only cleaned output will be linked in the processing area.
 
 #echo "post_pipeline_success.sh"
 

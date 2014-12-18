@@ -5,45 +5,76 @@
 
 #echo "post_task_success.sh"
 
-# for HMP2, successful products from all workflows EXCEPT human workflows (kneed/bmtagger etc)
-# should be linked into separate directory structure (made available to webserver to serve)
+# HMP2 architecture as of 12/16/14.
+# We only wish to expose pipeline outputs - not processing outputs as originally
+# intended.  Thus, only cleaned output will be linked in the processing area.
 
 HMP2_PROCESSING_DIR=/seq/ibdmdb/processing
+HMP2_PRIVATE_DIR=/seq/ibdmdb/private
 
-function link_products {
-  
-  # add link exposing job products to webserver
-  for file in `echo "${TaskProducts}"`
+link_all_public_products() {
+
+  for product in `echo "${TaskProducts}"`
   do
-  
-    # if file doesn't exist; skip it
-    if [ ! -f "${file}" ]; then
-      echo "Warning: Product file +${file}+ doesn't exist."
-      continue;
-    fi
-  
-    # strip out current 3 prefix segments
-    linkfile=`echo "${file}" | cut -d/ -f5-`
-    linkfile="${HMP2_PROCESSING_DIR}"/"${linkfile}"
-    #echo "file: ${file}"
-    #echo "linkfile: ${linkfile}"
-  
-    # if link's directory doesn't exist, make it
-    linkdir=`dirname "${linkfile}"`
-    if [ ! -d "${linkdir}" ]; then
-      #echo "creating dir: ${linkdir}"
-      mkdir -p "${linkdir}"
-    fi
-  
-    ln -s "${file}" "${linkfile}"
-    
-    # public the logfile for the product if it exists
-    if [ -f "${file}.log.html" ]; then
-        ln -s "${file}.log.html" "${linkfile}.log.html"
-    fi
-  
+    link_public_product "${product}"
   done
+
+}
+
+link_public_product() {
+
+  file="$1"
+  # if file doesn't exist; skip it
+  if [ ! -f "${file}" ]; then
+    echo "Warning: Product file +${file}+ doesn't exist."
+    continue;
+  fi
   
+  # strip out current 3 prefix segments
+  linkfile=`echo "${file}" | cut -d/ -f5-`
+  linkfile="${HMP2_PROCESSING_DIR}"/"${linkfile}"
+ 
+  # if link's directory doesn't exist, make it
+  linkdir=`dirname "${linkfile}"`
+  if [ ! -d "${linkdir}" ]; then
+    mkdir -p "${linkdir}"
+  fi
+  
+  ln -s "${file}" "${linkfile}"
+  
+  # copy the logfile for the product if it exists
+  if [ -f "${file}.log.html" ]; then
+      ln -s "${file}.log.html" "${linkfile}.log.html"
+  fi
+}
+
+link_private_product() {
+  
+  # add private link for $1 
+  file="$1"
+  
+  # if file doesn't exist; skip it
+  if [ ! -f "${file}" ]; then
+    echo "Warning: Product file +${file}+ doesn't exist."
+    continue;
+  fi
+  
+  # strip out current 3 prefix segments
+  linkfile=`echo "${file}" | cut -d/ -f5-`
+  linkfile="${HMP2_PRIVATE_DIR}"/"${linkfile}"
+  
+  # if link's directory doesn't exist, make it
+  linkdir=`dirname "${linkfile}"`
+  if [ ! -d "${linkdir}" ]; then
+    mkdir -p "${linkdir}"
+  fi
+  
+  ln -s "${file}" "${linkfile}"
+  
+  # copy the logfile for the product if it exists
+  if [ -f "${file}.log.html" ]; then
+      ln -s "${file}.log.html" "${linkfile}.log.html"
+  fi
 }
 
 task=`echo ${TaskName} | sed 's/:.*$//'`
@@ -54,11 +85,7 @@ if [[ "${task}" == "breadcrumbs_pcoa_plot" ]]; then
   fi
 fi
 
-#if [[ "${task}" == "stacked_bar_chart" ]]; then
-#  if [[ -n ${TaskOutputDirectory} ]]; then
-#    #touch ${TaskOutputDirectory}/taxonomy_profile.html
-#  fi
-#fi
+echo "Task: $task"
 
 if [[ "${task}" == "merge_otu_tables" ]]; then
   if [ -f /seq/ibdmdb/centos6/qiime-dev/bin/activate ]; then
@@ -76,7 +103,27 @@ if [[ "${task}" == "merge_otu_tables" ]]; then
   fi
 fi
 
-link_products
+if [ "${task}" == "knead_data" ]; then
 
+  # split the products appropriately
+  for product in `echo "${TaskProducts}"`
+  do
+    echo "  knead_data product: $product"
+    if `echo "${product}" | grep -q "contam"`; then
+      link_private_product "${product}"
+    elif `echo "${product}" | grep -q "clean"`; then
+      link_public_product "${product}"
+    fi
+  done
+
+elif [ "${task}"  == "merge_otu_tables" ]; then
+  link_all_public_products
+elif [ "${task}"  == "biom_to_tsv" ]; then
+  link_all_public_products
+elif [ "${task}"  == "stacked_bar_chart" ]; then
+  link_all_public_products
+elif [ "${task}"  == "breadcrumbs_pcoa_plot" ]; then
+  link_all_public_products
+fi
 
  
