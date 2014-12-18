@@ -467,8 +467,10 @@ echo "</UL>"
 
 echo "<P>"
 echo "-- task cmd output --<br>" 
+echo "<PRE>" 
 /usr/bin/env time -p {pickle} -v 
 cmd_exit=`echo $?`
+echo "</PRE>" 
 echo "<br>-- end task cmd output --<br>" 
 exit $cmd_exit
             """.format(taskname=self.getTaskId(), 
@@ -671,12 +673,13 @@ while [ "${{done}}" != "yes" ]; do
 done
 
 echo "<BR>"
+echo "<PRE>"
 # append job log to our monitor log
 if [ -f {BATCHLOGFILE} ]; then
   cat {BATCHLOGFILE} >> {LOGFILE}
   rm {BATCHLOGFILE}
 fi
-echo "<PRE>"
+echo "</PRE>"
 if [ "$STATUS" != "OK" ]; then
     exit -1
 else 
@@ -910,13 +913,14 @@ while [ "${{done}}" != "yes" ]; do
 done
 
 echo "<BR>"
+echo "<PRE>"
 # append job log to our monitor log
 if [ -f {BATCHLOGFILE} ]; then
   cat {BATCHLOGFILE} >> {LOGFILE}
   rm {BATCHLOGFILE}
 fi
 
-echo "<PRE>"
+echo "</PRE>"
 {CLUSTER_STATS} "${{job_id}}"
 if [ "$STATUS" != "OK" ]; then
     exit -1
