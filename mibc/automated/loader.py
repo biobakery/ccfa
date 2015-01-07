@@ -1,5 +1,6 @@
 import os
 import re
+from itertools import izip_longest
 from collections import OrderedDict
 
 from doit.cmd_base import TaskLoader
@@ -96,7 +97,12 @@ def infer_barcode_files(fnames):
 
 def infer_pairs(list_fnames):
     one_files, two_files, notpairs = _regex_filter(list_fnames)
-    pairs = zip( sorted(one_files), sorted(two_files) )
+    if len(one_files) != len(two_files):
+        pairs = list()
+        notpairs.extend(one_files)
+        notpairs.extend(two_files)
+    else:
+        pairs = zip( sorted(one_files), sorted(two_files) )
     
     return pairs, notpairs
 
