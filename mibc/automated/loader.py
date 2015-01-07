@@ -88,7 +88,7 @@ def infer_barcode_files(fnames):
         else:
             nonbarcode_files.append(fname)
 
-    if len(barcode_files) = len(nonbarcode_files):
+    if len(barcode_files) == len(nonbarcode_files):
         return sorted(barcode_files), sorted(nonbarcode_files)
     else:
         return barcode_files, nonbarcode_files
