@@ -1,5 +1,6 @@
 import os
 import re
+from itertools import izip_longest
 from collections import OrderedDict
 
 from doit.cmd_base import TaskLoader
@@ -80,18 +81,28 @@ class ProjectLoader(TaskLoader):
 
 def infer_barcode_files(fnames):
     barcode_files, nonbarcode_files = list(), list()
-    regex = re.compile(r'[._ -]i\d*[._ -]|code', re.IGNORECASE)
+    regex = re.compile(r'[._ -]i\d*[._ -]', re.IGNORECASE)
+    match = lambda s: regex.search(s) or "code" in fname.lower()
     for fname in fnames:
-        if regex.search(fname):
+        if match(fname):
             barcode_files.append(fname)
         else:
             nonbarcode_files.append(fname)
 
-    return barcode_files, nonbarcode_files
+    if len(barcode_files) == len(nonbarcode_files):
+        return sorted(barcode_files), sorted(nonbarcode_files)
+    else:
+        return barcode_files, nonbarcode_files
+
 
 def infer_pairs(list_fnames):
     one_files, two_files, notpairs = _regex_filter(list_fnames)
-    pairs = zip( sorted(one_files), sorted(two_files) )
+    if len(one_files) != len(two_files):
+        pairs = list()
+        notpairs.extend(one_files)
+        notpairs.extend(two_files)
+    else:
+        pairs = zip( sorted(one_files), sorted(two_files) )
     
     return pairs, notpairs
 
