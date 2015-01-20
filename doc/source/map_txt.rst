@@ -67,6 +67,6 @@ Data lines for the QIIME format
 ===============================
 
 Lines containing data begin with the SampleID field and are
-alphanumeric and '.' (period).  All other data fields allow
-alphanumeric and the set of characters ._%+- ;:,/ Tabs must be used to
-separate the fields between the data columns.
+alphanumeric and ``.`` (period).  All other data fields allow
+alphanumeric and the set of characters ``._%+- ;:,/`` Tabs must be
+used to separate the fields between the data columns.
