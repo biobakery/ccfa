@@ -13,17 +13,14 @@ Automated analysis pipelines are managed with the ``mibc`` module.
 * :ref:`mibc-build`
 
 
-API Reference:
+Table of contents:
 
 .. toctree::
    :maxdepth: 2
 
-   efo
-   settings
-   validate
-   automated
-   email
-   models
+   guides
+   api-reference
+   
 
 
 Indices and tables
