@@ -13,7 +13,7 @@ class Split_dirs(object):
         Recommendations are to keep the number of files per directory
         to less than 100 (50 is better).  """
 
-    def __init__(self, total_files, stub="dir-", filenum=50, path="tm_tmp"):
+    def __init__(self, total_files, filenum=50, stub="dir-", path="tm_tmp"):
         """ Constructor takes the following:
             total_files - estimate the total number of files required for storage
             filenum - the number of files within each directory
