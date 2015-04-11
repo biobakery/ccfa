@@ -876,7 +876,8 @@ fi
 
 # launch job
 
-jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} --open-mode=append {CLUSTER_OUTPUT_PARAM} {BATCHLOGFILE} < "{cluster_script}"`
+echo "<BR>Cluster cmdline: {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} --open-mode=append --ntasks=1 {CLUSTER_OUTPUT_PARAM} {BATCHLOGFILE} < {cluster_script}"
+jobid_str=`eval {CLUSTER_JOB} {CLUSTER_PROJECT} {CLUSTER_MEMORY} {CLUSTER_QUEUE} {CLUSTER_JOBNAME} {taskname} --open-mode=append --ntasks=1 {CLUSTER_OUTPUT_PARAM} {BATCHLOGFILE} < "{cluster_script}"`
 job_id=`echo ${{jobid_str}} | awk -v i={CLUSTER_JOBID_POS} '{{printf $i}}'`
 echo "<BR>job_id: +${{job_id}}+"
 done="no"
@@ -967,7 +968,7 @@ EOF
         if jobid is not None:
             # kill the SLURM job on the cluster
             sub='''#!/bin/sh
-skill {jobid}
+scancel {jobid}
         '''.format(jobid=jobid.group(1))
             subprocess.call(sub, shell=True)
 
