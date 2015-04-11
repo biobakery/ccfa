@@ -7,6 +7,7 @@ Introduction and Guides
 .. toctree::
    :maxdepth: 2
 
+   installation
    mibc_build
    metadata_txt
    map_txt

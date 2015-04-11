@@ -93,6 +93,7 @@ class Tm_daemon(object):
         # setup Tornado async webservice
         routes = (
             ( r'/',           WebHandler),
+            ( r'/short',      ShortWebHandler),
             ( r'/websocket/', WSHandler),
             ( r'/task(.*)',   TaskHandler),
             ( r'/(scripts.*)',       tornado.web.StaticFileHandler, {"path": web_install_path}),
@@ -142,6 +143,22 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             print "status message received."
             for k, task in tmEntry['parser'].getTasks().iteritems():
                 self.taskUpdate(task)
+        if 'short' in data:
+            print "short status received."
+            status = {}
+            tm = tmEntry['tm']
+            status['total'] = str(len(tm.waitingTasks) + len(tm.queuedTasks) + len(tm.completedTasks))
+            status['waiting'] = str(len(tm.waitingTasks))
+            status['queued'] =  str(len(tm.queuedTasks))
+            status['finished'] = str(len(tm.completedTasks))
+            status['running'] = sum(1 for task in tm.queuedTasks if task.status == tasks.Status.RUNNING)
+            status['failed'] = sum(1 for task in tm.completedTasks if task.getResult() == tasks.Result.FAILURE)
+            status['governor'] = tm.saved_governor
+            status['queue'] = tm.getQueueStatus()
+            d = {'status': status}
+            return_msg = json.dumps(d)
+            print "status[waiting] %s " % status['waiting']
+            self.write_message(return_msg)
         if 'tm' in data:
             setupTm(data['tm'])
         if 'queue' in data:
@@ -186,6 +203,18 @@ class WebHandler(RequestHandler):
         #with open(hashdirectory + "/index.htmln", 'r') as f:
         #    json_data = f.read()
         #self.write(json_data)
+
+class ShortWebHandler(RequestHandler):
+    def get(self):
+        print "new web connection"
+        print "default_hash: " + Tm_daemon.default_hash
+        #print tmgrs.keys()
+        #print tmgrs.values()
+        #print "default_hash: " + Tm_daemon.default_hash
+        tmEntry = tmgrs[Tm_daemon.default_hash]
+        currentFile = os.path.realpath(__file__)
+        currentDir = os.path.dirname(currentFile)
+        self.render(os.path.join(currentDir + "/anadama_flows", "short-index.html"))
 
 class TaskHandler(RequestHandler):
     def get(self, more):

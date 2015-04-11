@@ -6,6 +6,7 @@ import time
 import sys
 import subprocess
 import traceback
+import split_dirs
 
 QueueStatus = tasks.Enum(['RUNNING', 'PAUSED', 'STOPPED'])
 
@@ -96,6 +97,8 @@ class TaskManager(object):
             if not self.getOutputDirectory():
                 if task.getProducts():
                     self.setOutputDirectory(task.getProducts()[0].split('mibc_products')[0] + 'mibc_products/')
+                else:
+                    self.setOutputDirectory(os.getcwd())
         if firsttime:
             self.callHook("pre")
 
@@ -237,9 +240,11 @@ class TaskManager(object):
 
     def setTaskOutputs(self, rundirectory):
         print "RUNDIRECTORY: " + rundirectory
+        sdirs = split_dirs.Split_dirs(len(self.getTasks()), filenum=10, path=rundirectory)
+        sdirs_gen = sdirs.getPathGenerator()
         for k, task in self.getTasks().iteritems():
             task.setTaskNum(nextNum(rundirectory))
-            task.setScriptfile(rundirectory)
+            task.setScriptfile(sdirs_gen.next()[1])
 
     def getStatus(self):
         return self.status

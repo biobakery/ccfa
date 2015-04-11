@@ -10,6 +10,7 @@ The MIBC is intended as a web interface to automated pipelines with
 AnADAMA. The web interface is handled by Django in the ``web_cms`` directory.
 Automated analysis pipelines are managed with the ``mibc`` module.
 
+* :ref:`installation`
 * :ref:`mibc-build`
 
 
