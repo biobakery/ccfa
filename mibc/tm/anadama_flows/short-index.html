@@ -34,7 +34,7 @@
         </table>
         <p>Queue</p>
         <label for="run">
-        <input type="radio" id="run" name="run" onClick="setQueue(result.run)">
+        <input type="radio" id="run" name="run" value="run" onClick="setQueue(result.run)">
         Running
         </label><br>
         <label for="pause">
@@ -45,6 +45,7 @@
         <input type="radio" id="stop" name="stop" value="stop" onClick="setQueue(result.stop)">
         Stopped
         </label><br>
+        <p>
         <button type="button" id="increase" onClick="setQueue(result.inc)"> Increase Governor </button>
         <button type="button" id="decrease" onClick="setQueue(result.dec)"> Decrease Governor </button>
         </div>

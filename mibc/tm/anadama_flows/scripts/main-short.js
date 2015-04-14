@@ -42,6 +42,24 @@ function refresh() {
 
 function setQueue(action) {
   console.log( "setQueue(" + action + ")" );
+  var run = document.getElementById("run");
+  var pause = document.getElementById("pause");
+  var stop = document.getElementById("stop");
+  if (action == "RUNNING") {
+          run.checked = true;
+          pause.checked = false;
+          stop.checked = false;
+  }
+  else if (action == "PAUSED") {
+          run.checked = false;
+          pause.checked = true;
+          stop.checked = false;
+  }
+  else if (action == "STOPPED") {
+          run.checked = false;
+          pause.checked = false;
+          stop.checked = true;
+  }
   var obj = {'queue': action};
   var json = JSON.stringify(obj);
   ws.send(json);
@@ -60,7 +78,7 @@ $(document).ready(function() {
   console.info("host: " + host);
   ws = new WebSocket("ws://" + host + "/websocket/");
   result = {run: 'RUNNING', pause: 'PAUSED', stop: 'STOPPED', inc: 'increase', dec: 'decrease'}
-  var taskTickInterval = setInterval(refresh, 10000);
+  var taskTickInterval = setInterval(refresh, 300000);
 
   ws.onopen = function() {
       var obj = {'short': 'short'};
@@ -88,18 +106,8 @@ $(document).ready(function() {
         var run = document.getElementById("run");
         var pause = document.getElementById("pause");
         var stop = document.getElementById("stop");
-        console.log("status.queue");
-        if (status.queue == "RUNNING") {
-          run.innerHTML = "Changed!";
-          run.style.fontWeight = 'bold';
-        }
-        else if (status.queue == "PAUSED") {
-          pause.style.fontWeight = 'bold';
-        }
-        else if (status.queue == "STOPPED") {
-          stop.style.fontWeight = 'bold';
-        }
-
+        console.log(status.queue);
+        setQueue(status.queue);
       }
   };
   ws.oncolse = function (evt) {
