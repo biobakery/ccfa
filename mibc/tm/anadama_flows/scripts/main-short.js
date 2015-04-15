@@ -65,6 +65,20 @@ function setQueue(action) {
   ws.send(json);
 }
 
+function refresh_input(element)
+{
+  if (event.keyCode == 13) {
+    refresh_val = element.value;
+    if (refresh_val == 0) {
+      clearInterval(interval);
+    }
+    else {
+      interval = setInterval(refresh, refresh_val * 1000);
+    }
+    element.value = refresh_val;
+  }
+}
+
 /*
  * function called automatically after page load complets;
  * sets up event listener callbacks for email text and project select boxes
@@ -78,7 +92,8 @@ $(document).ready(function() {
   console.info("host: " + host);
   ws = new WebSocket("ws://" + host + "/websocket/");
   result = {run: 'RUNNING', pause: 'PAUSED', stop: 'STOPPED', inc: 'increase', dec: 'decrease'}
-  var taskTickInterval = setInterval(refresh, 300000);
+  var refresh_val = 0; // start at zero - no refresh
+  var interval;
 
   ws.onopen = function() {
       var obj = {'short': 'short'};

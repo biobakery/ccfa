@@ -243,7 +243,8 @@ class Task(object):
         if self.pid is not None:
             self.publishLogfile()
             self.setReturnCode(exit_code)
-            self.tm.runQueue()
+            self.tm.scheduleRunQueue()
+            #self.tm.runQueue()
 
     def cleanupProducts(self):
         for product in self.getProducts():

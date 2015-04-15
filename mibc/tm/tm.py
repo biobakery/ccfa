@@ -7,6 +7,7 @@ import sys
 import subprocess
 import traceback
 import split_dirs
+import signal
 
 QueueStatus = tasks.Enum(['RUNNING', 'PAUSED', 'STOPPED'])
 
@@ -40,6 +41,7 @@ class TaskManager(object):
         self.queueStatus = QueueStatus.RUNNING
         self.root = None
         self.pipeline_output_directory = None
+        self.runQueue_scheduled = False
         self.run = 1 # this should be read from filespace...
 
     def getTasks(self):
@@ -186,6 +188,21 @@ class TaskManager(object):
             else:
                 self.callHook("post_failure")
 
+    def wake_up_handler(self, dum1, dum2):
+        print >> sys.stderr, "wakeup! vvvvvvvvvvvvvvvvvvvvvvvvvv"
+        signal.alarm(0)
+        self.runQueue_scheduled = False
+        self.runQueue()
+        print >> sys.stderr, "returning from wakeup! ^^^^^^^^^^"
+
+    def scheduleRunQueue(self):
+        """ queue up potentially multiple calls to run queue 
+            prior to executing the runQueue() call which gets
+            expensive for large numbers of tasks """
+        if not self.runQueue_scheduled:
+            self.runQueue_scheduled = True;
+            signal.signal(signal.SIGALRM, self.wake_up_handler)
+            signal.alarm(20)
 
     def cleanup(self):
         for task in self.waitingTasks:
@@ -281,12 +298,13 @@ class TaskManager(object):
         self.queuedTasks = []
 
     def startQueue(self):
-        print >> sys.stderr, "startQueue"
+        #print >> sys.stderr, "startQueue"
         if self.queueStatus is not QueueStatus.RUNNING:
             self.queueStatus = QueueStatus.RUNNING
             self.governor = self.saved_governor
             self.runQueue()
         print >> sys.stderr, "governor: " + str(self.governor)
+        print >> sys.stderr, "governor(saved): " + str(self.saved_governor)
 
     def getQueueStatus(self):
         return self.queueStatus
@@ -294,7 +312,7 @@ class TaskManager(object):
     def increaseGovernor(self):
         self.governor+=1
         self.saved_governor+=1
-        self.runQueue()
+        self.scheduleRunQueue()
 
     def decreaseGovernor(self):
         self.governor-=1

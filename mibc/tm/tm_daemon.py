@@ -125,7 +125,6 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         print 'new websocket connection'
         wslisteners.append(self)
-        #self.write_message("Hello Some World")
 
     def on_message(self, message):
         data = json.loads(message)
@@ -144,7 +143,6 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             for k, task in tmEntry['parser'].getTasks().iteritems():
                 self.taskUpdate(task)
         if 'short' in data:
-            print "short status received."
             status = {}
             tm = tmEntry['tm']
             status['total'] = str(len(tm.waitingTasks) + len(tm.queuedTasks) + len(tm.completedTasks))
@@ -157,7 +155,6 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             status['queue'] = tm.getQueueStatus()
             d = {'status': status}
             return_msg = json.dumps(d)
-            print "status[waiting] %s " % status['waiting']
             self.write_message(return_msg)
         if 'tm' in data:
             setupTm(data['tm'])
@@ -192,7 +189,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 class WebHandler(RequestHandler):
     def get(self):
         print "new web connection"
-        print "default_hash: " + Tm_daemon.default_hash
+        #print "default_hash: " + Tm_daemon.default_hash
         #print tmgrs.keys()
         #print tmgrs.values()
         #print "default_hash: " + Tm_daemon.default_hash
@@ -207,7 +204,7 @@ class WebHandler(RequestHandler):
 class ShortWebHandler(RequestHandler):
     def get(self):
         print "new web connection"
-        print "default_hash: " + Tm_daemon.default_hash
+        #print "default_hash: " + Tm_daemon.default_hash
         #print tmgrs.keys()
         #print tmgrs.values()
         #print "default_hash: " + Tm_daemon.default_hash
