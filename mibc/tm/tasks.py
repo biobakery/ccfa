@@ -229,6 +229,9 @@ class Task(object):
     def setOutputDirectory(self, givenDir):
         self.directory = givenDir
 
+    def getOutputDirectory(self):
+        return self.directory
+
     def callback(self, exit_code):
         if self.logfileno is not None:
             if self.logscriptno is not None:
@@ -506,8 +509,8 @@ class LSFTask(Task):
     def run(self, callback):
         super(LSFTask, self).run(callback)
         # create subprocess script
-        #print >> sys.stderr, "task_id: " + self.getTaskId()
-        cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
+        #cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
+        cluster_script = os.path.join(self.getOutputDirectory(), self.getTaskId() + ".sh")
         sub = """#!/bin/sh
 #BSUB {CLUSTER_QUEUE}
 source {SOURCE_PATH}
@@ -520,7 +523,8 @@ source {SOURCE_PATH}
           f.write(sub)
         os.chmod(cluster_script, 0755)
 
-        monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
+        #monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
+        monitor_script =  os.path.join(self.getOutputDirectory(), self.getTaskId() + "-monitor.sh")
         sub = """#!/bin/sh
 # kickoff and monitor LSF cluster job
 source {SOURCE_PATH}
@@ -750,7 +754,7 @@ class SlurmTask(Task):
         super(SlurmTask, self).run(callback)
         # create subprocess script
         #print >> sys.stderr, "task_id: " + self.getTaskId()
-        cluster_script = os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + ".sh")
+        cluster_script = os.path.join(self.getOutputDirectory(), self.getTaskId() + ".sh")
         sub = """#!/bin/sh
 source {SOURCE_PATH}
 {picklescript} -v
@@ -763,7 +767,7 @@ source {SOURCE_PATH}
           f.write(sub)
         os.chmod(cluster_script, 0755)
 
-        monitor_script =  os.path.join(globals.config['TEMP_PATH'], self.getTaskId() + "-monitor.sh")
+        monitor_script =  os.path.join(self.getOutputDirectory(), self.getTaskId() + "-monitor.sh")
         sub = """#!/bin/sh
 # kickoff and monitor SLURM cluster job
 source {SOURCE_PATH}
