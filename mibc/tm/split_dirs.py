@@ -2,6 +2,8 @@
 import os.path
 import sys
 import copy
+import unittest
+import subprocess
 
 
 class Split_dirs(object):
@@ -51,7 +53,7 @@ class Split_dirs(object):
                     return
             else:
                 try:
-                    os.mkdir(os.path.join(os.getcwd(), self.path))
+                    os.mkdir(self.path)
                 except:
                     print >> sys.stderr, "Error: could not create root directory %s " \
                           % os.path.join(os.getcwd(), self.path)
@@ -83,7 +85,7 @@ class Split_dirs(object):
                         self.computed_paths.append(fullpath)
                         self.running_tally += 1
                 except:
-                    print >> sys.stderr, "Error: " + sys.exc_info()[0]
+                    print >> sys.stderr, "Error: " + str(sys.exc_info()[0])
                 self.make_dirs(local_indirection, copy.deepcopy(localpath))
 
 
@@ -102,11 +104,47 @@ class Split_dirs(object):
                 else:
                     return
 
+class TestSplitDirs(unittest.TestCase):
+
+    def setUp(self):
+        #import pdb;pdb.set_trace()
+        self.split_dirs = Split_dirs(18, filenum=4, path="/tmp/split_dirs/")
+        
+    def test_count_dirs(self):
+        """ test with these parameters should produce this pattern of 8 dirs:
+        split_dirs
+        split_dirs/dir-1
+        split_dirs/dir-1/dir-0
+        split_dirs/dir-0
+        split_dirs/dir-0/dir-3
+        split_dirs/dir-0/dir-2
+        split_dirs/dir-0/dir-1
+        split_dirs/dir-0/dir-0
+        """
+        count = subprocess.check_output("find /tmp/split_dirs | wc -l",
+                shell=True,
+                stderr=subprocess.PIPE)[:-1]
+        self.assertEqual(count, str(8))
+
+    def test_count_files(self):
+        count=0
+        for filepath in self.split_dirs.getPathGenerator():
+            count+=1
+        self.assertEqual(count, 18)
+
+    def tearDown(self):
+        subprocess.call("rm -r /tmp/split_dirs", shell=True)
+
 def main():
-    split_dirs = Split_dirs(180007, filenum=15, path="/tmp/")
-    for idx, path in split_dirs.getPathGenerator():
-        open(os.path.join(path, str(idx)), 'a').close()
+
+    # The following commented out command would generate a tree
+    # for 180007 files with 15 files per directory starting at /tmp
+    #
+    #    split_dirs = Split_dirs(180007, filenum=15, path="/tmp/")
+    #    for idx, path in split_dirs.getPathGenerator():
+    #        open(os.path.join(path, str(idx)), 'a').close()
+    pass
 
 if __name__ == "__main__":
-        main()
+    unittest.main()
 
