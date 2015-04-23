@@ -189,11 +189,9 @@ class TaskManager(object):
                 self.callHook("post_failure")
 
     def wake_up_handler(self, dum1, dum2):
-        print >> sys.stderr, "wakeup! vvvvvvvvvvvvvvvvvvvvvvvvvv"
         signal.alarm(0)
         self.runQueue_scheduled = False
         self.runQueue()
-        print >> sys.stderr, "returning from wakeup! ^^^^^^^^^^"
 
     def scheduleRunQueue(self):
         """ queue up potentially multiple calls to run queue 
